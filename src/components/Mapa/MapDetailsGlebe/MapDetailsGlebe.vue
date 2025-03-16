@@ -1,19 +1,5 @@
-<template>
-  <div class="map-container">
-    <l-map :zoom="zoom" :center="center" @ready="onMapReady">
-      <l-geo-json :geojson="polygons" ref="geoJsonLayer" />
-      <GlebesLayer />
-      <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
-      <l-control-layers position="topright" />
-      <l-tile-layer v-for="tileProvider in tileProviders" :key="tileProvider.name" :name="tileProvider.name"
-        :visible="tileProvider.visible" :url="tileProvider.url" :attribution="tileProvider.attribution"
-        layer-type="base" />
-    </l-map>
-  </div>
-</template>
-
 <script setup>
-import { ref } from 'vue';
+import { ref, watchEffect } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers } from '@vue-leaflet/vue-leaflet';
@@ -94,6 +80,26 @@ function loadPolygons() {
   }
 }
 </script>
+
+<template>
+  <div class="map-container">
+    <l-map 
+      :zoom="zoom" 
+      :center="center" 
+      @ready="onMapReady" 
+      :min-zoom="6"
+      :max-zoom="16" 
+    >
+      <l-geo-json :geojson="polygons" ref="geoJsonLayer" />
+      <GlebesLayer />
+      <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
+      <l-control-layers position="topright" />
+      <l-tile-layer v-for="tileProvider in tileProviders" :key="tileProvider.name" :name="tileProvider.name"
+        :visible="tileProvider.visible" :url="tileProvider.url" :attribution="tileProvider.attribution"
+        layer-type="base" />
+    </l-map>
+  </div>
+</template>
 
 <style scoped>
 .map-container {

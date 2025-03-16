@@ -1,4 +1,4 @@
-export const areasSJC = {
+const areasSJC = {
   type: 'FeatureCollection',
   features: [
     {
@@ -196,3 +196,5 @@ export const areasSJC = {
     },
   ],
 }
+
+export default areasSJC;
