@@ -22,6 +22,9 @@ import {RouterLink} from 'vue-router'
                         <RouterLink class="nav-link" to="/mapa">Mapa</RouterLink>
                     </li>
                     <li class="nav-item">
+                        <RouterLink class="nav-link" to="/talhoes">Talhões</RouterLink>
+                    </li>
+                    <li class="nav-item">
                         <RouterLink class="nav-link" to="/dashboard">Dashboard</RouterLink>
                     </li>
                     <li class="nav-item">
