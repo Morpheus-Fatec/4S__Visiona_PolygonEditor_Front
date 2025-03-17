@@ -4,6 +4,7 @@ import Mapa from '../view/MapaView.vue';
 import Configuracao from '../view/ConfiguracaoView.vue';
 import Login from '../view/LoginView.vue';
 import NotFound from '../view/NotFoundView.vue';
+import Talhoes from '../view/TalhoesView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,11 @@ const router = createRouter({
       path: '/configuracao',
       name: 'configuracao',
       component: Configuracao,
+    },
+    {
+      path: '/talhoes',
+      name: 'talhoes',
+      component: Talhoes,
     },
     {
       path: '/:pathMatch(.*)*',
