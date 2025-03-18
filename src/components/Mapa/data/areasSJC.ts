@@ -9,6 +9,11 @@ export const areasSJC = {
         name: 'Fazenda Recanto dos Pássaros',
         description:
           'Fazenda localizada na região oeste de São José dos Campos, sendo umas das principais áreas de plantio de milho da região.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -51,6 +56,11 @@ export const areasSJC = {
         name: 'Floresta preservada Campo da Mantiqueira',
         description:
           'Reserva localizada na região oeste de São José dos Campos, onde possui diversos tipos de árvores preservadas.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -81,6 +91,11 @@ export const areasSJC = {
         name: 'Floresta preservada Campo de Rosário',
         description:
           'Reserva localizada na região oeste de São José dos Campos, onde possui diversos tipos de rosas preservadas.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -131,6 +146,11 @@ export const areasSJC = {
         name: 'Grande Banhado de São José dos Campos',
         description:
           'Banhado localizada na região central de São José dos Campos, onde possui diversos tipos de vegetação preservadas.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -172,6 +192,11 @@ export const areasSJC = {
         name: 'Área preservada do Campos de São José',
         description:
           'Área reservada na região leste do Campos de São José, onde possui vegetação preservadas.',
+        fazenda: {
+            nome: "Fazenda Recanto dos Pássaros",
+            cidade: 'São José dos Campos',
+            estado: 'São Paulo',
+          },
       },
       geometry: {
         coordinates: [
