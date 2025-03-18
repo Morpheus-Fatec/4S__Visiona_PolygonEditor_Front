@@ -18,7 +18,13 @@ const applyFilters = () => {
 </script>
 
 <template>
-  <div class="filter-component">
+  <div class="filter-component p-3 bor">
+    <!-- Botão Criar Talhão -->
+    <div class="btn-component">
+      <h1>Operações</h1>
+      <button class="btn-criar btn btn-primary">Criar Talhão</button>
+    </div>
+
     <div class="filters-container">
       <!-- Filtro Fazenda -->
       <div class="filter-item">
@@ -63,21 +69,36 @@ const applyFilters = () => {
           </option>
         </select>
       </div>
+      <div class="filter-item">
+        <button @click="applyFilters" class="btn btn-primary">Aplicar filtros</button>
+      </div>
     </div>
-
-    <button class="btn btn-primary" @click="applyFilters">
-      Aplicar Filtros
-    </button>
   </div>
 </template>
 
 <style scoped>
 .filter-component {
-  border: 1px solid #ddd;
   border-radius: 8px;
   background-color: #f9f9f9;
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 2px;;
+}
+
+.btn-component h1 {
+  font-weight: bold;
+  font-size: 1.5rem;
+  padding-bottom: 10px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+  letter-spacing: 0.2px;
+}
+
+.btn-criar {
   padding: 1rem;
+  width: 180px;
 }
 
 .filters-container {
@@ -90,10 +111,5 @@ const applyFilters = () => {
   flex: 1 1 200px;
   display: flex;
   flex-direction: column;
-}
-
-.btn-primary {
-  margin-top: 1rem;
-  width: 100%;
 }
 </style>
