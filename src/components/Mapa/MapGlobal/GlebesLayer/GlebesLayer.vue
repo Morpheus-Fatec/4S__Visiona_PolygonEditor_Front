@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue';
+import { ref, onMounted } from 'vue';
 import { LGeoJson } from '@vue-leaflet/vue-leaflet';
 import areasSJC from '../../data/areasSJC';
 import useGlebaStore from '../../../../store/GlebaStore';

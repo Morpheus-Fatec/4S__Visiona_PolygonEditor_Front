@@ -1,9 +1,19 @@
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { ref } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers } from '@vue-leaflet/vue-leaflet';
+import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers, LMarker } from '@vue-leaflet/vue-leaflet';
 import GlebesLayer from './GlebesLayer/GlebesLayer.vue';
+import { LMarkerClusterGroup } from 'vue-leaflet-markercluster'
+
+import areasSJC from '../data/areasSJC';
+
+const markerCoords = ref(
+  areasSJC.features.map((feature) => {
+    const firstCoord = feature.geometry.coordinates[0][0];
+    return [firstCoord[1], firstCoord[0]];
+  })
+);
 
 const tileProviders = ref([
   {
@@ -21,64 +31,9 @@ const tileProviders = ref([
   }
 ]);
 
-const zoom = ref(14);
+const zoom = ref(2);
 const center = ref([-23.129096216749616, -45.82651434998431]);
-const polygons = ref(loadPolygons());
 
-function onMapReady(map) {
-  const drawControl = new L.Control.Draw({
-    position: 'topright',
-    draw: {
-      polygon: true,
-      polyline: false,
-      rectangle: false,
-      circle: false,
-      circlemarker: false,
-      marker: false,
-      circleMarker: false,
-    },
-  });
-
-  map.addControl(drawControl);
-
-  map.on(L.Draw.Event.CREATED, (e) => {
-    const layer = e.layer;
-    const geojson = layer.toGeoJSON();
-    polygons.value.features.push(geojson);
-    savePolygonsToLocalStorage();
-  });
-
-  map.on(L.Draw.Event.EDITED, (e) => {
-    const layers = e.layers;
-    layers.eachLayer((layer) => {
-      const geojson = layer.toGeoJSON();
-      const index = polygons.value.features.findIndex((f) => f.id === geojson.id);
-      if (index !== -1) {
-        polygons.value.features[index] = geojson;
-      }
-    });
-    savePolygonsToLocalStorage();
-  });
-}
-
-function savePolygonsToLocalStorage() {
-  try {
-    localStorage.setItem('polygons', JSON.stringify(polygons.value));
-    console.log('Polígonos salvos no localStorage', JSON.stringify(polygons.value));
-  } catch (error) {
-    console.error('Erro ao salvar polígonos no localStorage:', error);
-  }
-}
-
-function loadPolygons() {
-  try {
-    const storedPolygons = localStorage.getItem('polygons');
-    return storedPolygons ? JSON.parse(storedPolygons) : { type: 'FeatureCollection', features: [] };
-  } catch (error) {
-    console.error('Erro ao carregar polígonos do localStorage:', error);
-    return { type: 'FeatureCollection', features: [] };
-  }
-}
 </script>
 
 <template>
@@ -86,8 +41,9 @@ function loadPolygons() {
     <l-map 
       :zoom="zoom" 
       :center="center" 
-      @ready="onMapReady" 
-      :min-zoom="6"
+      @ready="onMapReady"
+      @click.prevent.stop
+      :min-zoom="2"
       :max-zoom="16" 
     >
       <l-geo-json :geojson="polygons" ref="geoJsonLayer" />
@@ -97,6 +53,20 @@ function loadPolygons() {
       <l-tile-layer v-for="tileProvider in tileProviders" :key="tileProvider.name" :name="tileProvider.name"
         :visible="tileProvider.visible" :url="tileProvider.url" :attribution="tileProvider.attribution"
         layer-type="base" />
+        <l-marker-cluster-group
+          :options="{
+            // spiderfyOnMaxZoom: false,
+            // showCoverageOnHover: false,
+            // zoomToBoundsOnClick: false,
+          }"
+        >
+          <l-marker
+            v-for="(coord, index) in markerCoords"
+            :key="index"
+            :lat-lng="coord"
+            icon="null"
+          />
+        </l-marker-cluster-group>
     </l-map>
   </div>
 </template>
