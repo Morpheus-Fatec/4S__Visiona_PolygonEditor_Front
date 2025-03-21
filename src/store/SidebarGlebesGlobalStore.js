@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import useGeoFilterStore from './GeoFilterStore';
 
-const useGlebaStore = defineStore('gleba', {
+const useSidebarGlebesGlobalStore = defineStore('gleba', {
   state: () => ({
     isGlebaClicked: false,
     selectedFeatureId: null,
@@ -20,4 +20,4 @@ const useGlebaStore = defineStore('gleba', {
   },
 });
 
-export default useGlebaStore;
+export default useSidebarGlebesGlobalStore;
