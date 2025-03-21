@@ -22,7 +22,7 @@ const applyFilters = () => {
     <!-- Botão Criar Talhão -->
     <div class="btn-component">
       <h1>Operações</h1>
-      <button class="btn-criar btn btn-primary">Criar Talhão</button>
+      <button class="btn-criar btn btn-primary">Cadastrar Talhão</button>
     </div>
 
     <div class="filters-container">
