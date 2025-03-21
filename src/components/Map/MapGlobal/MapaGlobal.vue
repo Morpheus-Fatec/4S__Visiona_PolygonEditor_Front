@@ -4,7 +4,6 @@ import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers, LMarker } from '@vue-leaflet/vue-leaflet';
 import GlebesGlobalLayer from './GlebesLayer/GlebesGlobalLayer.vue';
-import { LMarkerClusterGroup } from 'vue-leaflet-markercluster'
 
 import useSidebarGlebesGlobalStore from '../../../store/SidebarGlebesGlobalStore';
 import useGeoFilterStore from '../../../store/GeoFilterStore';
@@ -13,15 +12,6 @@ const sidebarStore = useSidebarGlebesGlobalStore();
 const geoFilterStore = useGeoFilterStore();
 const geoFilterData = computed(() => geoFilterStore.geoFilterData);
 const isOffcanvasOpen = computed(() => sidebarStore.isGlebaClicked);
-
-import areasSJC from '../data/areasSJC';
-
-const markerCoords = ref(
-  areasSJC.features.map((feature) => {
-    const firstCoord = feature.geometry.coordinates[0][0];
-    return [firstCoord[1], firstCoord[0]];
-  })
-);
 
 const tileProviders = ref([
   {
@@ -69,20 +59,6 @@ const handleAlert = () => {
       <l-tile-layer v-for="tileProvider in tileProviders" :key="tileProvider.name" :name="tileProvider.name"
         :visible="tileProvider.visible" :url="tileProvider.url" :attribution="tileProvider.attribution"
         layer-type="base" />
-        <!-- <l-marker-cluster-group
-          :options="{
-            // spiderfyOnMaxZoom: false,
-            // showCoverageOnHover: false,
-            // zoomToBoundsOnClick: false,
-          }"
-        >
-          <l-marker
-            v-for="(coord, index) in markerCoords"
-            :key="index"
-            :lat-lng="coord"
-            icon="null"
-          />
-        </l-marker-cluster-group> -->
     </l-map>
     <div 
       class="offcanvas offcanvas-end bg-transparent disableOffcanvas"
