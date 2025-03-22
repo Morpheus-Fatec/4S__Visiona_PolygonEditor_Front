@@ -9,6 +9,11 @@ const areasSJC = {
         name: 'Fazenda Recanto dos Pássaros',
         description:
           'Fazenda localizada na região oeste de São José dos Campos, sendo umas das principais áreas de plantio de milho da região.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -51,6 +56,11 @@ const areasSJC = {
         name: 'Floresta preservada Campo da Mantiqueira',
         description:
           'Reserva localizada na região oeste de São José dos Campos, onde possui diversos tipos de árvores preservadas.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -81,6 +91,11 @@ const areasSJC = {
         name: 'Floresta preservada Campo de Rosário',
         description:
           'Reserva localizada na região oeste de São José dos Campos, onde possui diversos tipos de rosas preservadas.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -131,6 +146,11 @@ const areasSJC = {
         name: 'Grande Banhado de São José dos Campos',
         description:
           'Banhado localizada na região central de São José dos Campos, onde possui diversos tipos de vegetação preservadas.',
+        fazenda: {
+          nome: "Fazenda Recanto dos Pássaros",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
       },
       geometry: {
         coordinates: [
@@ -172,6 +192,11 @@ const areasSJC = {
         name: 'Área preservada do Campos de São José',
         description:
           'Área reservada na região leste do Campos de São José, onde possui vegetação preservadas.',
+        fazenda: {
+            nome: "Fazenda Recanto dos Pássaros",
+            cidade: 'São José dos Campos',
+            estado: 'São Paulo',
+          },
       },
       geometry: {
         coordinates: [
@@ -189,6 +214,147 @@ const areasSJC = {
             [-45.82517723879499, -23.22187945060641],
             [-45.8138025893297, -23.208498001943127],
             [-45.814305614691676, -23.207466068631874],
+          ],
+        ],
+        type: 'Polygon',
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 6,
+        alt: 'Área 6',
+        name: 'Reserva Florestal Vale Verde',
+        description:
+          'Área de preservação com vegetação nativa e fauna diversificada.',
+        fazenda: {
+          nome: "Fazenda Vale Verde",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
+      },
+      geometry: {
+        coordinates: [
+          [
+            [-45.860123, -23.140123],
+            [-45.865456, -23.141789],
+            [-45.868789, -23.145678],
+            [-45.867890, -23.148123],
+            [-45.860456, -23.147890],
+            [-45.859123, -23.144567],
+            [-45.860123, -23.140123],
+          ],
+        ],
+        type: 'Polygon',
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 7,
+        alt: 'Área 7',
+        name: 'Bosque das Palmeiras',
+        description:
+          'Bosque com árvores nativas e áreas de lazer para visitantes.',
+        fazenda: {
+          nome: "Fazenda Bosque das Palmeiras",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
+      },
+      geometry: {
+        coordinates: [
+          [
+            [-45.875678, -23.130234],
+            [-45.878901, -23.131890],
+            [-45.882345, -23.133567],
+            [-45.881567, -23.136123],
+            [-45.877890, -23.135456],
+            [-45.875678, -23.130234],
+          ],
+        ],
+        type: 'Polygon',
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 8,
+        alt: 'Área 8',
+        name: 'Reserva Natural das Águas Claras',
+        description:
+          'Área com riachos e vegetação preservada, ideal para caminhadas.',
+        fazenda: {
+          nome: "Fazenda Águas Claras",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
+      },
+      geometry: {
+        coordinates: [
+          [
+            [-45.840789, -23.125890],
+            [-45.843567, -23.126789],
+            [-45.845678, -23.129012],
+            [-45.843890, -23.131234],
+            [-45.841123, -23.130567],
+            [-45.840789, -23.125890],
+          ],
+        ],
+        type: 'Polygon',
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 9,
+        alt: 'Área 9',
+        name: 'Mata Atlântica Conservada',
+        description:
+          'Área de mata atlântica com grande biodiversidade e trilhas ecológicas.',
+        fazenda: {
+          nome: "Fazenda Mata Atlântica",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
+      },
+      geometry: {
+        coordinates: [
+          [
+            [-45.890123, -23.150456],
+            [-45.893567, -23.151890],
+            [-45.896234, -23.153678],
+            [-45.894567, -23.156234],
+            [-45.891123, -23.155567],
+            [-45.890123, -23.150456],
+          ],
+        ],
+        type: 'Polygon',
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 10,
+        alt: 'Área 10',
+        name: 'Sítio das Flores',
+        description:
+          'Sítio com cultivo de flores e área para eventos culturais.',
+        fazenda: {
+          nome: "Fazenda Sítio das Flores",
+          cidade: 'São José dos Campos',
+          estado: 'São Paulo',
+        },
+      },
+      geometry: {
+        coordinates: [
+          [
+            [-45.815678, -23.135567],
+            [-45.818234, -23.137890],
+            [-45.820456, -23.139567],
+            [-45.819123, -23.142234],
+            [-45.816567, -23.140890],
+            [-45.815678, -23.135567],
           ],
         ],
         type: 'Polygon',

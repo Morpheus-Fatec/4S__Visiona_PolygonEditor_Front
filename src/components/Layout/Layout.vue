@@ -1,12 +1,12 @@
 <script>
-import NavBar from '../NavBar/NavBar.vue';
+  import NavBar from '../NavBar/NavBar.vue';
 
-export default {
-  name: 'Layout',
-  components: {
-    NavBar
-  }
-};
+  export default {
+    name: 'LayoutVue',
+    components: {
+      NavBar
+    }
+  };
 </script>
 
 <template>
