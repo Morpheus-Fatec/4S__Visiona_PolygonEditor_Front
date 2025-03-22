@@ -38,16 +38,8 @@ const totalItems = computed(() => fields.value.length);
 </script>
 
 <template>
-  <div class="w-100 container p-3">
+  <div class="w-100 container p-3 d-flex gap-3 flex-column">
     <FilterComponent />
-
-    <div class="table-container">
-      <Pagination
-      :currentPage="currentPage"
-      :totalItems="totalItems"
-      :itemsPerPage="itemsPerPage"
-      @update:currentPage="currentPage = $event" />
-  </div>
       <div class="overflow">
         <table class="table table-striped">
           <thead>
@@ -78,6 +70,11 @@ const totalItems = computed(() => fields.value.length);
           </tbody>
         </table>
       </div>
+      <Pagination
+      :currentPage="currentPage"
+      :totalItems="totalItems"
+      :itemsPerPage="itemsPerPage"
+      @update:currentPage="currentPage = $event" />
     </div>
 </template>
 
