@@ -1,9 +1,27 @@
 <script setup>
+import { useRouter } from 'vue-router';
 import areasSJC from '../Map/data/areasSJC';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
+
+const router = useRouter();
+
 const handlePrintId = (id) => {
+  if (!areasSJC || !Array.isArray(areasSJC.features)) {
+    console.error("O objeto 'areasSJC' não está carregado corretamente");
+    return;
+  }
+
   const area = areasSJC.features.find(area => area.properties.id === id);
-  console.log(area);
+
+  if (area) {
+    router.push({ 
+      name: 'operacaoMapDetails', 
+      params: { id: area.properties.id }, 
+      state: { operation: area }
+    });
+  } else {
+    console.log(`Área com id ${id} não encontrada.`);
+  }
 };
 </script>
 
@@ -19,17 +37,17 @@ const handlePrintId = (id) => {
             <th class="col text-center bg-dark text-white p-4">Fazenda</th>
             <th class="col text-center bg-dark text-white p-4">Cidade/Estado</th>
             <th class="col text-center bg-dark text-white p-4">Situação</th>
-            <th class="col text-center bg-dark text-white p-4">Ação</th>
+            <th class="col text-center bg-dark text-white p-4" style="min-width: 200px">Ação</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="area in areasSJC.features" :key="area.properties.id">
-            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.alt }}</td>
-            <td class="text-wrap" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.description }}</td>
-            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.fazenda ? area.properties.fazenda.nome : 'N/A' }}</td>
-            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>
-            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">Pendente</td>
-            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">
+            <td class="text-center px-3 py-3">{{ area.properties.alt }}</td>
+            <td class="text-wrap py-3">{{ area.properties.description }}</td>
+            <td class="text-center py-3">{{ area.properties.fazenda ? area.properties.fazenda.nome : 'N/A' }}</td>
+            <td class="text-center py-3">{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>
+            <td class="text-center py-3">Pendente</td>
+            <td class="text-center px-3">
               <button @click="handlePrintId(area.properties.id)" class="btn btn-primary">Ver operação</button>
             </td>
           </tr>
@@ -41,7 +59,7 @@ const handlePrintId = (id) => {
 
 <style scoped>
 .table-container {
-  max-height: calc(100vh - 140px); /* Subtraímos o espaço do cabeçalho e filtros */
+  max-height: calc(100vh - 140px);
 }
 
 .sticky-top {

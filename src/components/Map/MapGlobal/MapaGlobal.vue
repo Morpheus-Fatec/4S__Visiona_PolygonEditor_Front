@@ -32,11 +32,6 @@ const tileProviders = ref([
 const zoom = ref(13);
 const center = ref([-23.129096216749616, -45.82651434998431]);
 
-watchEffect(() => {
-  console.log('sidebarStore', sidebarStore.isGlebaClicked);
-  console.log('sidebarStore', geoFilterData.value);
-})
-
 const handleAlert = () => {
   alert('Ver mais detalhes');
 };

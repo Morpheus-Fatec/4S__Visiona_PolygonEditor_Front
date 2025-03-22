@@ -1,6 +1,28 @@
 <script setup>
-import Layout from '../components/Layout/Layout.vue';
-import Mapa from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
+  import { ref, watchEffect } from 'vue';
+  import Layout from '../components/Layout/Layout.vue';
+  import MapDetailsGlebe from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
+  import { useRoute } from 'vue-router';
+  import areasSJC from '@/components/Map/data/areasSJC';
+
+  const route = useRoute();
+  const areaId = route.params.id;
+  const data = ref(null);
+
+  watchEffect(() => {
+    if (!areaId) {
+      console.error("Area ID is missing");
+      return;
+    }
+
+    const area = areasSJC.features.find(area => String(area.properties.id) === areaId);
+
+    if (!area) {
+      console.error(`Area with ID ${areaId} not found.`);
+      return;
+    }
+    data.value = area;
+  });
 </script>
 
 <template>
@@ -19,7 +41,7 @@ import Mapa from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
       </div>
 
       <div class="flex-grow-1">
-        <Mapa />
+        <MapDetailsGlebe :data="data"/>
       </div>
     </div>
   </Layout>
