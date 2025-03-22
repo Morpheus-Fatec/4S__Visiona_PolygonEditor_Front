@@ -32,6 +32,7 @@ export default {
 <template>
   <div class="pagination">
     <button
+      class="btn btn-primary"
       :disabled="currentPage <= 1"
       @click="changePage(currentPage - 1)">
       Anterior
@@ -40,6 +41,7 @@ export default {
     <span>{{ currentPage }} de {{ totalPages }}</span>
 
     <button
+      class="btn btn-primary"
       :disabled="currentPage >= totalPages"
       @click="changePage(currentPage + 1)">
       Próximo
@@ -49,7 +51,6 @@ export default {
 
 <style scoped>
 .pagination {
-  display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
