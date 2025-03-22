@@ -19,9 +19,9 @@ const router = createRouter({
       component: () => import ('../view/MapaGlobalView.vue'),
     },
     {
-      path: '/mapa',
-      name: 'mapa',
-      component: ()=> import ('../view/MapaDetailsGlebeView.vue'),
+      path: '/operacao/:id',
+      name: 'operacaoMapDetails',
+      component: ()=> import ('../view/MapaOperationView.vue'),
     },
     {
       path: '/dashboard',

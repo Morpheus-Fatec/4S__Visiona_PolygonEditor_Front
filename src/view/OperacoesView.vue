@@ -7,8 +7,8 @@ import TableComponent from '@/components/Operations/TableComponent.vue';
 
 <template>
   <Layout>
-    <div class='w-100'>
-      <TableComponent />
-    </div>
+      <div class='w-100 d-flex flex-column px-5 gap-3'>
+        <TableComponent />
+      </div>
   </Layout>
 </template>

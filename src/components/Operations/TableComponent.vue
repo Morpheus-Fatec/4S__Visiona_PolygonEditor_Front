@@ -5,78 +5,53 @@ const handlePrintId = (id) => {
   const area = areasSJC.features.find(area => area.properties.id === id);
   console.log(area);
 };
-
 </script>
 
 <template>
-  <div class="w-100 container p-3">
+  <div class="w-100 h-100 d-flex flex-column gap-5 rounded bg-red pt-5">
     <FilterComponent />
-    <div class="table-container">
-      <div class="overflow">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th class="col">Nome</th>
-              <th class="col">Descrição</th>
-              <th class="col">Fazenda</th>
-              <th class="col">Cidade/Estado</th>
-              <th class="col">Situação</th>
-              <th class="col">Ação</th>
-            </tr>
-          </thead>
-          <tbody class="table-group-divider">
-            <tr v-for="area in areasSJC.features" :key="area.properties.id">
-              <td>{{ area.properties.alt }}</td>
-              <td class="break-text">{{ area.properties.description }}</td>
-              <td>{{ area.properties.fazenda ? area.properties.fazenda.nome : 'N/A' }}</td>
-              <td>{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>
-              <td>Pendente</td>
-              <td>
-                <button @click="handlePrintId(area.properties.id)" class="btn btn-primary">Ver ID</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="table-container flex-grow-1 overflow-auto rounded">
+      <table class="table table-striped table-bordered">
+        <thead class="sticky-top">
+          <tr>
+            <th class="col text-center bg-dark text-white p-4">Nome</th>
+            <th class="col text-center bg-dark text-white p-4">Descrição</th>
+            <th class="col text-center bg-dark text-white p-4">Fazenda</th>
+            <th class="col text-center bg-dark text-white p-4">Cidade/Estado</th>
+            <th class="col text-center bg-dark text-white p-4">Situação</th>
+            <th class="col text-center bg-dark text-white p-4">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="area in areasSJC.features" :key="area.properties.id">
+            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.alt }}</td>
+            <td class="text-wrap" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.description }}</td>
+            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.fazenda ? area.properties.fazenda.nome : 'N/A' }}</td>
+            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>
+            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">Pendente</td>
+            <td class="text-center" style="padding-top: 15px; padding-bottom: 15px;">
+              <button @click="handlePrintId(area.properties.id)" class="btn btn-primary">Ver operação</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 .table-container {
-  max-height: 355px;
-  overflow: hidden;
-  border: 0.1px solid #dee2e6;
-  border-radius: 8px;
-  margin-top: 10px;
+  max-height: calc(100vh - 140px); /* Subtraímos o espaço do cabeçalho e filtros */
 }
 
-
-.overflow {
-  max-height: 370px;
-  overflow-y: auto;
-}
-
-.col {
-  font-weight: bold;
-}
-
-thead th {
+.sticky-top {
   position: sticky;
   top: 0;
+  z-index: 1020;
 }
 
-th, td {
-  text-align: center;
-  vertical-align: middle;
-  border-bottom: 1px solid #dee2e6;
-  border-right: 1px solid #dee2e6;
-}
-
-.break-text {
+.text-wrap {
   word-wrap: break-word;
   white-space: normal;
-  max-width: 300px;
 }
 </style>
-
