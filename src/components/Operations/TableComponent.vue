@@ -1,116 +1,75 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { areasSJC } from '../Mapa/data/areasSJC';
+import { useRouter } from 'vue-router';
+import areasSJC from '../Map/data/areasSJC';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
-import Pagination from '@/components/util/PaginationVue.vue';
+
+const router = useRouter();
 
 const handlePrintId = (id) => {
-  const area = areasSJC.features.find(area => area.properties.id === id);
-  console.log(area);
-};
-
-const fields = ref([]);
-const currentPage = ref(1); // Página atual
-const itemsPerPage = ref(10); // Quantidade de itens por página
-
-async function getFields() {
-  try {
-    const response = await fetch('http://localhost:8080/field/simple');
-    const data = await response.json();
-    fields.value = data;
-  } catch (error) {
-    console.error('Erro ao buscar os campos:', error);
+  if (!areasSJC || !Array.isArray(areasSJC.features)) {
+    console.error("O objeto 'areasSJC' não está carregado corretamente");
+    return;
   }
-}
 
-onMounted(() => {
-  getFields();
-});
+  const area = areasSJC.features.find(area => area.properties.id === id);
 
-// Computed para paginar os campos
-const paginatedFields = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value;
-  const end = start + itemsPerPage.value;
-  return fields.value.slice(start, end);
-});
-
-const totalItems = computed(() => fields.value.length);
+  if (area) {
+    router.push({
+      name: 'operacaoMapDetails',
+      params: { id: area.properties.id },
+      state: { operation: area }
+    });
+  } else {
+    console.log(`Área com id ${id} não encontrada.`);
+  }
+};
 </script>
 
 <template>
-  <div class="w-100 container p-3 d-flex gap-3 flex-column">
+  <div class="w-100 h-100 d-flex flex-column gap-5 rounded bg-red pt-5">
     <FilterComponent />
-      <div class="overflow">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th class="col">Nome</th>
-              <th class="col">Fazenda</th>
-              <th class="col">Cidade/Estado</th>
-              <th class="col">Solo</th>
-              <th class="col">Cultura</th>
-              <th class="col">Área (ha)</th>
-              <th class="col">Situação</th>
-              <th class="col">Ação</th>
-            </tr>
-          </thead>
-          <tbody class="table-group-divider">
-            <tr v-for="field in paginatedFields" :key="field.id">
-              <td>{{ field.name }}</td>
-              <td>{{ field.farm.name }}</td>
-              <td>{{ field.farm.city + ' - ' + field.farm.state }}</td>
-              <td>{{ field.soil }}</td>
-              <td>{{ field.culture }}</td>
-              <td>{{ field.area }}</td>
-              <td>{{ field.status }}</td>
-              <td>
-                <button @click="handlePrintId(field.id)" class="btn btn-primary">Ver ID</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <Pagination
-      :currentPage="currentPage"
-      :totalItems="totalItems"
-      :itemsPerPage="itemsPerPage"
-      @update:currentPage="currentPage = $event" />
+    <div class="table-container flex-grow-1 overflow-auto rounded">
+      <table class="table table-striped table-bordered">
+        <thead class="sticky-top">
+          <tr>
+            <th class="col text-center bg-dark text-white p-4">Nome</th>
+            <th class="col text-center bg-dark text-white p-4">Descrição</th>
+            <th class="col text-center bg-dark text-white p-4">Fazenda</th>
+            <th class="col text-center bg-dark text-white p-4">Cidade/Estado</th>
+            <th class="col text-center bg-dark text-white p-4">Situação</th>
+            <th class="col text-center bg-dark text-white p-4" style="min-width: 200px">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="area in areasSJC.features" :key="area.properties.id">
+            <td class="text-center px-3 py-3">{{ area.properties.alt }}</td>
+            <td class="text-wrap py-3">{{ area.properties.description }}</td>
+            <td class="text-center py-3">{{ area.properties.fazenda ? area.properties.fazenda.nome : 'N/A' }}</td>
+            <td class="text-center py-3">{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>
+            <td class="text-center py-3">Pendente</td>
+            <td class="text-center px-3">
+              <button @click="handlePrintId(area.properties.id)" class="btn btn-primary">Ver operação</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+  </div>
 </template>
 
 <style scoped>
 .table-container {
-  max-height: 355px;
-  overflow: hidden;
-  border: 0.1px solid #dee2e6;
-  border-radius: 8px;
-  margin-top: 10px;
+  max-height: calc(100vh - 140px);
 }
 
-.overflow {
-  max-height: 370px;
-  overflow-y: auto;
-}
-
-.col {
-  font-weight: bold;
-}
-
-thead th {
+.sticky-top {
   position: sticky;
   top: 0;
+  z-index: 1020;
 }
 
-th, td {
-  text-align: center;
-  vertical-align: middle;
-  border-bottom: 1px solid #dee2e6;
-  border-right: 1px solid #dee2e6;
-}
-
-.break-text {
+.text-wrap {
   word-wrap: break-word;
   white-space: normal;
-  max-width: 300px;
 }
 </style>

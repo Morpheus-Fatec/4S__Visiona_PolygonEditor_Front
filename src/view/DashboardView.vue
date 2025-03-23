@@ -4,7 +4,7 @@ import Layout from '../components/Layout/Layout.vue';
 
 <template>
   <Layout>
-    <div class='w-100'>
+    <div class='w-100 bg-white'>
       <h1 class="text-center mt-5 h1">Tela Dashboard</h1>
     </div>
   </Layout>
