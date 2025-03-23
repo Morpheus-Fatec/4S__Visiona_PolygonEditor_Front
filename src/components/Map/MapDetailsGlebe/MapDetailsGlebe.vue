@@ -26,7 +26,8 @@ const tileProviders = ref([
 ]);
 
 const zoom = ref(14);
-const center = ref([-23.129096216749616, -45.82651434998431]);
+const centerGlebe = props.data.geometry.coordinates[0][0];
+const center = ref([centerGlebe[1], centerGlebe[0]]);
 
 </script>
 
@@ -36,7 +37,7 @@ const center = ref([-23.129096216749616, -45.82651434998431]);
       :zoom="zoom" 
       :center="center" 
       @ready="onMapReady" 
-      :min-zoom="6"
+      :min-zoom="12"
       :max-zoom="16" 
     >
       <GlebesLayer :data="props.data"/>
