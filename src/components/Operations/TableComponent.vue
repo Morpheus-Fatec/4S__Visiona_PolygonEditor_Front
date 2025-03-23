@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import areasSJC from '../Map/data/areasSJC';
+import areasMock from '../Map/data/areasMock.json'
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
 
 const router = useRouter();
@@ -22,6 +23,7 @@ const handlePrintId = (id) => {
   } else {
     console.log(`Área com id ${id} não encontrada.`);
   }
+  console.log(areasMock);
 };
 </script>
 
