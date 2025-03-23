@@ -1,9 +1,11 @@
 <script setup lang="ts">
-  import Layout from '../components/Layout/Layout.vue';
+import Layout from '../components/Layout/Layout.vue';
 </script>
 
 <template>
   <Layout>
-    <h1 class="text-center mt-5 h1">Tela Dashboard</h1>
-  </Layout>   
+    <div class='w-100 bg-white'>
+      <h1 class="text-center mt-5 h1">Tela Dashboard</h1>
+    </div>
+  </Layout>
 </template>
