@@ -19,10 +19,7 @@ import {RouterLink} from 'vue-router'
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-4">
                     <li class="nav-item">
-                        <RouterLink class="nav-link" to="/mapa-global">Mapa Global</RouterLink>
-                    </li>
-                    <li class="nav-item">
-                        <RouterLink class="nav-link" to="/mapa">Mapa Details</RouterLink>
+                        <RouterLink class="nav-link" to="/mapa">Mapa</RouterLink>
                     </li>
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/dashboard">Dashboard</RouterLink>
