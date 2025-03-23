@@ -29,7 +29,7 @@
             </div>
 
             <div class="text-center pt-1 mb-5 pb-1">
-              <RouterLink to="/dashboard">
+              <RouterLink to="/mapa-global">
                   <button class="btn btn-primary mb-3 w-100" type="button">Entrar</button>
               </RouterLink>
               </div>

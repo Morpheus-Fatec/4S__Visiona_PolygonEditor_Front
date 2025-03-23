@@ -52,7 +52,6 @@ const handleAlert = () => {
       :min-zoom="2"
       :max-zoom="16" 
     >
-      <l-geo-json :geojson="polygons" ref="geoJsonLayer" />
       <GlebesGlobalLayer />
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
       <l-control-layers position="topright" />

@@ -21,7 +21,7 @@ const router = createRouter({
       path: '/operacao/:id',
       name: 'operacaoMapDetails',
       props: true,
-      component: ()=> import ('../view/MapaOperationView.vue'),
+      component: ()=> import ('../view/MapaDetailsGlebeView.vue'),
     },
     {
       path: '/dashboard',
