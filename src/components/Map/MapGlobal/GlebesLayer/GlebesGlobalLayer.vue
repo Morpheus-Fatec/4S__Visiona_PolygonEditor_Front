@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue';
+import { ref, onMounted } from 'vue';
 import { LGeoJson } from '@vue-leaflet/vue-leaflet';
 import areasSJC from '../../data/areasSJC';
-import useGlebaStore from '../../../../store/GlebaStore';
-import useGeoFilterStore from '../../../../store/GeoFilterStore';
 
-const store = useGlebaStore();
+import useGeoFilterStore from '../../../../store/GeoFilterStore';
+import useSidebarGlebesGlobalStore from '../../../../store/SidebarGlebesGlobalStore';
+
+const sidebarStore = useSidebarGlebesGlobalStore();
 const geoFilterStore = useGeoFilterStore();
 
 const data = ref(null);
@@ -17,7 +18,8 @@ onMounted(() => {
 
 const handleClick = (e) => {
   const clickedFeature = e.propagatedFrom.feature;
-  store.toggleGlebaClick(clickedFeature.properties.id);
+
+  sidebarStore.toggleGlebaClick(clickedFeature.properties.id);
 
   const same = geoFilterStore.geoFilterData && geoFilterStore.geoFilterData.properties.id === clickedFeature.properties.id;
 

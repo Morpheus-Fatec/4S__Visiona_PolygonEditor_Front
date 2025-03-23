@@ -2,7 +2,7 @@
 import { ref, onMounted, watchEffect } from 'vue';
 import { LGeoJson } from '@vue-leaflet/vue-leaflet';
 import areasSJC from '../../data/areasSJC';
-import useGlebaStore from '../../../../store/GlebaStore';
+import useGlebaStore from '../../../../store/SidebarGlebesGlobalStore';
 import useGeoFilterStore from '../../../../store/GeoFilterStore';
 
 const store = useGlebaStore();
