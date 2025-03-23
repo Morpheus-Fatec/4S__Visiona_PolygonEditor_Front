@@ -1,6 +1,7 @@
 <script setup>
 import Layout from '../components/Layout/Layout.vue';
 import Mapa from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
+
 </script>
 
 <template>
