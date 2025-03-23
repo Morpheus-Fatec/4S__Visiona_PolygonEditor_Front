@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '../view/DashboardView.vue';
-import Mapa from '../view/MapaView.vue';
 import Configuracao from '../view/ConfiguracaoView.vue';
 import Login from '../view/LoginView.vue';
 import NotFound from '../view/NotFoundView.vue';
@@ -14,9 +13,14 @@ const router = createRouter({
       component: Login,
     },
     {
+      path: '/mapa-global',
+      name: 'mapa-global',
+      component: () => import ('../view/MapaGlobalView.vue'),
+    },
+    {
       path: '/mapa',
       name: 'mapa',
-      component: Mapa,
+      component: ()=> import ('../view/MapaDetailsGlebeView.vue'),
     },
     {
       path: '/dashboard',
