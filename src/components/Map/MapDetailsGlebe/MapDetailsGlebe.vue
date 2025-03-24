@@ -1,8 +1,8 @@
 <script setup>
-import { ref, watchEffect, defineProps } from 'vue';
+import { ref, defineProps } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers } from '@vue-leaflet/vue-leaflet';
+import { LMap, LTileLayer, LControlScale, LControlLayers } from '@vue-leaflet/vue-leaflet';
 import GlebesLayer from '../MapDetailsGlebe/GlebeOperationLayer/GlebesOperation.vue';
 
 const props = defineProps({

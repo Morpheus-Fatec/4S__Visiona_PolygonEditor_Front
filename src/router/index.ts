@@ -4,6 +4,7 @@ import Configuracao from '../view/ConfiguracaoView.vue';
 import Login from '../view/LoginView.vue';
 import NotFound from '../view/NotFoundView.vue';
 import Operacoes from '../view/OperacoesView.vue';
+import MapaOperationView from '@/view/MapaOperationView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -22,7 +23,7 @@ const router = createRouter({
       path: '/operacao/:id',
       name: 'operacaoMapDetails',
       props: true,
-      component: ()=> import ('../view/MapaOperationView.vue'),
+      component: MapaOperationView,
     },
     {
       path: '/dashboard',

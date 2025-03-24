@@ -1,8 +1,9 @@
 <script setup>
-import { ref, watch, watchEffect,computed } from 'vue';
+import { ref, computed } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers, LMarker } from '@vue-leaflet/vue-leaflet';
+import { useRouter } from 'vue-router';
+import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers } from '@vue-leaflet/vue-leaflet';
 import GlebesGlobalLayer from './GlebesLayer/GlebesGlobalLayer.vue';
 
 import useSidebarGlebesGlobalStore from '../../../store/SidebarGlebesGlobalStore';
@@ -31,11 +32,25 @@ const tileProviders = ref([
 
 const zoom = ref(13);
 const center = ref([-23.129096216749616, -45.82651434998431]);
+const router = useRouter();
 
-const handleAlert = () => {
-  alert('Ver mais detalhes');
+const handlePrintId = () => {
+  if (!geoFilterData.value || !geoFilterData.value.properties) {
+    console.error("O objeto 'geoFilterData' não está carregado corretamente");
+    return;
+  }
+
+  const id = geoFilterData?.value.properties.id;
+  if (id) {
+    router.push({
+      name: 'operacaoMapDetails',
+      params: { id },
+      state: { operation: geoFilterData.value }
+    });
+  } else {
+    console.log(`Área com id ${id} não encontrada.`);
+  }
 };
-
 </script>
 
 <template>
@@ -97,7 +112,7 @@ const handleAlert = () => {
               </ul>
             </div>
             <div class="text-center pb-3">
-              <button class="btn btn-outline-primary" @click="handleAlert">Ver mais detalhes</button>
+              <button type="button" class="btn btn-outline-primary" @click="handlePrintId">Ver mais detalhes</button>
             </div>
           </div>
         </template>
