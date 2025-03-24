@@ -5,7 +5,7 @@ import Configuracao from '../view/ConfiguracaoView.vue';
 import Login from '../view/LoginView.vue';
 import NotFound from '../view/NotFoundView.vue';
 import Talhoes from '../view/TalhoesView.vue';
-
+import Register from '../view/RegisterView.vue' ;
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -38,6 +38,11 @@ const router = createRouter({
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: NotFound,
+    },
+    {
+      path: '/cadastro',
+      name: 'cadatro',
+      component: Register,
     },
   ],
 })

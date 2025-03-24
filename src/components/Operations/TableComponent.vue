@@ -25,7 +25,7 @@ const handlePrintId = (id) => {
             <td>{{ area.properties.alt }}</td>
             <td class="break-text">{{ area.properties.description }}</td>
             <td>{{ area.properties.fazenda ? area.properties.fazenda.nome : 'N/A' }}</td>
-            <td>{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>
+           <!-- <td>{{ area.properties.fazenda.cidade + ' - ' + area.properties.fazenda.estado }}</td>-->
             <td>{{ 'Pendente' }}</td>
             <td>
               <button @click="handlePrintId(area.properties.id)">Ver ID</button>

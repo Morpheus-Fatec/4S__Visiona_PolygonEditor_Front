@@ -1,5 +1,6 @@
 <script setup>
 import { ref, defineEmits } from 'vue';
+import Register from '@/components/Operations/RegisterComponent.vue';
 
 const emit = defineEmits(['apply-filters']);
 
@@ -12,6 +13,14 @@ const filters = ref({
 
 const options = ['Opção 1', 'Opção 2', 'Opção 3'];
 
+
+const uploadComponent = ref(null);
+
+const modalUpload = () => {
+  if (uploadComponent.value) {
+    uploadComponent.value.openModal();
+  }
+};
 const applyFilters = () => {
   emit('apply-filters', { ...filters.value });
 };
@@ -65,10 +74,12 @@ const applyFilters = () => {
       </div>
     </div>
 
-    <button class="btn btn-primary" @click="applyFilters">
-      Aplicar Filtros
-    </button>
+      <button class="btn btn-primary" @click="applyFilters">
+        Aplicar Filtros
+      </button>
+
   </div>
+
 </template>
 
 <style scoped>
