@@ -12,6 +12,8 @@ const geojsonField = ref(null);
 const talhoesMap = ref(new Map());
 const selectedCoordinates = ref("");
 const selectedWeeds = ref([]);
+const editingTalhao = ref(null);
+
 
 const handleFileUpload = (event) => {
   const file = event.target.files[0];
@@ -102,9 +104,10 @@ const sendFile = () => {
       }
     });
 
-    const id = featuresFarm.properties.ID || `talhao_${index}`;
+    const id = featuresFarm.properties.ID || `${index}`;
     talhoes.set(id, {
       id,
+      editEnabled: false,
       idFarm: featuresFarm.properties.MN_TL,
       area: featuresFarm.properties.AREA_HA_TL,
       soil: featuresFarm.properties.SOLO,
@@ -158,9 +161,8 @@ const openWeedModal = (talhao) => {
 
 const saveField = async () => {
   try {
-    const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", {
-      fields: Array.from(talhoesMap.value.values()),
-    });
+    const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()),
+    );
     console.log(response.data);
     const modalRegister = bootstrap.Modal.getInstance(document.getElementById('modalGeoJson'));
     if (modalRegister) {
@@ -170,10 +172,15 @@ const saveField = async () => {
     console.error(error);
   }
 
-const editFarm = (talhao) => {
-  
 }
 
+const editField = (talhao) => {
+  talhoesMap.value.get(talhao.id).editEnabled = true;
+  console.log("Editando talhão", talhoesMap.value.get(talhao.id));
+};
+
+const saveEdit = (talhao) => {
+  editingTalhao.value = null;
 };
 </script>
 
@@ -254,7 +261,11 @@ const editFarm = (talhao) => {
                   <td>{{ talhao.nameFarm }}</td>
                   <td>{{ talhao.area }}</td>
                   <td>
-                    Cultura: {{ talhao.culture }}<br />
+                    Cultura:
+                    <span v-if="!talhao.editEnabled">
+                      {{ talhao.culture }}</span>
+                      <input v-if="talhao.editEnabled" type="text" v-model="talhao.culture" class="form-control" />
+                    <br />
                     Safra: {{ talhao.harvest }}<br />
                     Solo: {{ talhao.soil }}<br />
                     <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver Coordenadas</button>
@@ -263,7 +274,7 @@ const editFarm = (talhao) => {
                     <button class="btn btn-warning btn-sm" @click="openWeedModal(talhao)">Ver Daninhas</button>
                   </td>
                   <td>
-                    <button class="btn btn-success btn-sm" @click="editFarm"(talhao)>Editar</button>
+                    <button :disabled = talhao.editEnabled class="btn btn-success btn-sm" @click="editField(talhao)">Editar</button>
                   </td>
                 </tr>
               </tbody>
@@ -284,7 +295,7 @@ const editFarm = (talhao) => {
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-              <pre>{{ selectedCoordinates }}</pre>
+              <a>{{ selectedCoordinates }}</a>
             </div>
           </div>
         </div>
