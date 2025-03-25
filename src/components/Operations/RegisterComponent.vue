@@ -12,7 +12,7 @@ const geojsonField = ref(null);
 const talhoesMap = ref(new Map());
 const selectedCoordinates = ref("");
 const selectedWeeds = ref([]);
-const editingTalhao = ref(null);
+const originalField = ref(new Map());
 
 
 const handleFileUpload = (event) => {
@@ -108,6 +108,7 @@ const sendFile = () => {
     talhoes.set(id, {
       id,
       editEnabled: false,
+      isValid: true,
       idFarm: featuresFarm.properties.MN_TL,
       area: featuresFarm.properties.AREA_HA_TL,
       soil: featuresFarm.properties.SOLO,
@@ -138,14 +139,6 @@ const openModal = () => {
   const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
   modal.show();
 };
-const closeModal = (modalId) => {
-  const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
-  if (modal) {
-    modal.hide();
-  }
-};
-
-defineExpose({ openModal });
 
 const openCoordinatesModal = (talhao) => {
   selectedCoordinates.value = talhao.coordinates;
@@ -159,29 +152,69 @@ const openWeedModal = (talhao) => {
   modal.show();
 };
 
+
 const saveField = async () => {
+  let hasError = false;
+
+  talhoesMap.value.forEach((talhao) => {
+    // Validando apenas os campos obrigatórios
+    const isNameValid = !!talhao.nameFarm?.trim();
+    const isAreaValid = talhao.area !== null && talhao.area !== undefined && !isNaN(talhao.area);
+    const isCultureValid = !!talhao.culture?.trim();
+    const isHarvestValid = !!talhao.harvest?.trim();
+    const isSoilValid = !!talhao.soil?.trim();
+
+    // Definindo individualmente a validade de cada campo
+    talhao.isValid = isNameValid && isAreaValid && isCultureValid && isHarvestValid && isSoilValid;
+
+    if (!talhao.isValid) {
+      hasError = true;
+    }
+  });
+
+  if (hasError) {
+    errorMessage.value = "Preencha os campos obrigatórios.";
+    return;
+  }
+
+
   try {
     const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
     console.log(response.data);
   } catch (error) {
     console.error(error);
   } finally {
-    const modalRegister = bootstrap.Modal.getInstance(document.getElementById('modalGeoJson'));
-    if (modalRegister) {
-      modalRegister.hide();
+    const modalElement = document.getElementById('modalGeoJson');
+    if (modalElement) {
+      const modalInstance = bootstrap.Modal.getInstance(modalElement);
+      if (modalInstance) {
+        modalInstance.hide();
+      }
     }
+    fileName1.value = "";
+    fileName2.value = "";
+    geojsonFarm.value = null;
+    geojsonField.value = null;
+    document.querySelector("input[name='farm']").value = "";
+    document.querySelector("input[name='field']").value = "";
   }
-}
+};
 
 const editField = (talhao) => {
+  if (!originalField.value.has(talhao.id)) {
+    originalField.value.set(talhao.id, { ...talhao });
+  }
   talhoesMap.value.get(talhao.id).editEnabled = true;
-  console.log("Editando talhão", talhoesMap.value.get(talhao.id));
+
 };
 
 const cancelEdit = (talhao) => {
-
+  const originalData = originalField.value.get(talhao.id);
+  if (originalData) {
+    Object.assign(talhoesMap.value.get(talhao.id), originalData);
+    originalField.value.delete(talhao.id);
+  }
   talhoesMap.value.get(talhao.id).editEnabled = false;
-  console.log(talhoesMap.value.get(talhao.id));
 };
 </script>
 
@@ -190,9 +223,11 @@ const cancelEdit = (talhao) => {
   <Layout>
     <div class="container mt-5">
       <div class="row">
+        <!-- Primeira Div (Cadastro de Informações) -->
         <div class="col-md-6">
           <div class="p-5 bg-light text-black border border-dark shadow">
             <h2 class="mb-4 text-center">Cadastro de Informações</h2>
+            <hr class="my-4" /> <!-- Linha de separação -->
 
             <div class="mb-3">
               <label class="form-label">Selecionar GeoJSON de Saída:</label>
@@ -215,7 +250,6 @@ const cancelEdit = (talhao) => {
             </div>
           </div>
         </div>
-
         <div class="col-md-6">
           <div class="p-5 bg-light text-black border border-dark shadow">
 
@@ -261,8 +295,12 @@ const cancelEdit = (talhao) => {
                   <td>{{ talhao.idFarm }}</td>
                   <td>
                     <span v-if="!talhao.editEnabled">
-                      {{ talhao.nameFarm }}</span>
-                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.nameFarm" class="form-control  w-50" />
+                      {{ talhao.nameFarm }}
+                    </span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.nameFarm" class="form-control w-50"
+                      :class="{ 'is-invalid': talhao.editEnabled && !talhao.nameFarm?.trim() }" />
+                    <div v-if="talhao.editEnabled && !talhao.nameFarm?.trim()" class="invalid-feedback">Campo
+                      obrigatório</div>
                   </td>
                   <td>
                     <span v-if="!talhao.editEnabled">
@@ -272,18 +310,27 @@ const cancelEdit = (talhao) => {
                   <td>
                     Cultura:
                     <span v-if="!talhao.editEnabled">
-                      {{ talhao.culture }}</span>
-                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.culture" class="form-control  w-50" />
+                      {{ talhao.culture }}
+                    </span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.culture" class="form-control w-50"
+                      :class="{ 'is-invalid': talhao.editEnabled && !talhao.culture?.trim() }" />
+                    <div v-if="talhao.editEnabled && !talhao.culture?.trim()" class="invalid-feedback">Campo obrigatório
+                    </div>
                     <br />
                     Safra:
                     <span v-if="!talhao.editEnabled">
-                      {{ talhao.harvest }}</span>
-                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.harvest" class="form-control  w-50" />
+                      {{ talhao.harvest }}
+                    </span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.harvest" class="form-control w-50"
+                      :class="{ 'is-invalid': talhao.editEnabled && !talhao.harvest?.trim() }" />
+                    <div v-if="talhao.editEnabled && !talhao.harvest?.trim()" class="invalid-feedback">Campo obrigatório
+                    </div>
                     <br />
                     Solo:
                     <span v-if="!talhao.editEnabled">
-                      {{ talhao.soil }}</span>
-                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control  w-50" />
+                      {{ talhao.soil }}
+                    </span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control w-50"/>
                     <br />
                     <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver Coordenadas</button>
                   </td>
@@ -293,8 +340,8 @@ const cancelEdit = (talhao) => {
                   <td>
                     <button :disabled=talhao.editEnabled class="btn btn-success btn-sm"
                       @click="editField(talhao)">Editar</button>
-                      <br/>
-                      <button  class="btn btn-outline-info btn-sm d-block mt-2"
+                    <br />
+                    <button class="btn btn-outline-info btn-sm d-block mt-2"
                       @click="cancelEdit(talhao)">Cancelar</button>
                   </td>
                 </tr>
