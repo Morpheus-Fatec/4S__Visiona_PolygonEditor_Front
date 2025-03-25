@@ -139,7 +139,7 @@ const openModal = () => {
   modal.show();
 };
 const closeModal = (modalId) => {
-  const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+  const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
   if (modal) {
     modal.hide();
   }
@@ -161,17 +161,16 @@ const openWeedModal = (talhao) => {
 
 const saveField = async () => {
   try {
-    const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()),
-    );
+    const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
     console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  } finally {
     const modalRegister = bootstrap.Modal.getInstance(document.getElementById('modalGeoJson'));
     if (modalRegister) {
       modalRegister.hide();
     }
-  } catch (error) {
-    console.error(error);
   }
-
 }
 
 const editField = (talhao) => {
@@ -179,8 +178,10 @@ const editField = (talhao) => {
   console.log("Editando talhão", talhoesMap.value.get(talhao.id));
 };
 
-const saveEdit = (talhao) => {
-  editingTalhao.value = null;
+const cancelEdit = (talhao) => {
+
+  talhoesMap.value.get(talhao.id).editEnabled = false;
+  console.log(talhoesMap.value.get(talhao.id));
 };
 </script>
 
@@ -244,7 +245,7 @@ const saveEdit = (talhao) => {
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <table class="table">
+            <table class="table table-striped table-hover ">
               <thead class="table-dark">
                 <tr>
                   <th scope="col">Talhão</th>
@@ -258,23 +259,43 @@ const saveEdit = (talhao) => {
               <tbody class="table-group-divider">
                 <tr v-for="talhao in Array.from(talhoesMap.values())" :key="talhao.id">
                   <td>{{ talhao.idFarm }}</td>
-                  <td>{{ talhao.nameFarm }}</td>
-                  <td>{{ talhao.area }}</td>
+                  <td>
+                    <span v-if="!talhao.editEnabled">
+                      {{ talhao.nameFarm }}</span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.nameFarm" class="form-control  w-50" />
+                  </td>
+                  <td>
+                    <span v-if="!talhao.editEnabled">
+                      {{ talhao.area }}</span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.area" class="form-control w-50" />
+                  </td>
                   <td>
                     Cultura:
                     <span v-if="!talhao.editEnabled">
                       {{ talhao.culture }}</span>
-                      <input v-if="talhao.editEnabled" type="text" v-model="talhao.culture" class="form-control" />
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.culture" class="form-control  w-50" />
                     <br />
-                    Safra: {{ talhao.harvest }}<br />
-                    Solo: {{ talhao.soil }}<br />
+                    Safra:
+                    <span v-if="!talhao.editEnabled">
+                      {{ talhao.harvest }}</span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.harvest" class="form-control  w-50" />
+                    <br />
+                    Solo:
+                    <span v-if="!talhao.editEnabled">
+                      {{ talhao.soil }}</span>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control  w-50" />
+                    <br />
                     <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver Coordenadas</button>
                   </td>
                   <td>
                     <button class="btn btn-warning btn-sm" @click="openWeedModal(talhao)">Ver Daninhas</button>
                   </td>
                   <td>
-                    <button :disabled = talhao.editEnabled class="btn btn-success btn-sm" @click="editField(talhao)">Editar</button>
+                    <button :disabled=talhao.editEnabled class="btn btn-success btn-sm"
+                      @click="editField(talhao)">Editar</button>
+                      <br/>
+                      <button  class="btn btn-outline-info btn-sm d-block mt-2"
+                      @click="cancelEdit(talhao)">Cancelar</button>
                   </td>
                 </tr>
               </tbody>
