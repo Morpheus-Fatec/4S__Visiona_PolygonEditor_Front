@@ -15,37 +15,48 @@ const tileProviders = ref([
     visible: true,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution:
-      'Map data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+      'Map data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
   {
     name: 'Street', 
     visible: false,
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+    attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a>',
   }
 ]);
 
 const zoom = ref(14);
-const centerGlebe = props.data.geometry.coordinates[0][0];
-const center = ref([centerGlebe[1], centerGlebe[0]]);
+const mapRef = ref(null);
 
+const onMapReady = (map) => {
+  mapRef.value = map;
+  const coordinates = props.data.geometry.coordinates[0];
+  const latlngs = coordinates.map(coord => [coord[1], coord[0]]);
+  const bounds = L.latLngBounds(latlngs);
+  map.fitBounds(bounds);
+};
 </script>
 
 <template>
   <div class="map-container">
     <l-map 
-      :zoom="zoom" 
-      :center="center" 
-      @ready="onMapReady" 
+      :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="16" 
+      :max-zoom="17"
+      @ready="onMapReady"
     >
       <GlebesLayer :data="props.data"/>
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
       <l-control-layers position="topright" />
-      <l-tile-layer v-for="tileProvider in tileProviders" :key="tileProvider.name" :name="tileProvider.name"
-        :visible="tileProvider.visible" :url="tileProvider.url" :attribution="tileProvider.attribution"
-        layer-type="base" />
+      <l-tile-layer 
+        v-for="tileProvider in tileProviders" 
+        :key="tileProvider.name" 
+        :name="tileProvider.name"
+        :visible="tileProvider.visible" 
+        :url="tileProvider.url" 
+        :attribution="tileProvider.attribution"
+        layer-type="base" 
+      />
     </l-map>
   </div>
 </template>
