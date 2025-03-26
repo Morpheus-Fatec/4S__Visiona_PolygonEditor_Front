@@ -29,49 +29,6 @@ const handleFileUpload = (event) => {
     return;
   }
 
-  if (fileType === "farm") {
-    fileName1.value = file.name;
-    if (!fileName1.value.toLowerCase().includes("saida")) {
-      errorMessage1.value = "Ops, este é para o arquivo de saída, selecione novamente.";
-      fileName1.value = "";
-      event.target.value = "";
-      return;
-    }
-  }
-
-  if (fileType === "field") {
-    fileName2.value = file.name;
-    if (!fileName2.value.toLowerCase().includes("automatica")) {
-      errorMessage2.value = "Ops, este é para o arquivo automático, selecione novamente.";
-      fileName2.value = "";
-      event.target.value = "";
-      return;
-    }
-  }
-
-  if (fileType === "farm") fileName1.value = file.name;
-  errorMessage1.value = "";
-  if (fileType === "field") fileName2.value = file.name;
-  errorMessage2.value = "";
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const parsedData = JSON.parse(e.target.result);
-
-      if (fileType === "farm") {
-        geojsonFarm.value = parsedData;
-      } else if (fileType === "field") {
-        geojsonField.value = parsedData;
-      }
-
-    } catch (error) {
-      errorMessage.value = "Erro ao processar o arquivo GeoJSON";
-      if (fileType === "farm") geojsonFarm.value = null;
-      if (fileType === "field") geojsonField.value = null;
-    }
-  };
-
   reader.readAsText(file);
 };
 
@@ -86,6 +43,7 @@ const sendFile = () => {
     errorMessage.value = "Arquivo GeoJSON inválido";
     return;
   }
+  
 
   const talhoes = new Map();
 
@@ -105,6 +63,7 @@ const sendFile = () => {
     });
 
     const id = featuresFarm.properties.ID || `${index}`;
+    try{
     talhoes.set(id, {
       id,
       editEnabled: false,
@@ -118,7 +77,12 @@ const sendFile = () => {
       coordinates: JSON.stringify(featuresFarm.geometry.coordinates),
       weed: weedList,
     });
+  }
+  catch(e){
+    console.log(e);
+  }
   });
+
 
   talhoesMap.value = talhoes;
 
@@ -221,13 +185,15 @@ const cancelEdit = (talhao) => {
 
 <template>
   <Layout>
-    <div class="container mt-5">
-      <div class="row">
-        <!-- Primeira Div (Cadastro de Informações) -->
-        <div class="col-md-6">
-          <div class="p-5 bg-light text-black border border-dark shadow">
-            <h2 class="mb-4 text-center">Cadastro de Informações</h2>
-            <hr class="my-4" /> <!-- Linha de separação -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="p-0 bg-light text-black border border-1 shadow rounded">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2" style="margin-top: -1px;">
+            <br>
+            <h5 class="card-title">Cadastro de Informações</h5>
+            <br>
+          </div>
+          <div class="p-5">
 
             <div class="mb-3">
               <label class="form-label">Selecionar GeoJSON de Saída:</label>
@@ -246,16 +212,20 @@ const cancelEdit = (talhao) => {
             </div>
 
             <div class="d-flex justify-content-center">
-              <button type="button" class="btn btn-primary mt-3" @click="sendFile">Salvar</button>
+              <button type="button" class="btn btn-primary mt-3" @click="sendFile">Salvar dados</button>
             </div>
           </div>
         </div>
-        <div class="col-md-6">
-          <div class="p-5 bg-light text-black border border-dark shadow">
+      </div>
 
-            <div class="bg-primary text-white p-3 ">
-              <h2 class="mb-4 text-center">Cadastro de Imagem</h2>
-            </div>
+      <div class="col-md-6">
+        <div class="p-0 bg-light text-black border border-1 shadow rounded">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2" style="margin-top: -1px;">
+            <br>
+            <h5 class="card-title">Upload de Imagens</h5>
+            <br>
+          </div>
+          <div class="p-5">
 
             <div class="mb-3">
               <label class="form-label">Selecionar Imagem:</label>
@@ -285,8 +255,8 @@ const cancelEdit = (talhao) => {
                   <th scope="col">Talhão</th>
                   <th scope="col">Nome da fazenda</th>
                   <th scope="col">Área</th>
-                  <th scope="col">Dados do talhão</th>
-                  <th scope="col">Daninhas</th>
+                  <th scope="col">Propriedades</th>
+                  <th scope="col">Classificação</th>
                   <th scope="col">Opções</th>
                 </tr>
               </thead>
@@ -330,19 +300,31 @@ const cancelEdit = (talhao) => {
                     <span v-if="!talhao.editEnabled">
                       {{ talhao.soil }}
                     </span>
-                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control w-50"/>
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control w-50" />
                     <br />
                     <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver Coordenadas</button>
                   </td>
                   <td>
-                    <button class="btn btn-warning btn-sm" @click="openWeedModal(talhao)">Ver Daninhas</button>
+                    <button class="btn btn-warning btn-sm" @click="openWeedModal(talhao)">Ver classificação</button>
                   </td>
                   <td>
-                    <button :disabled=talhao.editEnabled class="btn btn-success btn-sm"
-                      @click="editField(talhao)">Editar</button>
+                    <button :disabled=talhao.editEnabled class="btn btn-success btn-sm" @click="editField(talhao)"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-pencil-square" viewBox="0 0 16 16">
+                        <path
+                          d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                        <path fill-rule="evenodd"
+                          d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
+                      </svg></button>
                     <br />
-                    <button class="btn btn-outline-info btn-sm d-block mt-2"
-                      @click="cancelEdit(talhao)">Cancelar</button>
+                    <button class="btn btn-outline-info btn-sm d-block mt-2" @click="cancelEdit(talhao)"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-backspace-reverse" viewBox="0 0 16 16">
+                        <path
+                          d="M9.854 5.146a.5.5 0 0 1 0 .708L7.707 8l2.147 2.146a.5.5 0 0 1-.708.708L7 8.707l-2.146 2.147a.5.5 0 0 1-.708-.708L6.293 8 4.146 5.854a.5.5 0 1 1 .708-.708L7 7.293l2.146-2.147a.5.5 0 0 1 .708 0" />
+                        <path
+                          d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7.08a2 2 0 0 0 1.519-.698l4.843-5.651a1 1 0 0 0 0-1.302L10.6 1.7A2 2 0 0 0 9.08 1zm7.08 1a1 1 0 0 1 .76.35L14.682 8l-4.844 5.65a1 1 0 0 1-.759.35H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+                      </svg></button>
                   </td>
                 </tr>
               </tbody>
