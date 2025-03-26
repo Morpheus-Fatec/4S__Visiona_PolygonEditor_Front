@@ -40,7 +40,7 @@ watchEffect(() => {
 <template>
   <Layout>
     <div class="d-flex w-100">
-      <div class="sidebar d-flex flex-column align-items-center p-3">
+      <div class="sidebar d-flex flex-column align-items-center p-3 h-100">
         <div class="w-100">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3">Detalhes da Área</h5>
           <div v-for="(item, index) in infoList" :key="index" class="mb-3">
