@@ -17,12 +17,6 @@ const tileProviders = ref([
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Map data: &copy; OpenStreetMap',
   },
-  {
-    name: 'Street',
-    visible: false,
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap',
-  }
 ]);
 
 const zoom = ref(14);
