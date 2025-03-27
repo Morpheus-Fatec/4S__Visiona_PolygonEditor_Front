@@ -11,7 +11,8 @@ const talhoesMap = ref(new Map());
 const selectedCoordinates = ref("");
 const selectedWeeds = ref([]);
 const originalField = ref(new Map());
-
+const images = ref([]);
+const descImage = ref("");
 
 const handleFileUpload = (event) => {
   try {
@@ -90,7 +91,7 @@ const sendFile = () => {
         id,
         editEnabled: false,
         isValid: true,
-        productivity: 0,
+        productivity: null,
         nameField: featuresField.properties.MN_TL,
         area: featuresField.properties.AREA_HA_TL,
         soil: featuresField.properties.SOLO,
@@ -163,7 +164,7 @@ const saveField = async () => {
     const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
     console.log(response.data);
   } catch (error) {
-    console.error(error);
+   // console.error(error);
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
     if (modalElement) {
@@ -176,9 +177,13 @@ const saveField = async () => {
     fileName2.value = "";
     geojsonClassification.value = null;
     geojsonField.value = null;
-    document.querySelector("input[name='farm']").value = "";
     document.querySelector("input[name='field']").value = "";
+    document.querySelector("input[name='classification']").value = "";
+    console.log("Talhões:", talhoesMap.value);
+
   }
+
+  console.log("Talhões:", talhoesMap.value);
 };
 
 const editField = (talhao) => {
@@ -197,6 +202,17 @@ const cancelEdit = (talhao) => {
   }
   talhoesMap.value.get(talhao.id).editEnabled = false;
 };
+
+const addImage = (event) => {
+  images.value.push({name: event.target.files[0].name, image: event.target.files[0], desc: descImage});
+  descImage.value = "";
+  event.target.value = "";
+};
+
+const deleteImage = (index) => {
+  this.images.splice(index, 1);
+};
+
 </script>
 
 
@@ -246,23 +262,26 @@ const cancelEdit = (talhao) => {
             <div class="container text-center">
               <div class="row">
                 <div class="col">
-                  <label class="form-label">Selecionar GeoJSON Automático:</label>
-                  <input type="password" id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock">
+                  <label class="form-label">Descrição da imagem:</label>
+                  <input id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock" v-model="descImage">
                 </div>
               </div>
               <br>
               <div class="row">
                 <div class="col">
-                  <input type="file" name="tiff" @change="" class="form-control" />
+                  <input type="file" name="tiff" @change="addImage" class="form-control" />
                 </div>
               </div>
               <br>
-              <div class="row">
-                <div class="col-10">
-                  <input class="form-control" type="text" value="#" aria-label="readonly input example" readonly>
+              <div v-for="(image, index) in images" class="row">
+                <div class="col-5">
+                  {{ image.name }}
+                </div>
+                <div class="col-5">
+                  {{ image.desc }}
                 </div>
                 <div class="col-2">
-                  <button type="button" class="btn btn-danger">Danger</button>
+                  <button type="button" class="btn btn-danger" @click="deleteImage(index)">Remover</button>
                 </div>
               </div>
               <div class="d-flex justify-content-center">
@@ -336,13 +355,13 @@ const cancelEdit = (talhao) => {
                     <span v-if="!talhao.editEnabled">
                       {{ talhao.soil }}
                     </span>
-                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control w-50" />
+                    <input v-if="talhao.editEnabled" type="text"   v-model="talhao.soil" class="form-control w-50" />
                     <br />
                     Produtividade:
                     <span v-if="!talhao.editEnabled">
-                      {{ talhao.productivity }}
+                    <span v-if="!talhao.productivity">Sem valor</span>{{ talhao.productivity }}
                     </span>
-                    <input v-if="talhao.editEnabled" type="number" v-model="talhao.productivity"
+                    <input v-if="talhao.editEnabled" type="number" step="any" v-model="talhao.productivity"
                       class="form-control w-50" />
                     <br />
                     <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver
