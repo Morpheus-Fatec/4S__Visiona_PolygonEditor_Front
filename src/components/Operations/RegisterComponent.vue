@@ -5,9 +5,7 @@ import axios from "axios";
 const fileName1 = ref("");
 const fileName2 = ref("");
 const errorMessage = ref("");
-const errorMessage1 = ref("");
-const errorMessage2 = ref("");
-const geojsonFarm = ref(null);
+const geojsonClassification = ref(null);
 const geojsonField = ref(null);
 const talhoesMap = ref(new Map());
 const selectedCoordinates = ref("");
@@ -16,103 +14,125 @@ const originalField = ref(new Map());
 
 
 const handleFileUpload = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+  try {
+    const file = event.target.files[0];
+    if (!file) throw new Error("Nenhum arquivo selecionado");
 
-  const fileType = event.target.name;
-  errorMessage.value = "";
+    if (!file.name.toLowerCase().endsWith(".geojson")) {
+      throw new Error("Arquivo inválido, selecione um arquivo GeoJSON");
 
-  if (!file.name.toLowerCase().endsWith(".geojson")) {
-    errorMessage.value = "O arquivo deve ser um .geojson";
-    if (fileType === "farm") fileName1.value = "";
-    if (fileType === "field") fileName2.value = "";
-    return;
+    }
+
+    const fileType = event.target.name;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsedData = JSON.parse(e.target.result);
+
+        if (fileType === "field") {
+          geojsonField.value = parsedData;
+        } else if (fileType === "classification") {
+          geojsonClassification.value = parsedData;
+        }
+
+      } catch (error) {
+        if (fileType === "field") geojsonField.value = null;
+        if (fileType === "classification") geojsonClassification.value = null;
+        throw new Error("Arquivo inválido, selecione um arquivo GeoJSON");
+      }
+    }
+    reader.readAsText(file);
+
+  } catch (error) {
+    errorMessage.value = error.message;
   }
-
-  reader.readAsText(file);
 };
 
-
-
 const sendFile = () => {
-  if (!geojsonFarm.value && !geojsonField.value) {
+  if (!geojsonClassification.value && !geojsonField.value) {
     errorMessage.value = "Nenhum arquivo válido carregado";
     return;
   }
-  if (!geojsonFarm.value.features || !Array.isArray(geojsonFarm.value.features) || !geojsonField.value.features || !Array.isArray(geojsonField.value.features)) {
+  if (!geojsonClassification.value.features || !Array.isArray(geojsonClassification.value.features) || !geojsonField.value.features || !Array.isArray(geojsonField.value.features)) {
     errorMessage.value = "Arquivo GeoJSON inválido";
     return;
   }
-  
 
   const talhoes = new Map();
 
-  geojsonFarm.value.features.forEach((featuresFarm, index) => {
-    let weedList = [];
-
-    geojsonField.value.features.forEach((featuresField) => {
-      if (featuresField.properties.MN_TL === featuresFarm.properties.MN_TL) {
-
-        weedList.push({
-          idFarm: featuresField.properties.MN_TL,
-          class: featuresField.properties.CLASSE,
-          area: featuresField.properties.AREA_M2,
-          coordinates: JSON.stringify(featuresField.geometry.coordinates),
-        });
+  try {
+    geojsonField.value.features.forEach((featuresField, index) => {
+      let weedsList = [];
+      if (!featuresField.properties.MN_TL || !featuresField.properties.AREA_HA_TL || !featuresField.properties.SOLO || !featuresField.properties.CULTURA || !featuresField.properties.SAFRA || !featuresField.properties.FAZENDA || !featuresField.geometry.coordinates) {
+        throw new Error("Conteúdo do arquivo GeoJSON inválido");
       }
+
+      geojsonClassification.value.features.forEach((featuresClassification) => {
+        if (!featuresClassification.properties.MN_TL || !featuresClassification.properties.CLASSE || !featuresClassification.geometry.coordinates) {
+          throw new Error("Conteúdo do arquivo GeoJSON inválido");
+        }
+
+        if (featuresField.properties.MN_TL === featuresField.properties.MN_TL) {
+
+          weedsList.push({
+            nameField: featuresClassification.properties.MN_TL,
+            class: featuresClassification.properties.CLASSE,
+            area: featuresClassification.properties.AREA_M2,
+            coordinates: JSON.stringify(featuresClassification.geometry.coordinates),
+          });
+        }
+      });
+
+      const id = featuresField.properties.ID || index;
+
+      talhoes.set(id, {
+        id,
+        editEnabled: false,
+        isValid: true,
+        productivity: 0,
+        nameField: featuresField.properties.MN_TL,
+        area: featuresField.properties.AREA_HA_TL,
+        soil: featuresField.properties.SOLO,
+        culture: featuresField.properties.CULTURA,
+        harvest: featuresField.properties.SAFRA,
+        nameFarm: featuresField.properties.FAZENDA,
+        coordinates: JSON.stringify(featuresField.geometry.coordinates),
+        weeds: weedsList,
+      });
+
     });
 
-    const id = featuresFarm.properties.ID || `${index}`;
-    try{
-    talhoes.set(id, {
-      id,
-      editEnabled: false,
-      isValid: true,
-      idFarm: featuresFarm.properties.MN_TL,
-      area: featuresFarm.properties.AREA_HA_TL,
-      soil: featuresFarm.properties.SOLO,
-      culture: featuresFarm.properties.CULTURA,
-      harvest: featuresFarm.properties.SAFRA,
-      nameFarm: featuresFarm.properties.FAZENDA,
-      coordinates: JSON.stringify(featuresFarm.geometry.coordinates),
-      weed: weedList,
-    });
+    talhoesMap.value = talhoes;
+    if (talhoesMap.value.size > 0) {
+      const modalRegister = new bootstrap.Modal(document.getElementById('modalGeoJson'));
+      modalRegister.show();
+      geojsonClassification.value = "";
+      geojsonField.value = "";
+    } else {
+      throw new Error("Nenhum talhão encontrado");
+    }
   }
-  catch(e){
-    console.log(e);
+  catch (error) {
+    errorMessage.value = error.message;
   }
-  });
 
-
-  talhoesMap.value = talhoes;
-
-  console.log(`Número de talhões encontrados: ${talhoesMap.value.size}`);
+  console.log(`${talhoesMap.value.size}`);
   console.log("Talhões:", talhoesMap.value);
 
-  if (talhoesMap.value.size > 0) {
-    const modalRegister = new bootstrap.Modal(document.getElementById('modalGeoJson'));
-    modalRegister.show();
-    geojsonFarm.value = "";
-    geojsonField.value = "";
-  } else {
-    errorMessage.value = "Nenhum talhão encontrado no arquivo";
-  }
+
 };
 
-const openModal = () => {
-  const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
-  modal.show();
-};
 
 const openCoordinatesModal = (talhao) => {
-  selectedCoordinates.value = talhao.coordinates;
+  selectedCoordinates.value = JSON.parse(talhao.coordinates);
   const modal = new bootstrap.Modal(document.getElementById("coordinatesModal"));
   modal.show();
 };
 
-const openWeedModal = (talhao) => {
-  selectedWeeds.value = talhao.weed;
-  const modal = new bootstrap.Modal(document.getElementById("weedModal"));
+const openWeedsModal = (talhao) => {
+  selectedWeeds.value = talhao.weeds;
+  const modal = new bootstrap.Modal(document.getElementById("weedsModal"));
   modal.show();
 };
 
@@ -121,14 +141,12 @@ const saveField = async () => {
   let hasError = false;
 
   talhoesMap.value.forEach((talhao) => {
-    // Validando apenas os campos obrigatórios
     const isNameValid = !!talhao.nameFarm?.trim();
     const isAreaValid = talhao.area !== null && talhao.area !== undefined && !isNaN(talhao.area);
     const isCultureValid = !!talhao.culture?.trim();
     const isHarvestValid = !!talhao.harvest?.trim();
     const isSoilValid = !!talhao.soil?.trim();
 
-    // Definindo individualmente a validade de cada campo
     talhao.isValid = isNameValid && isAreaValid && isCultureValid && isHarvestValid && isSoilValid;
 
     if (!talhao.isValid) {
@@ -140,7 +158,6 @@ const saveField = async () => {
     errorMessage.value = "Preencha os campos obrigatórios.";
     return;
   }
-
 
   try {
     const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
@@ -157,7 +174,7 @@ const saveField = async () => {
     }
     fileName1.value = "";
     fileName2.value = "";
-    geojsonFarm.value = null;
+    geojsonClassification.value = null;
     geojsonField.value = null;
     document.querySelector("input[name='farm']").value = "";
     document.querySelector("input[name='field']").value = "";
@@ -188,27 +205,27 @@ const cancelEdit = (talhao) => {
     <div class="row">
       <div class="col-md-6">
         <div class="p-0 bg-light text-black border border-1 shadow rounded">
-          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2" style="margin-top: -1px;">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
             <br>
             <h5 class="card-title">Cadastro de Informações</h5>
             <br>
           </div>
           <div class="p-5">
-
+            <div v-if="errorMessage" class="alert alert-danger" role="alert">
+              {{ errorMessage }}
+            </div>
             <div class="mb-3">
               <label class="form-label">Selecionar GeoJSON de Saída:</label>
-              <input type="file" name="farm" @change="handleFileUpload" class="form-control" />
+              <input type="file" name="field" @change="handleFileUpload" class="form-control" />
               <p v-if="fileName1" class="mt-2 text-success">
                 Arquivo 1 selecionado: {{ fileName1 }}
               </p>
-              <p v-if="errorMessage1" class="text-danger mt-2">{{ errorMessage1 }}</p>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Selecionar GeoJSON Automático:</label>
-              <input type="file" name="field" @change="handleFileUpload" class="form-control" />
+              <input type="file" name="classification" @change="handleFileUpload" class="form-control" />
               <p v-if="fileName2" class="mt-2 text-success">Arquivo 2 selecionado: {{ fileName2 }}</p>
-              <p v-if="errorMessage2" class="text-danger mt-2">{{ errorMessage2 }}</p>
             </div>
 
             <div class="d-flex justify-content-center">
@@ -219,21 +236,38 @@ const cancelEdit = (talhao) => {
       </div>
 
       <div class="col-md-6">
-        <div class="p-0 bg-light text-black border border-1 shadow rounded">
-          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2" style="margin-top: -1px;">
+        <div class="p-0 bg-light text-black border border-1 shadow rounded" style="overflow: hidden;">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
             <br>
             <h5 class="card-title">Upload de Imagens</h5>
             <br>
           </div>
-          <div class="p-5">
-
-            <div class="mb-3">
-              <label class="form-label">Selecionar Imagem:</label>
-              <input type="file" class="form-control" accept="image/*" />
-            </div>
-
-            <div class="d-flex justify-content-center">
-              <button type="button" class="btn btn-primary mt-3">Salvar</button>
+          <div class="row p-5">
+            <div class="container text-center">
+              <div class="row">
+                <div class="col">
+                  <label class="form-label">Selecionar GeoJSON Automático:</label>
+                  <input type="password" id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock">
+                </div>
+              </div>
+              <br>
+              <div class="row">
+                <div class="col">
+                  <input type="file" name="tiff" @change="" class="form-control" />
+                </div>
+              </div>
+              <br>
+              <div class="row">
+                <div class="col-10">
+                  <input class="form-control" type="text" value="#" aria-label="readonly input example" readonly>
+                </div>
+                <div class="col-2">
+                  <button type="button" class="btn btn-danger">Danger</button>
+                </div>
+              </div>
+              <div class="d-flex justify-content-center">
+                <button type="button" class="btn btn-primary mt-3">Salvar imagens</button>
+              </div>
             </div>
           </div>
         </div>
@@ -262,7 +296,7 @@ const cancelEdit = (talhao) => {
               </thead>
               <tbody class="table-group-divider">
                 <tr v-for="talhao in Array.from(talhoesMap.values())" :key="talhao.id">
-                  <td>{{ talhao.idFarm }}</td>
+                  <td>{{ talhao.nameField }}</td>
                   <td>
                     <span v-if="!talhao.editEnabled">
                       {{ talhao.nameFarm }}
@@ -284,7 +318,8 @@ const cancelEdit = (talhao) => {
                     </span>
                     <input v-if="talhao.editEnabled" type="text" v-model="talhao.culture" class="form-control w-50"
                       :class="{ 'is-invalid': talhao.editEnabled && !talhao.culture?.trim() }" />
-                    <div v-if="talhao.editEnabled && !talhao.culture?.trim()" class="invalid-feedback">Campo obrigatório
+                    <div v-if="talhao.editEnabled && !talhao.culture?.trim()" class="invalid-feedback">Campo
+                      obrigatório
                     </div>
                     <br />
                     Safra:
@@ -293,7 +328,8 @@ const cancelEdit = (talhao) => {
                     </span>
                     <input v-if="talhao.editEnabled" type="text" v-model="talhao.harvest" class="form-control w-50"
                       :class="{ 'is-invalid': talhao.editEnabled && !talhao.harvest?.trim() }" />
-                    <div v-if="talhao.editEnabled && !talhao.harvest?.trim()" class="invalid-feedback">Campo obrigatório
+                    <div v-if="talhao.editEnabled && !talhao.harvest?.trim()" class="invalid-feedback">Campo
+                      obrigatório
                     </div>
                     <br />
                     Solo:
@@ -302,13 +338,22 @@ const cancelEdit = (talhao) => {
                     </span>
                     <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control w-50" />
                     <br />
-                    <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver Coordenadas</button>
+                    Produtividade:
+                    <span v-if="!talhao.editEnabled">
+                      {{ talhao.productivity }}
+                    </span>
+                    <input v-if="talhao.editEnabled" type="number" v-model="talhao.productivity"
+                      class="form-control w-50" />
+                    <br />
+                    <button class="btn btn-info btn-sm" @click="openCoordinatesModal(talhao)">Ver
+                      Coordenadas</button>
                   </td>
                   <td>
-                    <button class="btn btn-warning btn-sm" @click="openWeedModal(talhao)">Ver classificação</button>
+                    <button class="btn btn-warning btn-sm" @click="openWeedsModal(talhao)">Ver
+                      classificação</button>
                   </td>
                   <td>
-                    <button :disabled=talhao.editEnabled class="btn btn-success btn-sm" @click="editField(talhao)"><svg
+                    <button v-if="!talhao.editEnabled" class="btn btn-success btn-sm" @click="editField(talhao)"><svg
                         xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-pencil-square" viewBox="0 0 16 16">
                         <path
@@ -317,7 +362,7 @@ const cancelEdit = (talhao) => {
                           d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
                       </svg></button>
                     <br />
-                    <button class="btn btn-outline-info btn-sm d-block mt-2" @click="cancelEdit(talhao)"><svg
+                    <button v-if="talhao.editEnabled"  class="btn btn-outline-info btn-sm d-block mt-2" @click="cancelEdit(talhao)"><svg
                         xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-backspace-reverse" viewBox="0 0 16 16">
                         <path
@@ -336,41 +381,51 @@ const cancelEdit = (talhao) => {
           </div>
         </div>
       </div>
-      <!-- Modal de Coordenadas -->
-      <div class="modal fade" id="coordinatesModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Coordenadas do Talhão</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <a>{{ selectedCoordinates }}</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal de Daninhas -->
-      <div class="modal fade" id="weedModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Daninhas do Talhão</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <ul>
-                <li v-for="weed in selectedWeeds" :key="weed.idFarm">
-                  {{ weed.class }} - {{ weed.area }} m²
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
+    <!-- Modal de Coordenadas -->
+    <div class="modal fade" id="coordinatesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Coordenadas do Talhão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <pre>{{ selectedCoordinates }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Daninhas -->
+    <div class="modal fade" id="weedsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Daninhas do Talhão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <table class="table table-striped table-hover ">
+              <thead class="table-dark">
+                <tr>
+                  <th scope="col">Classe</th>
+                  <th scope="col">Tamanho</th>
+                </tr>
+              </thead>
+              <tbody class="table-group-divider">
+                <tr v-for="weeds in selectedWeeds" :key="weeds.nameField">
+                  <td>{{ weeds.class }}</td>
+                  <td>{{ weeds.area }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
   </Layout>
 </template>
 
