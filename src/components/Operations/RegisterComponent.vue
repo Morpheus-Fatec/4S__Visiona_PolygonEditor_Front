@@ -77,10 +77,9 @@ const sendFile = () => {
         if (featuresField.properties.MN_TL === featuresField.properties.MN_TL) {
 
           weedsList.push({
-            nameField: featuresClassification.properties.MN_TL,
-            class: featuresClassification.properties.CLASSE,
             area: featuresClassification.properties.AREA_M2,
             coordinates: JSON.stringify(featuresClassification.geometry.coordinates),
+            classEntity: featuresClassification.properties.CLASSE,
           });
         }
       });
@@ -91,15 +90,14 @@ const sendFile = () => {
         id,
         editEnabled: false,
         isValid: true,
-        productivity: null,
-        nameField: featuresField.properties.MN_TL,
         area: featuresField.properties.AREA_HA_TL,
-        soil: featuresField.properties.SOLO,
-        culture: featuresField.properties.CULTURA,
-        harvest: featuresField.properties.SAFRA,
-        nameFarm: featuresField.properties.FAZENDA,
         coordinates: JSON.stringify(featuresField.geometry.coordinates),
-        weeds: weedsList,
+        harvest: featuresField.properties.SAFRA,
+        nameField: featuresField.properties.MN_TL,
+        productivity: null,
+        soil: featuresField.properties.SOLO,
+        classification: weedsList, 
+        nameFarm: featuresField.properties.FAZENDA,
       });
 
     });
@@ -132,7 +130,7 @@ const openCoordinatesModal = (talhao) => {
 };
 
 const openWeedsModal = (talhao) => {
-  selectedWeeds.value = talhao.weeds;
+  selectedWeeds.value = talhao.classification.weedsList;
   const modal = new bootstrap.Modal(document.getElementById("weedsModal"));
   modal.show();
 };
@@ -164,7 +162,7 @@ const saveField = async () => {
     const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
     console.log(response.data);
   } catch (error) {
-   // console.error(error);
+    // console.error(error);
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
     if (modalElement) {
@@ -204,7 +202,7 @@ const cancelEdit = (talhao) => {
 };
 
 const addImage = (event) => {
-  images.value.push({name: event.target.files[0].name, image: event.target.files[0], desc: descImage});
+  images.value.push({ name: event.target.files[0].name, image: event.target.files[0], desc: descImage });
   descImage.value = "";
   event.target.value = "";
 };
@@ -263,7 +261,8 @@ const deleteImage = (index) => {
               <div class="row">
                 <div class="col">
                   <label class="form-label">Descrição da imagem:</label>
-                  <input id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock" v-model="descImage">
+                  <input id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock"
+                    v-model="descImage">
                 </div>
               </div>
               <br>
@@ -355,11 +354,11 @@ const deleteImage = (index) => {
                     <span v-if="!talhao.editEnabled">
                       {{ talhao.soil }}
                     </span>
-                    <input v-if="talhao.editEnabled" type="text"   v-model="talhao.soil" class="form-control w-50" />
+                    <input v-if="talhao.editEnabled" type="text" v-model="talhao.soil" class="form-control w-50" />
                     <br />
                     Produtividade:
                     <span v-if="!talhao.editEnabled">
-                    <span v-if="!talhao.productivity">Sem valor</span>{{ talhao.productivity }}
+                      <span v-if="!talhao.productivity">Sem valor</span>{{ talhao.productivity }}
                     </span>
                     <input v-if="talhao.editEnabled" type="number" step="any" v-model="talhao.productivity"
                       class="form-control w-50" />
@@ -381,9 +380,9 @@ const deleteImage = (index) => {
                           d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
                       </svg></button>
                     <br />
-                    <button v-if="talhao.editEnabled"  class="btn btn-outline-info btn-sm d-block mt-2" @click="cancelEdit(talhao)"><svg
-                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-backspace-reverse" viewBox="0 0 16 16">
+                    <button v-if="talhao.editEnabled" class="btn btn-outline-info btn-sm d-block mt-2"
+                      @click="cancelEdit(talhao)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                        fill="currentColor" class="bi bi-backspace-reverse" viewBox="0 0 16 16">
                         <path
                           d="M9.854 5.146a.5.5 0 0 1 0 .708L7.707 8l2.147 2.146a.5.5 0 0 1-.708.708L7 8.707l-2.146 2.147a.5.5 0 0 1-.708-.708L6.293 8 4.146 5.854a.5.5 0 1 1 .708-.708L7 7.293l2.146-2.147a.5.5 0 0 1 .708 0" />
                         <path
