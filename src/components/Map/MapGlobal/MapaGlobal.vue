@@ -32,11 +32,6 @@ const tileProviders = ref([
 const zoom = ref(13);
 const center = ref([-23.129096216749616, -45.82651434998431]);
 
-watchEffect(() => {
-  console.log('sidebarStore', sidebarStore.isGlebaClicked);
-  console.log('sidebarStore', geoFilterData.value);
-})
-
 const handleAlert = () => {
   alert('Ver mais detalhes');
 };
@@ -52,6 +47,7 @@ const handleAlert = () => {
       :min-zoom="2"
       :max-zoom="16" 
     >
+      <l-geo-json :geojson="polygons" ref="geoJsonLayer" />
       <GlebesGlobalLayer />
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
       <l-control-layers position="topright" />

@@ -1,12 +1,12 @@
 <script>
-import NavBar from '../NavBar/NavBar.vue';
+  import NavBar from '../NavBar/NavBar.vue';
 
-export default {
-  name: 'Layout',
-  components: {
-    NavBar
-  }
-};
+  export default {
+    name: 'LayoutVue',
+    components: {
+      NavBar
+    }
+  };
 </script>
 
 <template>
@@ -23,7 +23,6 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #D3D3D3;
 }
 
 .content {
