@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watchEffect, onMounted } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { useRouter } from 'vue-router';
 import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers } from '@vue-leaflet/vue-leaflet';
 import GlebesGlobalLayer from './GlebesLayer/GlebesGlobalLayer.vue';
+import axios from 'axios';
 
 import useSidebarGlebesGlobalStore from '../../../store/SidebarGlebesGlobalStore';
 import useGeoFilterStore from '../../../store/GeoFilterStore';
@@ -13,6 +14,51 @@ const sidebarStore = useSidebarGlebesGlobalStore();
 const geoFilterStore = useGeoFilterStore();
 const geoFilterData = computed(() => geoFilterStore.geoFilterData);
 const isOffcanvasOpen = computed(() => sidebarStore.isGlebaClicked);
+
+const data = ref(null);
+
+function parseCoordinatesString(coordinatesString) {
+  try {
+    return JSON.parse(coordinatesString);
+  } catch (error) {
+    console.error("Erro ao analisar a string de coordenadas:", error);
+    return null;
+  }
+}
+
+const processGeoJsonCoordinates = (geoJson) => {
+  if (!geoJson || !geoJson.features) {
+    return geoJson;
+  }
+
+  const processedFeatures = geoJson.features.map(feature => {
+    if (feature.geometry && typeof feature.geometry.coordinates === 'string') {
+      feature.geometry.coordinates = parseCoordinatesString(feature.geometry.coordinates);
+    }
+    return feature;
+  });
+
+  return {
+    ...geoJson,
+    features: processedFeatures
+  };
+};
+
+onMounted(async () => {
+  try {
+    const response = await axios.get("http://localhost:8080/field/featureCollectionSimple", {
+      withCredentials: true
+    });
+
+    if (response && response.data && Array.isArray(response.data.features)) {
+      data.value = processGeoJsonCoordinates(response.data);
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
+  } catch (error) {
+    console.error("Erro ao carregar dados da API:", error);
+  }
+});
 
 const tileProviders = ref([
   {
@@ -31,7 +77,7 @@ const tileProviders = ref([
 ]);
 
 const zoom = ref(13);
-const center = ref([-23.129096216749616, -45.82651434998431]);
+const center = ref([ -20.64802334007959, -49.34357424513479]);
 const router = useRouter();
 
 const handlePrintId = () => {
@@ -62,8 +108,7 @@ const handlePrintId = () => {
       :min-zoom="2"
       :max-zoom="16" 
     >
-      <l-geo-json :geojson="polygons" ref="geoJsonLayer" />
-      <GlebesGlobalLayer />
+      <GlebesGlobalLayer :data="data"/>
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
       <l-control-layers position="topright" />
       <l-tile-layer v-for="tileProvider in tileProviders" :key="tileProvider.name" :name="tileProvider.name"
@@ -81,33 +126,39 @@ const handlePrintId = () => {
         <template v-if="geoFilterData">
           <div class="card shadow-lg border-0 enableOffcanvasBody">
             <div class="card-header bg-primary text-white text-center d-flex justify-content-between align-items-center">
-              <h5 class="pt-2 h5">{{ geoFilterData.properties.name }}</h5>
+              <h5 class="pt-2 h5">{{ geoFilterData.properties.farm.farmName ? geoFilterData.properties.farm.farmName : 'Nome não disponível' }}</h5>
               </div>
             <div class="card-body">
               <ul class="list-group list-group-flush">
                 <li class="list-group-item d-flex align-items-center gap-2  pb-3">
                   <span class="fw-bold">ID da operação:</span> 
-                  <span class="badge bg-secondary">{{ geoFilterData.properties.id }}</span>
-                </li>
-                <li class="list-group-item d-flex gap-2 flex-column pt-3 pb-3">
-                  <span class="fw-bold">Descrição:</span> 
-                  {{ geoFilterData.properties.description }}
-                </li>
-                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Tamanho da área</span> 
-                  <span class="badge bg-secondary text-white">170.48 ha</span>
-                </li>
-                <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Cultura:</span> 
-                  <span class="badge bg-secondary text-white">Milho</span>
-                </li>
-                <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Solo:</span> 
-                  <span class="badge bg-secondary text-white">Argiloso</span>
+                  <span class="badge bg-secondary">{{ geoFilterData.properties.id ? geoFilterData.properties.id : 'ID nao disponivel' }}</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
                   <span class="fw-bold">Cidade:</span> 
-                  <span class="badge bg-secondary text-white">São José dos Campos</span>
+                  <span class="badge bg-secondary text-white">
+                    {{
+                      geoFilterData?.properties?.farm?.farmCity && geoFilterData?.properties?.farm?.farmState
+                        ? `${geoFilterData.properties.farm.farmCity} - ${geoFilterData.properties.farm.farmState}`
+                        : 'Dados não disponíveis'
+                    }}
+                  </span>
+                 </li>
+                <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
+                  <span class="fw-bold">Tamanho da área</span> 
+                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.area}} ha</span>
+                </li>
+                <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
+                  <span class="fw-bold">Cultura:</span> 
+                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.culture}}</span>
+                </li>
+                <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
+                  <span class="fw-bold">Solo:</span> 
+                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.soil}}</span>
+                </li>
+                <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
+                  <span class="fw-bold">Status</span> 
+                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.status}}</span>
                 </li>
               </ul>
             </div>

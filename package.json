@@ -13,6 +13,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "axios": "^1.8.4",
     "bootstrap": "^5.3.3",
     "georaster-layer-for-leaflet": "^3.10.0",
     "leaflet-draw": "^1.0.4",

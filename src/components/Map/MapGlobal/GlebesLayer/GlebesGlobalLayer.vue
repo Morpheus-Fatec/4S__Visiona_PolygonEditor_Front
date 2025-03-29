@@ -1,7 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch, watchEffect } from 'vue';
 import { LGeoJson } from '@vue-leaflet/vue-leaflet';
-import areasSJC from '../../data/areasSJC';
 
 import useGeoFilterStore from '../../../../store/GeoFilterStore';
 import useSidebarGlebesGlobalStore from '../../../../store/SidebarGlebesGlobalStore';
@@ -9,12 +8,12 @@ import useSidebarGlebesGlobalStore from '../../../../store/SidebarGlebesGlobalSt
 const sidebarStore = useSidebarGlebesGlobalStore();
 const geoFilterStore = useGeoFilterStore();
 
-const data = ref(null);
-const updateKey = ref(0);
-
-onMounted(() => {
-  data.value = areasSJC;
+const props = defineProps({
+  data: Object
 });
+
+const data = ref([]);
+const updateKey = ref(0);
 
 const handleClick = (e) => {
   const clickedFeature = e.propagatedFrom.feature;
@@ -42,5 +41,5 @@ const featureStyle = (feature) => {
 </script>
 
 <template>
-  <l-geo-json :key="updateKey" :geojson="data" :optionsStyle="featureStyle" @click="handleClick" />
+  <l-geo-json :key="updateKey" :geojson="props?.data" :optionsStyle="featureStyle" @click="handleClick" />
 </template>
