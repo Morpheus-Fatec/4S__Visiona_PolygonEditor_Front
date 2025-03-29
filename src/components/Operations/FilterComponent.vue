@@ -5,7 +5,7 @@ const emit = defineEmits();
 
 
 const filters = ref({
-  talhao: "",
+  name: "",
   farm: "",
   culture: "",
   soil: "",
@@ -26,7 +26,7 @@ const applyFilter = () => {
     <div class="filters-container h-100 p-4">
       <div class="filter-item">
         <label for="talhaoFilter" class="h6">Nome do talhão</label>
-        <input type="text" id="input-talhao" class="form-control" v-model="filters.talhao" maxlength="8" size="10" placeholder="Insira talhão..."/>
+        <input type="text" id="input-talhao" class="form-control" v-model="filters.name" maxlength="8" size="10" placeholder="Insira talhão..."/>
       </div>
 
       <div class="filter-item">

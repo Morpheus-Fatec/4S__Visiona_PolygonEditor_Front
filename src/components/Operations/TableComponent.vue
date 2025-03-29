@@ -14,24 +14,30 @@ const store = useFilterStore();
 const fetchData = async () => {
   try {
     const response = await axios.get("http://localhost:8090/field/featureCollectionSimple", {
-    withCredentials: true
-    })
-    .then(response => console.log(response.data))
-    .catch(error => console.error(error));
-    dataList.value = response.data;
-    console.log(dataList.value)
+      withCredentials: true
+    });
+
+    if (response && response.data && Array.isArray(response.data.features)) {
+      dataList.value = response.data;
+      console.log(dataList.value);
+      console.log(dataList.value.features);
+      console.log(dataList.features);
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
   } catch (error) {
     console.error("Erro ao carregar dados da tabela:", error);
   }
 };
 
 const handlePrintId = (id) => {
-  if (!dataList || !Array.isArray(dataList.features)) {
+  if (!dataList || !Array.isArray(dataList.value.features)) {
     console.error("O objeto 'areasSJC' não está carregado corretamente");
     return;
   }
 
-  const area = dataList.features.find(area => area.properties.id === id);
+  const area = dataList.value.features.find(area => area.properties.id === id);
+  
 
   if (area) {
     router.push({
@@ -49,11 +55,43 @@ onMounted(() => {
   fetchData();
 });
 
-const updateTable = (filters) => {
-  console.log("Dados recebidos do filtro:", filters);
-  // Aplica o filtro e atualiza filteredItems com os dados filtrados
-  dataList.value = store.applyFilter(); 
-  console.log("Dados filtrados", dataList.value);
+const updateTable = async (filters) => {
+  try {
+    let url = 'http://localhost:8090/field/featureCollectionSimple?';
+
+    if (filters.harvest) {
+      url += `harvest=${filters.harvest}&`;
+    }
+    if (filters.farm) {
+      url += `farmName=${filters.farm}&`;
+    }
+    if (filters.soil) {
+      url += `soil=${filters.soil}&`;
+    }
+    if (filters.name) {
+      url += `name=${filters.name}&`;
+    }
+    if (filters.culture) {
+      url += `culture=${filters.culture}&`;
+    }
+
+    if (url.endsWith('&')) {
+      url = url.slice(0, -1);
+    }
+
+    const response = await axios.get(url, { withCredentials: true });
+
+    if (response && response.data && Array.isArray(response.data.features)) {
+      dataList.value = response.data;
+      console.log(dataList.value);
+      console.log(dataList.value.features);
+      console.log(dataList.features);
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
+  } catch (error) {
+    console.error("Erro ao carregar dados da tabela:", error);
+  }
 };
 </script>
 
@@ -68,6 +106,7 @@ const updateTable = (filters) => {
             <th class="col text-center bg-dark text-white p-4">Cultura</th>
             <th class="col text-center bg-dark text-white p-4">Area</th>
             <th class="col text-center bg-dark text-white p-4">Solo</th>
+            <th class="col text-center bg-dark text-white p-4">Safra</th>
             <th class="col text-center bg-dark text-white p-4">Fazenda</th>
             <th class="col text-center bg-dark text-white p-4">Cidade/Estado</th>
             <th class="col text-center bg-dark text-white p-4">Situação</th>
@@ -79,12 +118,13 @@ const updateTable = (filters) => {
             <td class="text-center px-3 py-3">{{ data.properties.name }}</td>
             <td class="text-wrap py-3">{{ data.properties.culture }}</td>
             <td class="text-wrap py-3">{{ data.properties.area }}</td>
+            <td class="text-wrap py-3">{{ data.properties.soil }}</td>
             <td class="text-wrap py-3">{{ data.properties.harvest }}</td>
             <td class="text-center py-3">{{ data.properties.farm ? data.properties.farm.farmName : 'N/A' }}</td>
             <td class="text-center py-3">{{ data.properties.farm.farmCity + '/' + data.properties.farm.farmState }}</td>
             <td class="text-center py-3">{{ data.properties.status }}</td>
             <td class="text-center px-3">
-              <button @click="handlePrintId(area.properties.id)" class="btn btn-primary">Ver operação</button>
+              <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">Ver operação</button>
             </td>
           </tr>
         </tbody>
