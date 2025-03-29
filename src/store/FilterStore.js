@@ -12,7 +12,7 @@ const mockfilter = {
              "culture":"CANA",
              "area":24.09,
              "harvest":"2024/25",
-             "status":"PENDING",
+             "status}":"PENDING",
              "farm":{
                   "farmName":"ELDORADO",
                 "farmCity":'Santo Antonio do Pinhal',
