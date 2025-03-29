@@ -6,6 +6,9 @@ const fileName1 = ref("");
 const fileName2 = ref("");
 const errorMessage = ref("");
 const errorMessageModal = ref("");
+const successMessage = ref("");
+const errorMessageImage = ref("");
+const successMessageImage = ref("");
 const geojsonClassification = ref(null);
 const geojsonField = ref(null);
 const talhoesMap = ref(new Map());
@@ -18,6 +21,7 @@ const isLoadingTalhoes = ref(false);
 const isLoadingImages = ref(false);
 const enableUploadImage = ref(false);
 const scanId = ref(1);
+const noAssociation = ref("");
 
 const handleFileUpload = (event) => {
   try {
@@ -93,13 +97,13 @@ const sendFile = () => {
         editEnabled: false,
         isValid: true,
         area: featuresField.properties.AREA_HA_TL,
-        culture: featuresField.properties.CULTURA,
         coordinates: JSON.stringify(featuresField.geometry.coordinates),
+        culture: featuresField.properties.CULTURA,
         harvest: featuresField.properties.SAFRA,
         nameField: featuresField.properties.MN_TL,
         productivity: null,
         soil: featuresField.properties.SOLO,
-        classification: weedsList, 
+        classification: weedsList,
         nameFarm: featuresField.properties.FAZENDA,
       });
 
@@ -114,8 +118,7 @@ const sendFile = () => {
     } else {
       throw new Error("Nenhum talhão encontrado");
     }
-  }
-  catch (error) {
+  } catch (error) {
     errorMessage.value = error.message;
   }
 };
@@ -135,19 +138,19 @@ const openWeedsModal = (classifications) => {
 
 
 const saveScan = async () => {
-  
+
   isLoadingTalhoes.value = false;
   enableUploadImage.value = true;
 
   const modalElement = document.getElementById('modalGeoJson');
-    if (modalElement) {
-      const modalInstance = bootstrap.Modal.getInstance(modalElement);
-      if (modalInstance) {
-        modalInstance.hide();
-      }
+  if (modalElement) {
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (modalInstance) {
+      modalInstance.hide();
     }
+  }
 
-  return false;
+
   let hasError = false;
   isLoadingTalhoes.value = true;
 
@@ -172,7 +175,7 @@ const saveScan = async () => {
   }
 
   try {
-    const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
+    const response = await axios.post("http://localhost:8090/scan", Array.from(talhoesMap.value.values()));
   } catch (error) {
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
@@ -181,17 +184,21 @@ const saveScan = async () => {
       if (modalInstance) {
         modalInstance.hide();
       }
+      successMessage.value = "Dados dos talhões salvos com sucesso!";
+      setTimeout(() => {
+        successMessage.value = "";
+      }, 3000);
     }
-    fileName1.value = "";
-    fileName2.value = "";
-    geojsonClassification.value = null;
-    geojsonField.value = null;
-    document.querySelector("input[name='field']").value = "";
-    document.querySelector("input[name='classification']").value = "";
-
-    isLoadingTalhoes.value = false;
-    enableUploadImage.value = true;
   }
+  fileName1.value = "";
+  fileName2.value = "";
+  geojsonClassification.value = null;
+  geojsonField.value = null;
+  document.querySelector("input[name='field']").value = "";
+  document.querySelector("input[name='classification']").value = "";
+
+  isLoadingTalhoes.value = false;
+  enableUploadImage.value = true;
 };
 
 const editField = (talhao) => {
@@ -237,27 +244,48 @@ const saveImages = (event) => {
       'Content-Type': 'multipart/form-data',
     },
   })
-  .then(response => {
-    location.reload();
-    isLoadingImages.value = true;
-  })
-  .catch(error => {
-  });
+    .then(response => {
+      successMessageImage.value = "Imagens enviadas com sucesso!";
+      setTimeout(() => {
+        successMessageImage.value = "";
+        location.reload();
+      }, 3000);
+      isLoadingImages.value = true;
+    })
+    .catch(error => {
+      errorMessageImage.value = "Erro ao enviar a imagem";
+    });
+
 
   descImage.value = "";
   event.target.value = "";
 };
 
+const cancelImages = () => {
+  images.value = [];
+  descImage.value = "";
+  enableUploadImage.value = false;
+  noAssociation.value = "Nenhuma imagem associada";
+  setTimeout(() => {
+    noAssociation.value = "";
+  }, 3000);
 
+  setTimeout(() => {
+    successMessage.value = "";
+    location.reload();
+  }, 2000);
+
+
+};
 </script>
 
 
 <template>
   <Layout>
     <div class="row">
-      <div class="col-md-6">
+      <div class="col-md-6 text-center">
         <div class="p-0 bg-light text-black border border-1 shadow rounded">
-          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top ">
             <br>
             <h5 class="card-title">Cadastro de Informações</h5>
             <br>
@@ -266,22 +294,28 @@ const saveImages = (event) => {
             <div v-if="errorMessage" class="alert alert-danger" role="alert">
               {{ errorMessage }}
             </div>
+            <div v-if="successMessage" class="alert alert-success" role="alert">
+              {{ successMessage }}
+            </div>
             <div class="mb-3">
-              <label class="form-label">Selecionar GeoJSON de Saída:</label>
-              <input type="file" name="field" :disabled="enableUploadImage" @change="handleFileUpload" class="form-control" />
+              <label class="form-label" style="font-weight: bold;">Selecionar GeoJSON de Saída:</label>
+              <input type="file" name="field" :disabled="enableUploadImage" @change="handleFileUpload"
+                class="form-control" />
               <p v-if="fileName1" class="mt-2 text-success">
                 Arquivo 1 selecionado: {{ fileName1 }}
               </p>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Selecionar GeoJSON Automático:</label>
-              <input type="file" name="classification" :disabled="enableUploadImage" @change="handleFileUpload" class="form-control" />
+              <label class="form-label" style="font-weight: bold;">Selecionar GeoJSON Automático:</label>
+              <input type="file" name="classification" :disabled="enableUploadImage" @change="handleFileUpload"
+                class="form-control" />
               <p v-if="fileName2" class="mt-2 text-success">Arquivo 2 selecionado: {{ fileName2 }}</p>
             </div>
 
             <div class="d-flex justify-content-center">
-              <button type="button" class="btn btn-primary mt-3" :disabled="enableUploadImage" @click="sendFile">Importar Dados</button>
+              <button type="button" class="btn btn-primary mt-3" :disabled="enableUploadImage"
+                @click="sendFile">Importar Dados</button>
             </div>
           </div>
         </div>
@@ -297,45 +331,58 @@ const saveImages = (event) => {
           <div class="row p-5">
             <div class="container text-center">
               <div class="row">
+                <div v-if="errorMessageImage" class="alert alert-danger" role="alert">
+                  {{ errorMessageImage }}
+                </div>
+                <div v-if="successMessageImage" class="alert alert-success" role="alert">
+                  {{ successMessageImage }}
+                </div>
+                <div v-if="noAssociation" class="alert alert-secondary" role="alert">
+                  {{ noAssociation }}
+                </div>
                 <div class="col">
                   <label class="form-label">Descrição da imagem:</label>
-                  <input id="inputPassword5" :disabled="!enableUploadImage" class="form-control" aria-describedby="passwordHelpBlock"
-                    v-model="descImage">
+                  <input id="inputPassword5" :disabled="!enableUploadImage" class="form-control"
+                    aria-describedby="passwordHelpBlock" v-model="descImage">
                 </div>
               </div>
               <br>
               <div class="row">
                 <div class="col">
-                  <input type="file" name="tiff" :disabled="!enableUploadImage" @change="addImage" class="form-control" />
+                  <input type="file" name="tiff" :disabled="!enableUploadImage" @change="addImage"
+                    class="form-control" />
                 </div>
               </div>
               <br>
               <table class="table table-striped" v-if="images.length">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Descrição</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(image, index) in images" :key="index">
-                  <td>{{ image.name }}</td>
-                  <td>{{ image.desc }}</td>
-                  <td>
-                    <button type="button" class="btn btn-danger" @click="deleteImage(index)">Remover</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(image, index) in images" :key="index">
+                    <td>{{ image.name }}</td>
+                    <td>{{ image.desc }}</td>
+                    <td>
+                      <button type="button" class="btn btn-danger" @click="deleteImage(index)">Remover</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               <div class="d-flex justify-content-center">
-                <button type="button" class="btn btn-primary mt-3" @click="saveImages" :disabled="!enableUploadImage">
-                  <span v-if="isLoadingImages" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <button type="button" class="btn btn-primary mt-3  mx-3" @click="saveImages"
+                  :disabled="!enableUploadImage">
+                  <span v-if="isLoadingImages" class="spinner-border spinner-border-sm" role="status"
+                    aria-hidden="true"></span>
                   <span v-if="!isLoadingImages">Associar Imagens de Apoio</span>
                   <span v-if="isLoadingImages">Carregando...</span>
                 </button>
+                <button type="button" class="btn btn-outline-primary mt-3" @click="cancelImages":disabled="!enableUploadImage">Não associar</button>
               </div>
-              
+
             </div>
           </div>
         </div>
@@ -449,7 +496,8 @@ const saveImages = (event) => {
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             <button type="button" class="btn btn-primary" @click="saveScan" :disabled="isLoadingTalhoes">
-              <span v-if="isLoadingTalhoes" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span v-if="isLoadingTalhoes" class="spinner-border spinner-border-sm" role="status"
+                aria-hidden="true"></span>
               <span v-if="!isLoadingTalhoes">Salvar</span>
               <span v-if="isLoadingTalhoes">Carregando...</span>
             </button>
@@ -457,7 +505,7 @@ const saveImages = (event) => {
         </div>
       </div>
     </div>
-    <!-- Modal de Coordenadas -->
+
     <div class="modal fade" id="coordinatesModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -472,7 +520,6 @@ const saveImages = (event) => {
       </div>
     </div>
 
-    <!-- Modal de Daninhas -->
     <div class="modal fade" id="weedsModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
