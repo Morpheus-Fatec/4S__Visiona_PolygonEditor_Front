@@ -1,48 +1,97 @@
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { ref, watchEffect, onMounted } from 'vue';
 import Layout from '../components/Layout/Layout.vue';
 import MapDetailsGlebe from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
 import { useRoute } from 'vue-router';
-import areasSJC from '@/components/Map/data/areasSJC';
+import axios from 'axios';
 
 const route = useRoute();
 const areaId = route.params.id;
 const data = ref(null);
 const infoList = ref([]);
 
+function parseCoordinatesString(coordinatesString) {
+  try {
+    return JSON.parse(coordinatesString);
+  } catch (error) {
+    console.error("Erro ao analisar a string de coordenadas:", error);
+    return null;
+  }
+}
+
+const processGeoJsonCoordinates = (geoJson) => {
+  if (!geoJson || typeof geoJson !== "object") {
+    console.error("GeoJSON inválido:", geoJson);
+    return geoJson;
+  }
+
+  if (geoJson.geometry && typeof geoJson.geometry.coordinates === 'string') {
+    geoJson.geometry.coordinates = parseCoordinatesString(geoJson.geometry.coordinates);
+  }
+
+  if (Array.isArray(geoJson.classification)) {
+    geoJson.classification = geoJson.classification.map(classificationItem => {
+      if (typeof classificationItem.coordinates === 'string') {
+        classificationItem.coordinates = parseCoordinatesString(classificationItem.coordinates);
+      }
+      return classificationItem;
+    });
+  }
+
+  return geoJson;
+};
+
+onMounted(async () => {
+  try {
+    const response = await axios.get(`http://localhost:8080/field/featureCollection/${areaId}`, {
+      withCredentials: true
+    });
+
+    if (response && response.data) {
+      data.value = processGeoJsonCoordinates(response.data.features);
+      const area = data.value.find(area => (area.properties.id) === 2);  //aqui vai colocar o areaId vindo da tela de Operações
+      console.log('area', area);
+      if (!area) {
+        console.error(`Área com ID ${areaId} não encontrada.`);
+        return;
+      }
+
+      data.value = area;
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
+  } catch (error) {
+    console.error("Erro ao carregar dados da API:", error);
+  }
+});
+
 watchEffect(() => {
-  if (!areaId) {
-    console.error("Area ID is missing");
-    return;
-  }
-
-  const area = areasSJC.features.find(area => String(area.properties.id) === areaId);
-
-  if (!area) {
-    console.error(`Area with ID ${areaId} not found.`);
-    return;
-  }
-  data.value = area;
+  if (!data.value) return;
 
   infoList.value = [
-    { title: 'Cultura', value: area.properties.cultura || 'Não informado' },
-    { title: 'Área (ha)', value: area.properties.area || '150.54' },
-    { title: 'Produtor', value: area.properties.produtor || 'Não informado' },
-    { title: 'Safra', value: area.properties.safra || 'Não informado' },
-    { title: 'Solo', value: area.properties.safra || 'Não informado' },
-    { title: 'Cidade', value: area.properties.safra || 'Não informado' },
-    { title: 'Estado', value: area.properties.safra || 'Não informado' },
-    { title: 'Nome da Fazenda', value: area.properties.safra || 'Não informado' },
+    { title: 'ID', value: data.value.properties.id },
+    { title: 'Nome', value: data.value.properties.name },
+    { title: 'Cultura', value: data.value.properties.culture },
+    { title: 'Área (ha)', value: data.value.properties.area },
+    { title: 'Safra', value: data.value.properties.harvest },
+    { title: 'Status', value: data.value.properties.status },
+    { title: 'Solo', value: data.value.properties.soil },
+    { title: 'Produtividade', value: data.value.properties.productivity ?? 'Não informado' },
+    { title: 'Nome da Fazenda', value: data.value.properties.farm?.farmName ?? 'Não informado' },
+    { title: 'Cidade', value: data.value.properties.farm?.farmCity ?? 'Não informado' },
+    { title: 'Estado', value: data.value.properties.farm?.farmState ?? 'Não informado' }
   ];
 });
+
 </script>
 
 <template>
   <Layout>
     <div class="d-flex w-100">
-      <div class="sidebar d-flex flex-column align-items-center p-3 h-100">
+      <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
         <div class="w-100">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3">Detalhes da Área</h5>
+
           <div v-for="(item, index) in infoList" :key="index" class="mb-3">
             <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
             <p class="mb-1">{{ item.value }}</p>
@@ -50,7 +99,7 @@ watchEffect(() => {
           </div>
         </div>
       </div>
-      <div class="flex-grow-1">
+      <div class="flex-grow-1" v-if="data">
         <MapDetailsGlebe :data="data" />
       </div>
       
