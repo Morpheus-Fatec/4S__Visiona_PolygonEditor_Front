@@ -5,6 +5,7 @@ import axios from "axios";
 const fileName1 = ref("");
 const fileName2 = ref("");
 const errorMessage = ref("");
+const errorMessageModal = ref("");
 const geojsonClassification = ref(null);
 const geojsonField = ref(null);
 const talhoesMap = ref(new Map());
@@ -13,6 +14,10 @@ const selectedWeeds = ref([]);
 const originalField = ref(new Map());
 const images = ref([]);
 const descImage = ref("");
+const isLoadingTalhoes = ref(false);
+const isLoadingImages = ref(false);
+const enableUploadImage = ref(false);
+const scanId = ref(1);
 
 const handleFileUpload = (event) => {
   try {
@@ -73,9 +78,7 @@ const sendFile = () => {
         if (!featuresClassification.properties.MN_TL || !featuresClassification.properties.CLASSE || !featuresClassification.geometry.coordinates) {
           throw new Error("Conteúdo do arquivo GeoJSON inválido");
         }
-
-        if (featuresField.properties.MN_TL === featuresField.properties.MN_TL) {
-
+        if (featuresField.properties.MN_TL == featuresClassification.properties.MN_TL) {
           weedsList.push({
             area: featuresClassification.properties.AREA_M2,
             coordinates: JSON.stringify(featuresClassification.geometry.coordinates),
@@ -85,12 +88,12 @@ const sendFile = () => {
       });
 
       const id = featuresField.properties.ID || index;
-
       talhoes.set(id, {
         id,
         editEnabled: false,
         isValid: true,
         area: featuresField.properties.AREA_HA_TL,
+        culture: featuresField.properties.CULTURA,
         coordinates: JSON.stringify(featuresField.geometry.coordinates),
         harvest: featuresField.properties.SAFRA,
         nameField: featuresField.properties.MN_TL,
@@ -115,11 +118,6 @@ const sendFile = () => {
   catch (error) {
     errorMessage.value = error.message;
   }
-
-  console.log(`${talhoesMap.value.size}`);
-  console.log("Talhões:", talhoesMap.value);
-
-
 };
 
 
@@ -129,15 +127,29 @@ const openCoordinatesModal = (talhao) => {
   modal.show();
 };
 
-const openWeedsModal = (talhao) => {
-  selectedWeeds.value = talhao.classification.weedsList;
+const openWeedsModal = (classifications) => {
+  selectedWeeds.value = classifications;
   const modal = new bootstrap.Modal(document.getElementById("weedsModal"));
   modal.show();
 };
 
 
-const saveField = async () => {
+const saveScan = async () => {
+  
+  isLoadingTalhoes.value = false;
+  enableUploadImage.value = true;
+
+  const modalElement = document.getElementById('modalGeoJson');
+    if (modalElement) {
+      const modalInstance = bootstrap.Modal.getInstance(modalElement);
+      if (modalInstance) {
+        modalInstance.hide();
+      }
+    }
+
+  return false;
   let hasError = false;
+  isLoadingTalhoes.value = true;
 
   talhoesMap.value.forEach((talhao) => {
     const isNameValid = !!talhao.nameFarm?.trim();
@@ -154,15 +166,14 @@ const saveField = async () => {
   });
 
   if (hasError) {
-    errorMessage.value = "Preencha os campos obrigatórios.";
+    errorMessageModal.value = "Preencha os campos obrigatórios.";
+    isLoadingTalhoes.value = false;
     return;
   }
 
   try {
     const response = await axios.post("https://morpheus1.free.beeceptor.com/todos", Array.from(talhoesMap.value.values()));
-    console.log(response.data);
   } catch (error) {
-    // console.error(error);
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
     if (modalElement) {
@@ -177,11 +188,10 @@ const saveField = async () => {
     geojsonField.value = null;
     document.querySelector("input[name='field']").value = "";
     document.querySelector("input[name='classification']").value = "";
-    console.log("Talhões:", talhoesMap.value);
 
+    isLoadingTalhoes.value = false;
+    enableUploadImage.value = true;
   }
-
-  console.log("Talhões:", talhoesMap.value);
 };
 
 const editField = (talhao) => {
@@ -202,14 +212,42 @@ const cancelEdit = (talhao) => {
 };
 
 const addImage = (event) => {
-  images.value.push({ name: event.target.files[0].name, image: event.target.files[0], desc: descImage });
+  images.value.push({ name: event.target.files[0].name, image: event.target.files[0], desc: descImage.value });
   descImage.value = "";
   event.target.value = "";
 };
 
 const deleteImage = (index) => {
-  this.images.splice(index, 1);
+  images.value.splice(index, 1);
 };
+
+const saveImages = (event) => {
+  isLoadingImages.value = true;
+  const formData = new FormData();
+
+  formData.append('scanId', 1);
+  images.value.forEach((img) => {
+    formData.append('image', img.image);
+    formData.append('name', img.name);
+    formData.append('desc', img.desc);
+  });
+
+  axios.post('http://localhost:8090/image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  .then(response => {
+    location.reload();
+    isLoadingImages.value = true;
+  })
+  .catch(error => {
+  });
+
+  descImage.value = "";
+  event.target.value = "";
+};
+
 
 </script>
 
@@ -230,7 +268,7 @@ const deleteImage = (index) => {
             </div>
             <div class="mb-3">
               <label class="form-label">Selecionar GeoJSON de Saída:</label>
-              <input type="file" name="field" @change="handleFileUpload" class="form-control" />
+              <input type="file" name="field" :disabled="enableUploadImage" @change="handleFileUpload" class="form-control" />
               <p v-if="fileName1" class="mt-2 text-success">
                 Arquivo 1 selecionado: {{ fileName1 }}
               </p>
@@ -238,12 +276,12 @@ const deleteImage = (index) => {
 
             <div class="mb-3">
               <label class="form-label">Selecionar GeoJSON Automático:</label>
-              <input type="file" name="classification" @change="handleFileUpload" class="form-control" />
+              <input type="file" name="classification" :disabled="enableUploadImage" @change="handleFileUpload" class="form-control" />
               <p v-if="fileName2" class="mt-2 text-success">Arquivo 2 selecionado: {{ fileName2 }}</p>
             </div>
 
             <div class="d-flex justify-content-center">
-              <button type="button" class="btn btn-primary mt-3" @click="sendFile">Salvar dados</button>
+              <button type="button" class="btn btn-primary mt-3" :disabled="enableUploadImage" @click="sendFile">Importar Dados</button>
             </div>
           </div>
         </div>
@@ -253,7 +291,7 @@ const deleteImage = (index) => {
         <div class="p-0 bg-light text-black border border-1 shadow rounded" style="overflow: hidden;">
           <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
             <br>
-            <h5 class="card-title">Upload de Imagens</h5>
+            <h5 class="card-title">Imagens de Apoio</h5>
             <br>
           </div>
           <div class="row p-5">
@@ -261,31 +299,43 @@ const deleteImage = (index) => {
               <div class="row">
                 <div class="col">
                   <label class="form-label">Descrição da imagem:</label>
-                  <input id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock"
+                  <input id="inputPassword5" :disabled="!enableUploadImage" class="form-control" aria-describedby="passwordHelpBlock"
                     v-model="descImage">
                 </div>
               </div>
               <br>
               <div class="row">
                 <div class="col">
-                  <input type="file" name="tiff" @change="addImage" class="form-control" />
+                  <input type="file" name="tiff" :disabled="!enableUploadImage" @change="addImage" class="form-control" />
                 </div>
               </div>
               <br>
-              <div v-for="(image, index) in images" class="row">
-                <div class="col-5">
-                  {{ image.name }}
-                </div>
-                <div class="col-5">
-                  {{ image.desc }}
-                </div>
-                <div class="col-2">
-                  <button type="button" class="btn btn-danger" @click="deleteImage(index)">Remover</button>
-                </div>
-              </div>
+              <table class="table table-striped" v-if="images.length">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Descrição</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(image, index) in images" :key="index">
+                  <td>{{ image.name }}</td>
+                  <td>{{ image.desc }}</td>
+                  <td>
+                    <button type="button" class="btn btn-danger" @click="deleteImage(index)">Remover</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
               <div class="d-flex justify-content-center">
-                <button type="button" class="btn btn-primary mt-3">Salvar imagens</button>
+                <button type="button" class="btn btn-primary mt-3" @click="saveImages" :disabled="!enableUploadImage">
+                  <span v-if="isLoadingImages" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span v-if="!isLoadingImages">Associar Imagens de Apoio</span>
+                  <span v-if="isLoadingImages">Carregando...</span>
+                </button>
               </div>
+              
             </div>
           </div>
         </div>
@@ -301,6 +351,9 @@ const deleteImage = (index) => {
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
+            <div v-if="errorMessageModal" class="alert alert-danger" role="alert">
+              {{ errorMessageModal }}
+            </div>
             <table class="table table-striped table-hover ">
               <thead class="table-dark">
                 <tr>
@@ -367,7 +420,7 @@ const deleteImage = (index) => {
                       Coordenadas</button>
                   </td>
                   <td>
-                    <button class="btn btn-warning btn-sm" @click="openWeedsModal(talhao)">Ver
+                    <button class="btn btn-warning btn-sm" @click="openWeedsModal(talhao.classification)">Ver
                       classificação</button>
                   </td>
                   <td>
@@ -395,7 +448,11 @@ const deleteImage = (index) => {
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            <button type="button" class="btn btn-primary" @click="saveField">Salvar</button>
+            <button type="button" class="btn btn-primary" @click="saveScan" :disabled="isLoadingTalhoes">
+              <span v-if="isLoadingTalhoes" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span v-if="!isLoadingTalhoes">Salvar</span>
+              <span v-if="isLoadingTalhoes">Carregando...</span>
+            </button>
           </div>
         </div>
       </div>
@@ -420,7 +477,7 @@ const deleteImage = (index) => {
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Daninhas do Talhão</h5>
+            <h5 class="modal-title">Classificações do Talhão</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -432,8 +489,8 @@ const deleteImage = (index) => {
                 </tr>
               </thead>
               <tbody class="table-group-divider">
-                <tr v-for="weeds in selectedWeeds" :key="weeds.nameField">
-                  <td>{{ weeds.class }}</td>
+                <tr v-for="weeds in selectedWeeds" :key="weeds.classEntity">
+                  <td>{{ weeds.classEntity }}</td>
                   <td>{{ weeds.area }}</td>
                 </tr>
               </tbody>
