@@ -25,11 +25,14 @@ import {RouterLink} from 'vue-router'
                         <RouterLink class="nav-link" to="/mapa">Mapa Details</RouterLink>
                     </li>
                     <li class="nav-item">
+                        <RouterLink class="nav-link" to="/operacoes">Operações</RouterLink>
+                    </li>
+                    <!-- <li class="nav-item">
                         <RouterLink class="nav-link" to="/dashboard">Dashboard</RouterLink>
                     </li>
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/configuracao">Configuração</RouterLink>
-                    </li>
+                    </li> -->
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/">Sair</RouterLink>
                     </li>
