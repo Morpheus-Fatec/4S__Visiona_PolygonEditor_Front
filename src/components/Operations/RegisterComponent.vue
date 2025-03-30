@@ -136,7 +136,6 @@ const openWeedsModal = (classifications) => {
   modal.show();
 };
 
-
 const saveScan = async () => {
   let hasError = false;
   isLoadingTalhoes.value = true;
@@ -165,8 +164,6 @@ const saveScan = async () => {
   fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
 };
   try {
-
-
     const response = await axios.post("http://localhost:7777/scan", payload);
     scanId.value = response.data;
   } catch (error) {
@@ -225,7 +222,7 @@ const saveImages = (event) => {
   isLoadingImages.value = true;
   const formData = new FormData();
 
-  formData.append('scanId', scanId);
+  formData.append('scanId', scanId.value);
   images.value.forEach((img) => {
     formData.append('image', img.image);
     formData.append('name', img.name);
