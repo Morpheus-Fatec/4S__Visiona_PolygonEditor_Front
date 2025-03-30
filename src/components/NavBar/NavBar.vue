@@ -21,18 +21,11 @@ import {RouterLink} from 'vue-router'
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/mapa-global">Mapa Global</RouterLink>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Talhões
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <li>
-                                <RouterLink class="dropdown-item" to="/operacoes">Visualizar Talhões</RouterLink>
-                            </li>
-                            <li>
-                                <RouterLink class="dropdown-item" to="/cadastro">Cadastrar Talhão</RouterLink>
-                            </li>
-                        </ul>
+                    <li class="nav-item">
+                        <RouterLink class="nav-link" to="/operacoes">Visualizar Talhões</RouterLink>
+                    </li>
+                    <li class="nav-item">
+                        <RouterLink class="nav-link" to="/cadastro">Cadastrar Talhão</RouterLink>
                     </li>
                     <!-- <li class="nav-item">
                         <RouterLink class="nav-link" to="/dashboard">Dashboard</RouterLink>
