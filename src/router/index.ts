@@ -5,6 +5,7 @@ import Login from '../view/LoginView.vue';
 import NotFound from '../view/NotFoundView.vue';
 import Operacoes from '../view/OperacoesView.vue';
 import MapaOperationView from '@/view/MapaOperationView.vue';
+import RegisterView from '@/view/RegisterView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +40,11 @@ const router = createRouter({
       path: '/operacoes',
       name: 'operacoes',
       component: Operacoes,
+    },
+    {
+      path: '/cadastro',
+      name: 'register',
+      component: RegisterView,
     },
     {
       path: '/:pathMatch(.*)*',
