@@ -1,80 +1,58 @@
 <script setup>
-import { ref, defineEmits } from 'vue';
+import { ref } from 'vue';
 
-const emit = defineEmits(['apply-filters']);
+const emit = defineEmits();
+
 
 const filters = ref({
-  fazenda: '',
-  cidade: '',
-  estado: '',
-  situacao: '',
+  name: "",
+  farm: "",
+  culture: "",
+  soil: "",
+  harvest: ""
 });
 
-const options = ['Opção 1', 'Opção 2', 'Opção 3'];
+const applyFilter = () => {
 
-const applyFilters = () => {
-  emit('apply-filters', { ...filters.value });
+  console.log(filters.value);
+
+  emit('filteredData', filters.value);
 };
+
 </script>
 
 <template>
-  <div class="filter-component py-4 px-4 bg-white shadow">
-    <!-- Botão Criar Talhão -->
-     <div class="d-flex w-100 gap-2 justify-content-around align-items-center">
-       <h1 class="h1 display-5 fw-bold font-weight-bold font-size">Operações</h1>
-        <div class="btn-component d-flex flex-column justify-content-end align-items-start align-items-center h-100">
-          <button class="btn-criar btn btn-primary ">Criar Talhão</button>
-        </div>
-    
-        <div class="filters-container d-flex">
-          <!-- Filtro Fazenda -->
-          <div class="filter-item">
-            <label for="fazendaFilter" class="form-label">Fazenda</label>
-            <select id="fazendaFilter" v-model="filters.fazenda" class="form-select">
-              <option value="">Selecione a fazenda...</option>
-              <option v-for="option in options" :key="option" :value="option">
-                {{ option }}
-              </option>
-            </select>
-          </div>
-    
-          <!-- Filtro Cidade -->
-          <div class="filter-item">
-            <label for="cidadeFilter" class="form-label">Cidade</label>
-            <select id="cidadeFilter" v-model="filters.cidade" class="form-select">
-              <option value="">Selecione a cidade...</option>
-              <option v-for="option in options" :key="option" :value="option">
-                {{ option }}
-              </option>
-            </select>
-          </div>
-    
-          <!-- Filtro Estado -->
-          <div class="filter-item">
-            <label for="estadoFilter" class="form-label">Estado</label>
-            <select id="estadoFilter" v-model="filters.estado" class="form-select">
-              <option value="">Selecione o estado...</option>
-              <option v-for="option in options" :key="option" :value="option">
-                {{ option }}
-              </option>
-            </select>
-          </div>
-    
-          <!-- Filtro Situação -->
-          <div class="filter-item">
-            <label for="situacaoFilter" class="form-label">Situação</label>
-            <select id="situacaoFilter" v-model="filters.situacao" class="form-select">
-              <option value="">Selecione a situação...</option>
-              <option v-for="option in options" :key="option" :value="option">
-                {{ option }}
-              </option>
-            </select>
-          </div>
-          <div class="filter-item">
-            <button @click="applyFilters" class="btn btn-primary">Aplicar filtros</button>
-          </div>
-        </div>
+  <div class="filter-component bg-white shadow"> 
+    <div class="filters-container h-100 p-4">
+      <div class="filter-item">
+        <label for="talhaoFilter" class="h6">Nome do talhão</label>
+        <input type="text" id="input-talhao" class="form-control" v-model="filters.name" maxlength="8" size="10" placeholder="Insira talhão..."/>
       </div>
+
+      <div class="filter-item">
+        <label for="farmFilter" class="h6">Fazenda</label>
+        <input type="text" id="input-farm" class="form-control" v-model="filters.farm" maxlength="8" size="10" placeholder="Insira..."/>
+      </div>
+
+      <div class="filter-item">
+        <label for="cultureFilter" class="h6">Cultura</label>
+        <input type="text" id="input-culture" class="form-control" v-model="filters.culture" maxlength="8" size="10" placeholder="Insira..."/>
+      </div>
+
+      <div class="filter-item">
+        <label for="soilFilter" class="h6">Solo</label>
+        <input type="text" id="input-soil" class="form-control" v-model="filters.soil" maxlength="8" size="10" placeholder="Insira..."/>
+      </div>
+
+      <div class="filter-item">
+        <label for="harvestFilter" class="h6">Safra</label>
+        <input type="text" id="input-harvest" class="form-control" v-model="filters.harvest" maxlength="8" size="10" placeholder="Insira..."/>
+      </div>
+    </div>
+    
+    <div class="w-100 d-flex justify-content-center mt-3">
+      <button @click="applyFilter" class="btn btn-primary w-100">Aplicar filtros</button>
+    </div>
   </div>
 </template>
 
@@ -83,10 +61,10 @@ const applyFilters = () => {
   border-radius: 8px;
   background-color: #f9f9f9;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  width: 400px;
   gap: 1rem;
   padding-bottom: 2px;
-  justify-content: spa;
 }
 
 .btn-component h1 {
@@ -106,7 +84,6 @@ const applyFilters = () => {
 
 .filters-container {
   display: flex;
-  gap: 1rem;
   flex-wrap: wrap;
 }
 
