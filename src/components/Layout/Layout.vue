@@ -23,7 +23,6 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #D3D3D3;
 }
 
 .content {

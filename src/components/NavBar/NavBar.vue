@@ -19,7 +19,7 @@ import {RouterLink} from 'vue-router'
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-4">
                     <li class="nav-item">
-                        <RouterLink class="nav-link" to="/mapa">Mapa</RouterLink>
+                        <RouterLink class="nav-link" to="/mapa-global">Mapa Global</RouterLink>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -35,11 +35,17 @@ import {RouterLink} from 'vue-router'
                         </ul>
                     </li>
                     <li class="nav-item">
+                        <RouterLink class="nav-link" to="/mapa">Mapa Details</RouterLink>
+                    </li>
+                    <li class="nav-item">
+                        <RouterLink class="nav-link" to="/operacoes">Operações</RouterLink>
+                    </li>
+                    <!-- <li class="nav-item">
                         <RouterLink class="nav-link" to="/dashboard">Dashboard</RouterLink>
                     </li>
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/configuracao">Configuração</RouterLink>
-                    </li>
+                    </li> -->
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/">Sair</RouterLink>
                     </li>
