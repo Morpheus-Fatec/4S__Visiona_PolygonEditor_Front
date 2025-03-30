@@ -110,7 +110,7 @@ const updateTable = async (filters) => {
             <th class="col text-center bg-dark text-white p-4">Fazenda</th>
             <th class="col text-center bg-dark text-white p-4">Cidade/Estado</th>
             <th class="col text-center bg-dark text-white p-4">Situação</th>
-            <th class="col text-center bg-dark text-white p-4" style="min-width: 200px">Ação</th>
+            <th class="col text-center bg-dark text-white p-4" style="width:100px">Ação</th>
           </tr>
         </thead>
         <tbody>
@@ -124,7 +124,7 @@ const updateTable = async (filters) => {
             <td class="text-center py-3">{{ data.properties.farm.farmCity + '/' + data.properties.farm.farmState }}</td>
             <td class="text-center py-3">{{ data.properties.status }}</td>
             <td class="text-center px-3">
-              <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">Ver operação</button>
+              <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">+</button>
             </td>
           </tr>
         </tbody>
