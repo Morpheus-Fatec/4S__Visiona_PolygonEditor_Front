@@ -22,7 +22,7 @@ const applyFilter = () => {
 </script>
 
 <template>
-  <div class="filter-component bg-white shadow"> 
+  <div class="filter-component bg-white shadow">
     <div class="filters-container h-100 p-4">
       <div class="filter-item">
         <label for="talhaoFilter" class="h6">Nome do talhão</label>
@@ -49,7 +49,7 @@ const applyFilter = () => {
         <input type="text" id="input-harvest" class="form-control" v-model="filters.harvest" maxlength="8" size="10" placeholder="Insira..."/>
       </div>
     </div>
-    
+
     <div class="w-100 d-flex justify-content-center mt-3">
       <button @click="applyFilter" class="btn btn-primary w-100">Aplicar filtros</button>
     </div>
@@ -91,5 +91,6 @@ const applyFilter = () => {
   flex: 1 1 200px;
   display: flex;
   flex-direction: column;
+  margin-top: 15px;
 }
 </style>
