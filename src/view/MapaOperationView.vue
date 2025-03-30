@@ -25,18 +25,20 @@ const processGeoJsonCoordinates = (geoJson) => {
     return geoJson;
   }
 
+  // Corrigir coordenadas do objeto principal (geometry)
   if (geoJson.geometry && typeof geoJson.geometry.coordinates === 'string') {
     geoJson.geometry.coordinates = parseCoordinatesString(geoJson.geometry.coordinates);
   }
 
-  if (Array.isArray(geoJson.classification)) {
-    geoJson.classification = geoJson.classification.map(classificationItem => {
-      if (typeof classificationItem.coordinates === 'string') {
-        classificationItem.coordinates = parseCoordinatesString(classificationItem.coordinates);
-      }
-      return classificationItem;
-    });
-  }
+  // Corrigir coordenadas da classificação, caso existam
+  if (geoJson.classification && Array.isArray(geoJson.classification.features)) {
+    geoJson.classification.features = geoJson.classification.features.map(classificationItem => {
+      if (typeof classificationItem.geometry.coordinates === 'string') {
+      classificationItem.geometry.coordinates = parseCoordinatesString(classificationItem.geometry.coordinates);
+    }
+    return classificationItem;
+  });
+}
 
   return geoJson;
 };
@@ -48,15 +50,11 @@ onMounted(async () => {
     });
 
     if (response && response.data) {
-      data.value = processGeoJsonCoordinates(response.data.features);
-      const area = data.value.find(area => (area.properties.id) === 2);  //aqui vai colocar o areaId vindo da tela de Operações
-      console.log('area', area);
-      if (!area) {
-        console.error(`Área com ID ${areaId} não encontrada.`);
-        return;
-      }
+      console.log("Dados recebidos da API:", response.data.features);
 
-      data.value = area;
+      // Processa os dados principais e a classificação de uma vez
+      data.value = processGeoJsonCoordinates(response.data.features);
+      console.log("Dados processados:", data.value);
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
@@ -102,7 +100,6 @@ watchEffect(() => {
       <div class="flex-grow-1" v-if="data">
         <MapDetailsGlebe :data="data" />
       </div>
-      
     </div>
   </Layout>
 </template>

@@ -24,13 +24,14 @@ const mapRef = ref(null);
 const glebaLayerGroup = ref(null);
 const tifLayerGroup1 = ref(L.layerGroup());
 const tifLayerGroup2 = ref(L.layerGroup());
+const classificationLayerGroup = ref(L.layerGroup());  // Novo grupo de camadas para a classificação
 const baseLayerRef = ref(null);
 let tifLayer1Loaded = false;
 let tifLayer2Loaded = false;
 
 const onMapReady = async (map) => {
   mapRef.value = map;
-  
+
   const baseLayers = {};
   tileProviders.value.forEach(provider => {
     const tileLayer = L.tileLayer(provider.url, { attribution: provider.attribution });
@@ -44,11 +45,26 @@ const onMapReady = async (map) => {
   glebaLayerGroup.value = L.layerGroup();
 
   const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
+  const classification = props.data.classification.features;
+  console.log("Classificação:", classification);
+
+  // Converte as coordenadas da gleba
   const multiPolygons = props.data.geometry.coordinates.map(polygon =>
     polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
   );
 
-  let bounds = L.latLngBounds(); 
+  // Converte as coordenadas de classificação para o formato correto
+  const classificationMultiPolygons = classification.map(item =>
+    item.geometry.coordinates.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+    )
+  );
+
+  console.log("Classificação MultiPolygons:", classificationMultiPolygons);
+
+  let bounds = L.latLngBounds();
+
+  // Adiciona os polígonos de gleba
   multiPolygons.forEach(polygonCoords => {
     const glebaPolygon = L.polygon(polygonCoords, {
       weight: 3,
@@ -58,20 +74,34 @@ const onMapReady = async (map) => {
     glebaLayerGroup.value.addLayer(glebaPolygon);
     bounds = bounds.extend(glebaPolygon.getBounds());
   });
-  glebaLayerGroup.value.addTo(map);
 
+  // Adiciona os polígonos de classificação
+  classificationMultiPolygons.forEach(item => {
+    item.forEach(polygonCoords => { // item é um array de polígonos
+      const classificationPolygon = L.polygon(polygonCoords, {
+        weight: 4,
+        color: 'red',
+        fillOpacity: 0.5
+      });
+      classificationLayerGroup.value.addLayer(classificationPolygon);
+    });
+  });
+
+  glebaLayerGroup.value.addTo(map);
+  classificationLayerGroup.value.addTo(map);  // Adiciona a camada de classificação ao mapa
   map.setMaxBounds(bounds);
 
   const overlays = {
     'Gleba Polígono': glebaLayerGroup.value,
     'GeoTIFF Layer 1': tifLayerGroup1.value,
-    'GeoTIFF Layer 2': tifLayerGroup2.value
+    'GeoTIFF Layer 2': tifLayerGroup2.value,
+    'Classification Layer': classificationLayerGroup.value 
   };
-  
+
   const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
-  
+
   map.fitBounds(bounds);
-  
+
   map.on('overlayadd', async (event) => {
     if (event.name === 'GeoTIFF Layer 1' && !tifLayer1Loaded) {
       await loadTifs(coordinates, 1);
@@ -83,6 +113,7 @@ const onMapReady = async (map) => {
   });
 };
 
+// Função para carregar os GeoTIFFs
 async function loadTifs(coordinates, layerNumber) {
   const urls = [
     "https://demeterteste.s3.us-east-2.amazonaws.com/testeA/demeterteste/1_jeanpaulsartreprofileImage",
@@ -145,6 +176,8 @@ function normalizeCoordinates(coordinates) {
   );
 }
 </script>
+
+
 
 <template>
   <div class="map-container">
