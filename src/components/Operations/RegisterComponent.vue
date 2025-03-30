@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, resolveComponent } from "vue";
 import axios from "axios";
 
 const fileName1 = ref("");
@@ -136,20 +136,7 @@ const openWeedsModal = (classifications) => {
   modal.show();
 };
 
-
 const saveScan = async () => {
-  isLoadingTalhoes.value = false;
-  enableUploadImage.value = true;
-
-  const modalElement = document.getElementById('modalGeoJson');
-  if (modalElement) {
-    const modalInstance = bootstrap.Modal.getInstance(modalElement);
-    if (modalInstance) {
-      modalInstance.hide();
-    }
-  }
-
-
   let hasError = false;
   isLoadingTalhoes.value = true;
 
@@ -177,9 +164,8 @@ const saveScan = async () => {
   fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
 };
   try {
-
-
-    const response = await axios.post("http://localhost:8080/scan", payload);
+    const response = await axios.post("http://localhost:7777/scan", payload);
+    scanId.value = response.data;
   } catch (error) {
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
@@ -236,14 +222,14 @@ const saveImages = (event) => {
   isLoadingImages.value = true;
   const formData = new FormData();
 
-  formData.append('scanId', 1);
+  formData.append('scanId', scanId.value);
   images.value.forEach((img) => {
     formData.append('image', img.image);
     formData.append('name', img.name);
     formData.append('desc', img.desc);
   });
 
-  axios.post('http://localhost:8090/image', formData, {
+  axios.post('http://localhost:7777/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
