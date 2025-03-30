@@ -138,7 +138,6 @@ const openWeedsModal = (classifications) => {
 
 
 const saveScan = async () => {
-
   isLoadingTalhoes.value = false;
   enableUploadImage.value = true;
 
@@ -174,8 +173,13 @@ const saveScan = async () => {
     return;
   }
 
+  const payload = {
+  fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
+};
   try {
-    const response = await axios.post("http://localhost:8090/scan", Array.from(talhoesMap.value.values()));
+
+
+    const response = await axios.post("http://localhost:8080/scan", payload);
   } catch (error) {
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
