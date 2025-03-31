@@ -96,7 +96,7 @@ const updateTable = async (filters) => {
 </script>
 
 <template>
-  <div class="w-100 d-flex gap-3 rounded bg-red pt-3">
+  <div class="w-100 h-100 d-flex gap-3 rounded bg-red pt-3">
     <FilterComponent @filteredData="updateTable" />
     <div class="table-container flex-grow-1 overflow-auto rounded shadow">
       <table class="table table-striped table-bordered">
@@ -114,6 +114,9 @@ const updateTable = async (filters) => {
           </tr>
         </thead>
         <tbody>
+          <tr v-if="!dataList || !dataList.features || dataList.features.length === 0">
+            <td colspan="9" class="text-center py-3 text-muted">Nenhum talhão cadastrado</td>
+          </tr>
           <tr v-for="data in dataList.features" :key="data.properties.id">
             <td class="text-center px-3 py-3">{{ data.properties.name }}</td>
             <td class="text-wrap py-3">{{ data.properties.culture }}</td>
@@ -124,7 +127,6 @@ const updateTable = async (filters) => {
             <td class="text-center py-3">
               {{ (data.properties.farm.farmCity || 'Sem registro') + '/' + (data.properties.farm.farmState || 'Sem registro') }}
             </td>
-
             <td class="text-center py-3">{{ data.properties.status }}</td>
             <td class="text-center px-3">
               <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">+</button>

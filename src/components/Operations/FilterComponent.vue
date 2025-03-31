@@ -22,8 +22,8 @@ const applyFilter = () => {
 </script>
 
 <template>
-  <div class="filter-component bg-white shadow">
-    <div class="filters-container h-100 p-4">
+  <div class="filter-component mb-4 bg-white shadow">
+    <div class="filters-container p-4 h-100 p-4">
       <div class="filter-item">
         <label for="talhaoFilter" class="h6">Nome do talhão</label>
         <input type="text" id="input-talhao" class="form-control" v-model="filters.name" maxlength="8" size="10" placeholder="Insira talhão..."/>
