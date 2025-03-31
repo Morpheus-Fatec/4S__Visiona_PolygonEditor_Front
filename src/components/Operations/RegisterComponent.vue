@@ -164,7 +164,7 @@ const saveScan = async () => {
   fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
 };
   try {
-    const response = await axios.post("http://localhost:7777/scan", payload);
+    const response = await axios.post("http://localhost:8080/scan", payload);
     scanId.value = response.data;
   } catch (error) {
   } finally {
@@ -229,7 +229,7 @@ const saveImages = (event) => {
     formData.append('desc', img.desc);
   });
 
-  axios.post('http://localhost:7777/image', formData, {
+  axios.post('http://localhost:8080/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

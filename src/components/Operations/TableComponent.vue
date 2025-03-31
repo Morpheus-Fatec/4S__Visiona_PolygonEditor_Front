@@ -121,7 +121,10 @@ const updateTable = async (filters) => {
             <td class="text-wrap py-3">{{ data.properties.soil }}</td>
             <td class="text-wrap py-3">{{ data.properties.harvest }}</td>
             <td class="text-center py-3">{{ data.properties.farm ? data.properties.farm.farmName : 'N/A' }}</td>
-            <td class="text-center py-3">{{ data.properties.farm.farmCity + '/' + data.properties.farm.farmState }}</td>
+            <td class="text-center py-3">
+              {{ (data.properties.farm.farmCity || 'Sem registro') + '/' + (data.properties.farm.farmState || 'Sem registro') }}
+            </td>
+
             <td class="text-center py-3">{{ data.properties.status }}</td>
             <td class="text-center px-3">
               <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">+</button>
