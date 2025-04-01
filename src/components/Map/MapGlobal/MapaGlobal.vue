@@ -46,7 +46,7 @@ const processGeoJsonCoordinates = (geoJson) => {
 
 onMounted(async () => {
   try {
-    const response = await axios.get("http://localhost:8080/field/featureCollectionSimple", {
+    const response = await axios.get("http://localhost:8090/field/featureCollectionSimple", {
       withCredentials: true
     });
 

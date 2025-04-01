@@ -13,7 +13,7 @@ const store = useFilterStore();
 
 const fetchData = async () => {
   try {
-    const response = await axios.get("http://localhost:8080/field/featureCollectionSimple", {
+    const response = await axios.get("http://localhost:8090/field/featureCollectionSimple", {
       withCredentials: true
     });
 
@@ -57,7 +57,7 @@ onMounted(() => {
 
 const updateTable = async (filters) => {
   try {
-    let url = 'http://localhost:8080/field/featureCollectionSimple?';
+    let url = 'http://localhost:8090/field/featureCollectionSimple?';
 
     if (filters.harvest) {
       url += `harvest=${filters.harvest}&`;

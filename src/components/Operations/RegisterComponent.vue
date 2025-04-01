@@ -164,7 +164,7 @@ const saveScan = async () => {
   fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
 };
   try {
-    const response = await axios.post("http://localhost:8080/scan", payload);
+    const response = await axios.post("http://localhost:8090/scan", payload);
     scanId.value = response.data;
   } catch (error) {
   } finally {
@@ -229,7 +229,7 @@ const saveImages = (event) => {
     formData.append('desc', img.desc);
   });
 
-  axios.post('http://localhost:8080/image', formData, {
+  axios.post('http://localhost:8090/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -272,15 +272,15 @@ const cancelImages = () => {
 
 <template>
   <Layout>
-    <div class="row">
-      <div class="col-md-6 text-center">
-        <div class="p-0 bg-light text-black border border-1 shadow rounded">
+    <div class="d-flex h-100 w-100 gap-3">
+      <div class="d-flex flex-grow-1">
+        <div class="p-0 bg-light w-100 h-100 text-black border border-1 shadow rounded align-items-center">
           <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top ">
             <br>
             <h5 class="card-title">Cadastro de Informações</h5>
             <br>
           </div>
-          <div class="p-5">
+          <div class="p-5 d-flex gap-4 flex-column">
             <div v-if="errorMessage" class="alert alert-danger" role="alert">
               {{ errorMessage }}
             </div>
@@ -311,8 +311,8 @@ const cancelImages = () => {
         </div>
       </div>
 
-      <div class="col-md-6">
-        <div class="p-0 bg-light text-black border border-1 shadow rounded" style="overflow: hidden;">
+      <div class="d-flex flex-grow-1">
+        <div class="p-0 bg-light w-100 text-black border border-1 shadow rounded" style="overflow: hidden;">
           <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
             <br>
             <h5 class="card-title">Imagens de Apoio</h5>
