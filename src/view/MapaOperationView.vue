@@ -87,15 +87,15 @@ watchEffect(() => {
   <Layout>
     <div class="d-flex w-100">
       <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
-        <div class="w-100">
-          <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3">Detalhes da Área</h5>
-
+        <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes da Área</h5>
+        <div class="w-100 overflow-auto">
           <div v-for="(item, index) in infoList" :key="index" class="mb-3">
             <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
             <p class="mb-1">{{ item.value }}</p>
             <hr class="my-2">
           </div>
         </div>
+      <button class="btn w-100 buttonEdit text-white fw-bold">Editar</button>
       </div>
       <div class="flex-grow-1" v-if="data">
         <MapDetailsGlebe :data="data" />
@@ -120,5 +120,9 @@ watchEffect(() => {
 
 hr {
   border-top: 1px solid #dee2e6;
+}
+
+.buttonEdit {
+  background-color: #18813d;
 }
 </style>

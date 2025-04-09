@@ -166,14 +166,31 @@ function normalizeCoordinates(coordinates) {
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
     </l-map>
+    <div class="divButton">
+      <button class="btn btn-primary button" @click="zoom = zoom - 1">Classificar</button>
+      <button class="btn btn-primary button"@click="zoom = zoom + 1">Avaliar</button>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .map-container {
   display: flex;
+  position: relative;
   flex: 1;
   width: 100%;
   height: 100%;
+  z-index: 1;
+}
+.divButton {
+  z-index: 9999;
+  position: absolute;
+  bottom: 20px;
+  right: 40%;
+  display: flex;
+  gap: 20px;
+}
+.button {
+  width: 150px;
 }
 </style>
