@@ -1,6 +1,8 @@
 <script setup>
 import { ref, resolveComponent } from "vue";
 import axios from "axios";
+import {nextTick } from 'vue';
+
 
 const fileName1 = ref("");
 const fileName2 = ref("");
@@ -9,6 +11,7 @@ const errorMessageModal = ref("");
 const successMessage = ref("");
 const errorMessageImage = ref("");
 const successMessageImage = ref("");
+const successRegister = ref("");
 const geojsonClassification = ref(null);
 const geojsonField = ref(null);
 const talhoesMap = ref(new Map());
@@ -22,6 +25,8 @@ const isLoadingImages = ref(false);
 const enableUploadImage = ref(false);
 const scanId = ref(1);
 const noAssociation = ref("");
+const errorRef = ref(null);
+
 
 const handleFileUpload = (event) => {
   try {
@@ -156,15 +161,18 @@ const saveScan = async () => {
 
   if (hasError) {
     errorMessageModal.value = "Preencha os campos obrigatórios.";
+    nextTick(() => {
+      errorRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
     isLoadingTalhoes.value = false;
     return;
   }
 
   const payload = {
-  fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
-};
+    fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
+  };
   try {
-    const response = await axios.post("http://localhost:8090/scan", payload);
+    const response = await axios.post("http://localhost:8080/scan", payload);
     scanId.value = response.data;
   } catch (error) {
   } finally {
@@ -175,9 +183,6 @@ const saveScan = async () => {
         modalInstance.hide();
       }
       successMessage.value = "Dados dos talhões salvos com sucesso!";
-      setTimeout(() => {
-        successMessage.value = "";
-      }, 3000);
     }
   }
   fileName1.value = "";
@@ -229,23 +234,29 @@ const saveImages = (event) => {
     formData.append('desc', img.desc);
   });
 
-  axios.post('http://localhost:8090/image', formData, {
+  axios.post('http://localhost:8080/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   })
     .then(response => {
-      successMessageImage.value = "Imagens enviadas com sucesso!";
       setTimeout(() => {
-        successMessageImage.value = "";
-        location.reload();
+        successMessageImage.value = "Imagens enviadas com sucesso!";
+      }, 3000);
+      setTimeout(() => {
+        successRegister.value = "Dados salvos com sucesso!";
       }, 3000);
       isLoadingImages.value = true;
+      setTimeout(() => {
+        location.reload();
+      }, 6000);
     })
     .catch(error => {
-      errorMessageImage.value = "Erro ao enviar a imagem";
+      setTimeout(() => {
+        errorMessageImage.value = "Erro ao enviar a imagem";
+      }, 3000);
+      isLoadingImages.value = false;
     });
-
 
   descImage.value = "";
   event.target.value = "";
@@ -255,16 +266,15 @@ const cancelImages = () => {
   images.value = [];
   descImage.value = "";
   enableUploadImage.value = false;
-  noAssociation.value = "Nenhuma imagem associada";
   setTimeout(() => {
-    noAssociation.value = "";
+    noAssociation.value = "Nenhuma imagem associada";
   }, 3000);
-
   setTimeout(() => {
-    successMessage.value = "";
+    successRegister.value = "Dados salvos com sucesso!";
+  }, 3000);
+  setTimeout(() => {
     location.reload();
-  }, 2000);
-
+  }, 6000);
 
 };
 </script>
@@ -272,48 +282,68 @@ const cancelImages = () => {
 
 <template>
   <Layout>
+    <div v-if="successRegister" class="alert alert-success-field" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill"
+        viewBox="0 0 16 16">
+        <path
+          d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+      </svg>{{ successRegister }}
+    </div>
     <div class="d-flex h-100 w-100 gap-3">
       <div class="d-flex flex-grow-1">
-        <div class="p-0 bg-light w-100 h-100 text-black border border-1 shadow rounded align-items-center">
-          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top ">
+        <div class="p-0 bg-light w-100 text-black border border-1 shadow rounded d-flex flex-column">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
             <br>
             <h5 class="card-title">Cadastro de Informações</h5>
             <br>
           </div>
-          <div class="p-5 d-flex gap-4 flex-column">
-            <div v-if="errorMessage" class="alert alert-danger" role="alert">
-              {{ errorMessage }}
+
+          <div class="p-5 d-flex flex-column flex-grow-1">
+            <div v-if="errorMessage" class="alert custom-alert w-100 text-center" role="alert">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                <path
+                  d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+              </svg> {{ errorMessage }}
             </div>
-            <div v-if="successMessage" class="alert alert-success" role="alert">
-              {{ successMessage }}
+            <div v-if="successMessage" class="alert custom-success w-100 text-center" role="alert">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+                <path
+                  d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+              </svg> {{ successMessage }}
             </div>
             <div class="mb-3">
-              <label class="form-label" style="font-weight: bold;">Selecionar GeoJSON de Saída:</label>
+              <label class="form-label fw-bold text-center w-100">Selecionar GeoJSON de Saída:</label>
               <input type="file" name="field" :disabled="enableUploadImage" @change="handleFileUpload"
                 class="form-control" />
-              <p v-if="fileName1" class="mt-2 text-success">
+              <p v-if="fileName1" class="mt-2 text-success text-center">
                 Arquivo 1 selecionado: {{ fileName1 }}
               </p>
             </div>
 
             <div class="mb-3">
-              <label class="form-label" style="font-weight: bold;">Selecionar GeoJSON Automático:</label>
+              <label class="form-label fw-bold text-center w-100">Selecionar GeoJSON Automático:</label>
               <input type="file" name="classification" :disabled="enableUploadImage" @change="handleFileUpload"
                 class="form-control" />
-              <p v-if="fileName2" class="mt-2 text-success">Arquivo 2 selecionado: {{ fileName2 }}</p>
+              <p v-if="fileName2" class="mt-2 text-success text-center">
+                Arquivo 2 selecionado: {{ fileName2 }}
+              </p>
             </div>
+
 
             <div class="d-flex justify-content-center">
               <button type="button" class="btn btn-primary mt-3" :disabled="enableUploadImage"
-                @click="sendFile">Importar Dados</button>
+                @click="sendFile">Importar
+                Dados</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="d-flex flex-grow-1">
+      <div class="d-flex flex-grow-1 gap-3">
         <div class="p-0 bg-light w-100 text-black border border-1 shadow rounded" style="overflow: hidden;">
-          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top">
+          <div class="bg-primary text-white fw-bold text-center w-100 m-0 p-2 rounded-top ">
             <br>
             <h5 class="card-title">Imagens de Apoio</h5>
             <br>
@@ -321,17 +351,25 @@ const cancelImages = () => {
           <div class="row p-5">
             <div class="container text-center">
               <div class="row">
-                <div v-if="errorMessageImage" class="alert alert-danger" role="alert">
-                  {{ errorMessageImage }}
+                <div v-if="errorMessageImage" class="alert custom-alert" role="alert">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                    <path
+                      d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                  </svg>{{ errorMessageImage }}
                 </div>
-                <div v-if="successMessageImage" class="alert alert-success" role="alert">
-                  {{ successMessageImage }}
+                <div v-if="successMessageImage" class="alert custom-success" role="alert">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+                    <path
+                      d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                  </svg>{{ successMessageImage }}
                 </div>
                 <div v-if="noAssociation" class="alert alert-secondary" role="alert">
                   {{ noAssociation }}
                 </div>
                 <div class="col">
-                  <label class="form-label">Descrição da imagem:</label>
+                  <label class="form-label" style="font-weight: bold;">Descrição da imagem:</label>
                   <input id="inputPassword5" :disabled="!enableUploadImage" class="form-control"
                     aria-describedby="passwordHelpBlock" v-model="descImage">
                 </div>
@@ -362,7 +400,7 @@ const cancelImages = () => {
                   </tr>
                 </tbody>
               </table>
-              <div class="d-flex justify-content-center">
+              <div class="d-flex justify-content-center gap-3">
                 <button type="button" class="btn btn-primary mt-3  mx-3" @click="saveImages"
                   :disabled="!enableUploadImage">
                   <span v-if="isLoadingImages" class="spinner-border spinner-border-sm" role="status"
@@ -370,9 +408,9 @@ const cancelImages = () => {
                   <span v-if="!isLoadingImages">Associar Imagens de Apoio</span>
                   <span v-if="isLoadingImages">Carregando...</span>
                 </button>
-                <button type="button" class="btn btn-outline-primary mt-3" @click="cancelImages":disabled="!enableUploadImage">Não associar</button>
+                <button type="button" class="btn btn-outline-primary mt-3" @click="cancelImages"
+                  :disabled="!enableUploadImage">Não associar</button>
               </div>
-
             </div>
           </div>
         </div>
@@ -388,7 +426,7 @@ const cancelImages = () => {
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div v-if="errorMessageModal" class="alert alert-danger" role="alert">
+            <div  ref="errorRef"  v-if="errorMessageModal" class="alert alert-field" role="alert">
               {{ errorMessageModal }}
             </div>
             <table class="table table-striped table-hover ">
@@ -555,5 +593,25 @@ const cancelImages = () => {
   align-items: center;
   justify-content: center;
   font-size: 24px;
+}
+
+.alert-success-field {
+  background-color: #28a745 !important;
+  color: white !important;
+}
+
+.alert-field {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+.custom-alert {
+  border: 1px solid #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.custom-success {
+  border: 1px solid #28a745 !important;
+  color: #28a745 !important;
 }
 </style>
