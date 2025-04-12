@@ -1,6 +1,6 @@
 <script setup>
 import { ref, resolveComponent } from "vue";
-import axios from "axios";
+import api from "@/components/util/API.js";
 
 const fileName1 = ref("");
 const fileName2 = ref("");
@@ -164,7 +164,7 @@ const saveScan = async () => {
   fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
 };
   try {
-    const response = await axios.post("http://localhost:8090/scan", payload);
+    const response = await api.post("/scan", payload);
     scanId.value = response.data;
   } catch (error) {
   } finally {
@@ -229,7 +229,7 @@ const saveImages = (event) => {
     formData.append('desc', img.desc);
   });
 
-  axios.post('http://localhost:8090/image', formData, {
+  api.post('/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
