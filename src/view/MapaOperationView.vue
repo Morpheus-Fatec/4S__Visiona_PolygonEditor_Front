@@ -3,7 +3,7 @@ import { ref, watchEffect, onMounted } from 'vue';
 import Layout from '../components/Layout/Layout.vue';
 import MapDetailsGlebe from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import api from "@/components/util/API.js";
 
 const route = useRoute();
 const areaId = route.params.id;
@@ -45,7 +45,7 @@ const processGeoJsonCoordinates = (geoJson) => {
 
 onMounted(async () => {
   try {
-    const response = await axios.get(`http://localhost:8090/field/featureCollection/${areaId}`, {
+    const response = await api.get(`/field/featureCollection/${areaId}`, {
       withCredentials: true
     });
 
