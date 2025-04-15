@@ -27,6 +27,9 @@ import {RouterLink} from 'vue-router'
                     <li class="nav-item">
                         <RouterLink class="nav-link" to="/cadastro">Cadastrar Talhão</RouterLink>
                     </li>
+                    <li class="nav-item">
+                        <RouterLink class="nav-link" to="/usuario">Gerenciar Usuários</RouterLink>
+                    </li>
                     <!-- <li class="nav-item">
                         <RouterLink class="nav-link" to="/dashboard">Dashboard</RouterLink>
                     </li>
