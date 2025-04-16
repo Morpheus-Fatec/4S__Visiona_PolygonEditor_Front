@@ -6,10 +6,12 @@ import areasSJC from '../Map/data/areasSJC';
 import areasMock from '../Map/data/areasMock.json'
 import { useFilterStore } from '@/store/FilterStore';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
+import PaginationComponent from '@/components/Operations/PaginationComponent.vue';
 
 const router = useRouter();
 const dataList = ref([])
 const store = useFilterStore();
+const totalItems = ref(1);
 
 const fetchData = async () => {
   try {
@@ -19,9 +21,8 @@ const fetchData = async () => {
 
     if (response && response.data && Array.isArray(response.data.features)) {
       dataList.value = response.data;
-      console.log(dataList.value);
-      console.log(dataList.value.features);
-      console.log(dataList.features);
+      totalItems.value = response.data.totalItems;
+
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
@@ -134,6 +135,11 @@ const updateTable = async (filters) => {
       </table>
     </div>
   </div>
+  <PaginationComponent
+  :total-items="totalItems"
+  :items-per-page="20"
+  @pageChanged="handlePageChange"
+/>
 </template>
 
 <style scoped>
