@@ -2,8 +2,6 @@
 import { onMounted, ref } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
-import areasSJC from '../Map/data/areasSJC';
-import areasMock from '../Map/data/areasMock.json'
 import { useFilterStore } from '@/store/FilterStore';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
 import PaginationComponent from '@/components/Operations/PaginationComponent.vue';

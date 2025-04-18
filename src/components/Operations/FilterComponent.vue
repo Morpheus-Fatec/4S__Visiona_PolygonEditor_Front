@@ -13,9 +13,6 @@ const filters = ref({
 });
 
 const applyFilter = () => {
-
-  console.log(filters.value);
-
   emit('filteredData', filters.value);
 };
 
