@@ -57,12 +57,9 @@ const onMapReady = async (map) => {
 
   let bounds = L.latLngBounds();
 
-  console.log('imagens:', props.data.images);
-
   multiPolygons.forEach(polygonCoords => {
     const glebaPolygon = L.polygon(polygonCoords, {
       weight: 3,
-      color: 'blue',
       fillOpacity: 0
     });
     glebaLayerGroup.value.addLayer(glebaPolygon);
@@ -81,12 +78,12 @@ const onMapReady = async (map) => {
   });
 
   glebaLayerGroup.value.addTo(map);
-  classificationLayerGroup.value.addTo(map);
+  // classificationLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
 
   const overlays = {
     'Gleba Polígono': glebaLayerGroup.value,
-    'Classification Layer': classificationLayerGroup.value
+    'Classificação Automática': classificationLayerGroup.value
   };
 
   props.data.images.forEach((image, index) => {
@@ -164,7 +161,7 @@ function normalizeCoordinates(coordinates) {
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="19"
+      :max-zoom="18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />

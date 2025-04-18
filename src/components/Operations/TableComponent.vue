@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import axios from 'axios';
+import api from "@/components/util/API.js";
 import { useRouter } from 'vue-router';
 import { useFilterStore } from '@/store/FilterStore';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
@@ -15,7 +15,7 @@ const currentFilters = ref({});
 
 const fetchData = async () => {
   try {
-    const response = await axios.get("http://localhost:8080/field/featureCollectionSimple", {
+    const response = await api.get("/field/featureCollectionSimple", {
       withCredentials: true
     });
     
@@ -82,7 +82,7 @@ const updateTable = async (filters) => {
   };
 
   try {
-    let url = 'http://localhost:8080/field/featureCollectionSimple?';
+    let url = `${api.baseURL}/field/featureCollectionSimple?`;
 
     if (filters.harvest) {
       url += `harvest=${filters.harvest}&`;
@@ -104,7 +104,7 @@ const updateTable = async (filters) => {
       url = url.slice(0, -1);
     }
 
-    const response = await axios.get(url, { withCredentials: true });
+    const response = await api.get(url, { withCredentials: true });
 
     if (response && response.data && Array.isArray(response.data.features)) {
       dataList.value = response.data;

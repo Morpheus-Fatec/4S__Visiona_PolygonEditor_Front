@@ -20,7 +20,7 @@ const applyFilter = () => {
 
 <template>
   <div class="filter-component bg-white shadow">
-<div class="filters-container h-100 pt-4 pe-4 ps-4 pb-0">
+    <div class="filters-container h-100 pt-4 pe-4 ps-4 pb-0">
       <div class="filter-item">
         <label for="talhaoFilter" class="h6">Nome do talhão</label>
         <input type="text" id="input-talhao" class="form-control" v-model="filters.name" maxlength="8" size="10" placeholder="Insira talhão..."/>

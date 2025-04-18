@@ -5,7 +5,7 @@ import 'leaflet-draw';
 import { useRouter } from 'vue-router';
 import { LMap, LTileLayer, LControlScale, LGeoJson, LControlLayers } from '@vue-leaflet/vue-leaflet';
 import GlebesGlobalLayer from './GlebesLayer/GlebesGlobalLayer.vue';
-import axios from 'axios';
+import api from "@/components/util/API.js";
 
 import useSidebarGlebesGlobalStore from '../../../store/SidebarGlebesGlobalStore';
 import useGeoFilterStore from '../../../store/GeoFilterStore';
@@ -46,7 +46,7 @@ const processGeoJsonCoordinates = (geoJson) => {
 
 onMounted(async () => {
   try {
-    const response = await axios.get("http://localhost:8080/field/featureCollectionSimple", {
+    const response = await api.get("/field/featureCollectionSimple", {
       withCredentials: true
     });
 
@@ -101,12 +101,12 @@ const handlePrintId = () => {
 
 <template>
   <div class="map-container">
-    <l-map 
-      :zoom="zoom" 
-      :center="center" 
+    <l-map
+      :zoom="zoom"
+      :center="center"
       @click.prevent.stop
       :min-zoom="2"
-      :max-zoom="16" 
+      :max-zoom="16"
     >
       <GlebesGlobalLayer :data="data"/>
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
@@ -115,11 +115,11 @@ const handlePrintId = () => {
         :visible="tileProvider.visible" :url="tileProvider.url" :attribution="tileProvider.attribution"
         layer-type="base" />
     </l-map>
-    <div 
+    <div
       class="offcanvas offcanvas-end bg-transparent disableOffcanvas"
       :class="{ 'show': isOffcanvasOpen }"
       :aria-hidden="!isOffcanvasOpen"
-      id="offcanvasRight" 
+      id="offcanvasRight"
       aria-labelledby="offcanvasRightLabel"
     >
       <div class="offcanvas-body d-flex flex-column align-items-center justify-content-center">
@@ -131,11 +131,11 @@ const handlePrintId = () => {
             <div class="card-body">
               <ul class="list-group list-group-flush">
                 <li class="list-group-item d-flex align-items-center gap-2  pb-3">
-                  <span class="fw-bold">ID da operação:</span> 
+                  <span class="fw-bold">ID da operação:</span>
                   <span class="badge bg-secondary">{{ geoFilterData.properties.id ? geoFilterData.properties.id : 'ID nao disponivel' }}</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Cidade:</span> 
+                  <span class="fw-bold">Cidade:</span>
                   <span class="badge bg-secondary text-white">
                     {{
                       geoFilterData?.properties?.farm?.farmCity && geoFilterData?.properties?.farm?.farmState
@@ -145,19 +145,19 @@ const handlePrintId = () => {
                   </span>
                  </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Tamanho da área</span> 
+                  <span class="fw-bold">Tamanho da área</span>
                   <span class="badge bg-secondary text-white">{{geoFilterData.properties.area}} ha</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Cultura:</span> 
+                  <span class="fw-bold">Cultura:</span>
                   <span class="badge bg-secondary text-white">{{geoFilterData.properties.culture}}</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Solo:</span> 
+                  <span class="fw-bold">Solo:</span>
                   <span class="badge bg-secondary text-white">{{geoFilterData.properties.soil}}</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
-                  <span class="fw-bold">Status</span> 
+                  <span class="fw-bold">Status</span>
                   <span class="badge bg-secondary text-white">{{geoFilterData.properties.status}}</span>
                 </li>
               </ul>
