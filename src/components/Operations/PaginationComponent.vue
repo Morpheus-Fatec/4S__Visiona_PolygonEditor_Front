@@ -2,13 +2,18 @@
 import { computed, reactive, watch } from 'vue';
 
 const props = defineProps({
-  totalElements: {
+  totalItems: {
     type: Number,
     required: true
   },
   itemsPerPage: {
     type: Number,
     default: 20
+  },
+  totalPages: {
+    type: Number,
+    required: true,
+    default: 1
   }
 });
 
@@ -18,61 +23,58 @@ const pagination = reactive({
   page: 1
 });
 
-// Atualiza a página total automaticamente ao mudar os dados
-const totalPages = computed(() =>
-  Math.ceil(props.totalElements / props.itemsPerPage)
-);
+const firstPages = computed(() => Math.min(props.totalPages, 3));
 
-// Troca de página e emite para o pai
 function changePage(newPage) {
-  if (newPage < 1 || newPage > totalPages.value) return;
+  if (newPage < 1 || newPage > props.totalPages) return;
   pagination.page = newPage;
   emit('pageChanged', newPage);
 }
 
-// Se totalElements mudar e a página atual for inválida, volta pra 1
-watch(() => props.totalElements, () => {
-  if (pagination.page > totalPages.value) {
-    changePage(1);
-  }
+watch(() => props.totalItems, () => {
+  changePage(1);
 });
 </script>
 
 <template>
-  <nav aria-label="Page navigation example" class="ms-3">
-    <ul class="pagination justify-content-end mb-0">
+  <nav aria-label="Page navigation example" class="d-flex justify-content-center mt-1">
+    <ul class="pagination justify-content-center mb-0">
 
-      <!-- Botão anterior -->
       <li :class="['page-item', { disabled: pagination.page === 1 }]">
         <a @click.prevent="changePage(pagination.page - 1)" class="page-link" href="#">
-          <i class="bi bi-caret-left-fill"></i>
+          <i class="bi bi-chevron-left"></i>
         </a>
       </li>
 
-      <!-- Lógica de páginas -->
-      <li
-        v-for="p in totalPages"
-        :key="p"
-        v-if="p <= 2 || p > totalPages - 2 || Math.abs(p - pagination.page) <= 1"
-        :class="['page-item', { active: pagination.page === p }]"
-      >
-        <a @click.prevent="changePage(p)" class="page-link" href="#">{{ p }}</a>
+      <li v-for="n in firstPages" :key="n" :class="['page-item', { active: pagination.page === n }]">
+        <a @click.prevent="changePage(n)" class="page-link" href="#">{{ n }}</a>
       </li>
 
-      <!-- Reticências -->
-      <li
-        v-if="totalPages > 6 && pagination.page < totalPages - 2"
-        class="page-item disabled"
-      >
+      <li v-if="props.totalPages > 3" class="page-item disabled">
         <span class="page-link">...</span>
       </li>
 
-      <!-- Próximo -->
-      <li :class="['page-item', { disabled: pagination.page === totalPages }]">
+      <li v-if="props.totalPages > 3" :class="['page-item', { active: pagination.page === props.totalPages }]">
+        <a @click.prevent="changePage(props.totalPages)" class="page-link" href="#">{{ props.totalPages }}</a>
+      </li>
+
+      <li :class="['page-item', { disabled: pagination.page === props.totalPages }]">
         <a @click.prevent="changePage(pagination.page + 1)" class="page-link" href="#">
-          <i class="bi bi-caret-right-fill"></i>
+          <i class="bi bi-chevron-right"></i>
         </a>
       </li>
+
     </ul>
   </nav>
 </template>
+
+<style scoped>
+.page-item .page-link {
+  border-radius: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  line-height: 36px;
+  text-align: center;
+}
+</style>
