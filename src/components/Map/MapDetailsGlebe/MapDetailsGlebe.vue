@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps } from 'vue';
+import { ref, defineProps, watchEffect, watch } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LControlScale } from '@vue-leaflet/vue-leaflet';
@@ -7,7 +7,8 @@ import GeoRasterLayer from 'georaster-layer-for-leaflet';
 import georaster from 'georaster';
 
 const props = defineProps({
-  data: Object
+  data: Object,
+  isClickedClassified: Boolean
 });
 
 const tileProviders = ref([
@@ -26,6 +27,22 @@ const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
+
+const polygonsDraw = ref({
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: []
+      }
+    }
+  ]
+});
+
+const drawnItemsLayer = ref(L.layerGroup());
 
 const onMapReady = async (map) => {
   mapRef.value = map;
@@ -78,7 +95,6 @@ const onMapReady = async (map) => {
   });
 
   glebaLayerGroup.value.addTo(map);
-  // classificationLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
 
   const overlays = {
@@ -105,11 +121,59 @@ const onMapReady = async (map) => {
   });
 };
 
+let drawControl = null;
+
+watchEffect(() => {
+  if (!mapRef.value) return; // Garante que o mapa já está carregado
+
+  if (props.isClickedClassified && !drawControl) {
+    // Adiciona o controle de desenho se ainda não foi adicionado
+    drawControl = new L.Control.Draw({
+      position: 'topright',
+      draw: {
+        polygon: true,
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        circlemarker: false,
+        marker: false,
+        circleMarker: false,
+      },
+    });
+
+    mapRef.value.addControl(drawControl); // Adiciona o controle ao mapa
+    drawnItemsLayer.value.addTo(mapRef.value);
+
+    mapRef.value.on(L.Draw.Event.CREATED, (e) => {
+      const layer = e.layer;
+      const geojson = layer.toGeoJSON();
+      const coords = geojson.geometry.coordinates;
+
+      if (geojson.geometry.type === "Polygon") {
+        polygonsDraw.value.features[0].geometry.coordinates.push(coords);
+      }
+
+      drawnItemsLayer.value.addLayer(layer);
+    });
+
+    console.log("Controle de desenho adicionado!");
+  }
+
+  if (!props.isClickedClassified && drawControl) {
+    // Remove o controle de desenho se ele foi adicionado e isClickedClassified for false
+    mapRef.value.removeControl(drawControl);
+    drawnItemsLayer.value.clearLayers(); // Limpa os polígonos desenhados
+    drawControl = null; // Limpa a referência do controle
+    console.log("Controle de desenho removido!");
+  }
+});
+
+
+
 async function loadTif(url, layerIndex, coordinates) {
   console.log('Carregando GeoTIFF:', url);
   try {
     const clipArea = createClipAreaFromCoordinates(coordinates);
-
     const response = await fetch(url);
     if (!response.ok) throw new Error("Erro ao carregar GeoTIFF: " + url);
 
@@ -132,14 +196,14 @@ async function loadTif(url, layerIndex, coordinates) {
 
 function createClipAreaFromCoordinates(coordinates) {
   return {
-    "type": "FeatureCollection",
-    "features": [
+    type: "FeatureCollection",
+    features: [
       {
-        "type": "Feature",
-        "properties": {},
-        "geometry": {
-          "type": "MultiPolygon",
-          "coordinates": coordinates
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "MultiPolygon",
+          coordinates: coordinates
         }
       }
     ]
@@ -148,13 +212,13 @@ function createClipAreaFromCoordinates(coordinates) {
 
 function normalizeCoordinates(coordinates) {
   const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
-  return coords.map(polygon =>
-    polygon.map(ring => ring)
-  );
+  return coords.map(polygon => polygon.map(ring => ring));
 }
+
+watchEffect(() => {
+  console.log('isClickedClassified', props.isClickedClassified);
+});
 </script>
-
-
 
 <template>
   <div class="map-container">
@@ -166,10 +230,6 @@ function normalizeCoordinates(coordinates) {
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
     </l-map>
-    <div class="divButton">
-      <button class="btn btn-primary button" @click="zoom = zoom - 1">Classificar</button>
-      <button class="btn btn-primary button"@click="zoom = zoom + 1">Avaliar</button>
-    </div>
   </div>
 </template>
 
@@ -181,16 +241,5 @@ function normalizeCoordinates(coordinates) {
   width: 100%;
   height: 100%;
   z-index: 1;
-}
-.divButton {
-  z-index: 9999;
-  position: absolute;
-  bottom: 20px;
-  right: 40%;
-  display: flex;
-  gap: 20px;
-}
-.button {
-  width: 150px;
 }
 </style>

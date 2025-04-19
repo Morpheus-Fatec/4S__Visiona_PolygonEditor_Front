@@ -9,6 +9,7 @@ const route = useRoute();
 const areaId = route.params.id;
 const data = ref(null);
 const infoList = ref([]);
+const isClickedClassified = ref(false);
 
 function parseCoordinatesString(coordinatesString) {
   try {
@@ -17,6 +18,14 @@ function parseCoordinatesString(coordinatesString) {
     console.error("Erro ao analisar a string de coordenadas:", error);
     return null;
   }
+}
+
+function handleClickClassified() {
+  isClickedClassified.value = true;
+}
+
+function cancelClassified() {
+  isClickedClassified.value = false;
 }
 
 const processGeoJsonCoordinates = (geoJson) => {
@@ -73,7 +82,7 @@ watchEffect(() => {
     { title: 'Área (ha)', value: data.value.properties.area },
     { title: 'Safra', value: data.value.properties.harvest },
     { title: 'Status', value: data.value.properties.status },
-    { title: 'Solo', value: data.value.properties.soil },
+    { title: 'Solo', value: data.value.properties.soil ?? 'Não informado' },
     { title: 'Produtividade', value: data.value.properties.productivity ?? 'Não informado' },
     { title: 'Nome da Fazenda', value: data.value.properties.farm?.farmName ?? 'Não informado' },
     { title: 'Cidade', value: data.value.properties.farm?.farmCity ?? 'Não informado' },
@@ -86,19 +95,38 @@ watchEffect(() => {
 <template>
   <Layout>
     <div class="d-flex w-100">
-      <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
-        <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes da Área</h5>
-        <div class="w-100 overflow-auto">
-          <div v-for="(item, index) in infoList" :key="index" class="mb-3">
-            <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
-            <p class="mb-1">{{ item.value }}</p>
-            <hr class="my-2">
+
+      <!-- Template para exibir os detalhes da area -->
+      <template v-if="isClickedClassified === false">
+        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
+          <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes da Área</h5>
+          <div class="w-100 overflow-auto">
+            <div v-for="(item, index) in infoList" :key="index" class="mb-3">
+              <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
+              <p class="mb-1">{{ item.value }}</p>
+              <hr class="my-2">
+            </div>
+          </div>
+          <button class="btn w-100 buttonEdit text-white fw-bold">Editar</button>
+        </div>
+      </template>
+
+      <!-- Template para realizar a classificacao -->
+      <template v-if="isClickedClassified === true">
+        <div v-if="data" class="sidebar d-flex flex-column p-3 h-100">
+          <p>Oi</p>
+          <div class="w-100 mt-auto d-flex flex-column gap-2">
+            <button class="btn bg-white w-100 buttonEdit text-dark fw-bold border border-1 border-dark" @click="cancelClassified">Cancelar</button>
+            <button class="btn w-100 buttonEdit text-white fw-bold">Salvar Classificação</button>
           </div>
         </div>
-      <button class="btn w-100 buttonEdit text-white fw-bold">Editar</button>
-      </div>
+      </template>
       <div class="flex-grow-1" v-if="data">
-        <MapDetailsGlebe :data="data" />
+        <MapDetailsGlebe :data="data" :isClickedClassified="isClickedClassified"/>
+      </div>
+      <div class="divButton">
+        <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
+        <button class="btn btn-primary button"@click="zoom = zoom + 1">Avaliar</button>
       </div>
     </div>
   </Layout>
@@ -111,6 +139,9 @@ watchEffect(() => {
   border-right: 1px solid #ddd;
   overflow: auto;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 .flex-grow-1 {
@@ -124,5 +155,17 @@ hr {
 
 .buttonEdit {
   background-color: #18813d;
+}
+
+.divButton {
+  z-index: 9999;
+  position: absolute;
+  bottom: 20px;
+  right: 30%;
+  display: flex;
+  gap: 20px;
+}
+.button {
+  width: 150px;
 }
 </style>

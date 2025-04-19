@@ -1,8 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import api from "@/components/util/API.js";
+import api from "../util/API.js";
 import { useRouter } from 'vue-router';
-import areasSJC from '../Map/data/areasSJC';
 import areasMock from '../Map/data/areasMock.json'
 import { useFilterStore } from '@/store/FilterStore';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
@@ -19,8 +18,6 @@ const fetchData = async () => {
 
     if (response && response.data && Array.isArray(response.data.features)) {
       dataList.value = response.data;
-      console.log(dataList.value);
-      console.log(dataList.value.features);
       console.log(dataList.features);
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
@@ -57,7 +54,7 @@ onMounted(() => {
 
 const updateTable = async (filters) => {
   try {
-    let url = `${api.baseURL}/field/featureCollectionSimple?`;
+    let url = `${api.defaults.baseURL}/field/featureCollectionSimple?`;
 
     if (filters.harvest) {
       url += `harvest=${filters.harvest}&`;
