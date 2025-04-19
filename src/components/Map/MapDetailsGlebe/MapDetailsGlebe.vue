@@ -27,7 +27,7 @@ const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
-const drawnItemsLayer = ref(L.layerGroup());
+const drawnItemsLayer = ref(new L.FeatureGroup());
 
 const onMapReady = async (map) => {
   mapRef.value = map;
@@ -171,20 +171,29 @@ watchEffect(() => {
         marker: false,
         circleMarker: false,
       },
-      // edit: {
-      //   featureGroup: drawnItemsLayer.value,
-      //   edit: true,
-      //   remove: false,
-      // }
+      edit: {
+        featureGroup: drawnItemsLayer.value,
+        // edit: false,
+        // remove: true,
+      },
     });
 
     mapRef.value.addControl(drawControl); // Adiciona o controle ao mapa
     drawnItemsLayer.value.addTo(mapRef.value);
 
+    // Adiciona um polygon ao desenho
     mapRef.value.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geojson = layer.toGeoJSON();
       const coords = geojson.geometry.coordinates;
+
+      layer.setStyle({
+        color: 'orange', 
+        fillColor: 'orange',
+        weight: 2 
+      });
+
+      const randomID = Math.floor(Math.random() * 1000000);
 
       if (geojson.geometry.type === "Polygon") {
         polygonsDraw.value.features[0].geometry.coordinates.push(coords);
@@ -195,6 +204,39 @@ watchEffect(() => {
 
     console.log("Controle de desenho adicionado!");
   }
+
+  // Edita o controle de desenho
+  mapRef.value.on(L.Draw.Event.EDITED, (e) => {
+    const layers = e.layers;
+    layers.eachLayer((layer) => {
+      console.log('layer', layer);
+      const geojson = layer.toGeoJSON();
+
+      const index = polygonsDraw.value.features.findIndex(
+        (feature) => feature.properties.id === layer.feature.id
+      );
+
+      if (index !== -1) {
+        polygonsDraw.value.features[index].geometry = geojson.geometry;
+        polygonsDraw.value.features[index].properties = geojson.properties;
+        console.log("Polígono editado! polygonsDraw:", JSON.stringify(polygonsDraw.value, null, 2));
+      } else {
+          console.warn("Camada editada não encontrada em polygonsDraw!");
+      }
+    });
+  });
+  
+  mapRef.value.on(L.Draw.Event.DELETED, (e) => {
+    const layers = e.layers;
+    layers.eachLayer((layer) => {
+      const index = polygonsDraw.value.features.findIndex(
+        (feature) => feature._leaflet_id === layer._leaflet_id
+      );
+      if (index !== -1) {
+        polygonsDraw.value.features.splice(index, 1);
+      }
+    });
+  });
 
   // Remove o controle de desenho se ele foi adicionado e isClickedClassified for false
   if (!props.isClickedClassified && drawControl) {
@@ -224,10 +266,11 @@ const polygonsDraw = ref(getEmptyPolygonsDraw());
 
 watch(() => polygonsDraw.value.features,
   (newVal) => {
-    console.log('Coordenadas alteradas:', JSON.stringify(newVal));
+      console.log('Coordenadas alteradas (watch):', JSON.stringify(newVal, null, 2));
   },
   { deep: true }
 );
+
 </script>
 
 <template>
@@ -235,7 +278,7 @@ watch(() => polygonsDraw.value.features,
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="isClickedClassified === true ? 22 : 18"
+      :max-zoom="isClickedClassified === true ? 24 : 18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
