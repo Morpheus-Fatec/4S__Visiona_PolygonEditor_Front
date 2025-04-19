@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watchEffect, onMounted } from 'vue';
+import { ref, watchEffect, onMounted, watch } from 'vue';
 import Layout from '../components/Layout/Layout.vue';
 import MapDetailsGlebe from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
 import { useRoute } from 'vue-router';
@@ -9,7 +9,9 @@ const route = useRoute();
 const areaId = route.params.id;
 const data = ref(null);
 const infoList = ref([]);
+const originalInfoList = ref([]);
 const isClickedClassified = ref(false);
+const isEditing = ref(false);
 
 function parseCoordinatesString(coordinatesString) {
   try {
@@ -28,26 +30,43 @@ function cancelClassified() {
   isClickedClassified.value = false;
 }
 
+// watch(infoList, (newVal) => {
+//   console.log('infoList atualizada:', JSON.stringify(newVal, null, 2));
+// }, { deep: true });
+
+function handleEdit() {
+  originalInfoList.value = infoList.value.map(item => ({ ...item }));
+  isEditing.value = true;
+}
+
+function cancelEdit() {
+  infoList.value = originalInfoList.value.map(item => ({ ...item }));
+  isEditing.value = false;
+}
+
+function saveEdit() {
+  alert("Dados salvos com sucesso!");
+  isEditing.value = false;
+}
+
 const processGeoJsonCoordinates = (geoJson) => {
   if (!geoJson || typeof geoJson !== "object") {
     console.error("GeoJSON inválido:", geoJson);
     return geoJson;
   }
 
-  // Corrigir coordenadas do objeto principal (geometry)
   if (geoJson.geometry && typeof geoJson.geometry.coordinates === 'string') {
     geoJson.geometry.coordinates = parseCoordinatesString(geoJson.geometry.coordinates);
   }
 
-  // Corrigir coordenadas da classificação, caso existam
   if (geoJson.classification && Array.isArray(geoJson.classification.features)) {
     geoJson.classification.features = geoJson.classification.features.map(classificationItem => {
       if (typeof classificationItem.geometry.coordinates === 'string') {
-      classificationItem.geometry.coordinates = parseCoordinatesString(classificationItem.geometry.coordinates);
-    }
-    return classificationItem;
-  });
-}
+        classificationItem.geometry.coordinates = parseCoordinatesString(classificationItem.geometry.coordinates);
+      }
+      return classificationItem;
+    });
+  }
 
   return geoJson;
 };
@@ -59,11 +78,7 @@ onMounted(async () => {
     });
 
     if (response && response.data) {
-      console.log("Dados recebidos da API:", response.data.features);
-
-      // Processa os dados principais e a classificação de uma vez
       data.value = processGeoJsonCoordinates(response.data.features);
-      console.log("Dados processados:", data.value);
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
@@ -89,29 +104,43 @@ watchEffect(() => {
     { title: 'Estado', value: data.value.properties.farm?.farmState ?? 'Não informado' }
   ];
 });
-
 </script>
 
 <template>
   <Layout>
     <div class="d-flex w-100">
 
-      <!-- Template para exibir os detalhes da area -->
+      <!-- Detalhes da Área -->
       <template v-if="isClickedClassified === false">
         <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes da Área</h5>
           <div class="w-100 overflow-auto">
             <div v-for="(item, index) in infoList" :key="index" class="mb-3">
               <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
-              <p class="mb-1">{{ item.value }}</p>
+              <template v-if="isEditing">
+                <input v-model="item.value" class="form-control" />
+              </template>
+              <template v-else>
+                <p class="mb-1">{{ item.value }}</p>
+              </template>
               <hr class="my-2">
             </div>
           </div>
-          <button class="btn w-100 buttonEdit text-white fw-bold">Editar</button>
+          <template v-if="isEditing">
+            <div class="w-100 mt-auto d-flex flex-column gap-2">
+              <button class="btn w-100 buttonEdit text-white fw-bold" @click="cancelEdit">Cancelar</button>
+              <button class="btn w-100 buttonEdit text-white fw-bold bg-success" @click="saveEdit">Salvar Edição</button>
+            </div>
+          </template>
+          <template v-else>
+            <div class="w-100 mt-auto d-flex flex-column gap-2">
+              <button class="btn w-100 buttonEdit text-white fw-bold" @click="handleEdit">Editar</button>
+            </div>
+          </template>  
         </div>
       </template>
 
-      <!-- Template para realizar a classificacao -->
+      <!-- Classificação -->
       <template v-if="isClickedClassified === true">
         <div v-if="data" class="sidebar d-flex flex-column p-3 h-100">
           <p>Oi</p>
@@ -121,13 +150,19 @@ watchEffect(() => {
           </div>
         </div>
       </template>
+
+      <!-- Mapa -->
       <div class="flex-grow-1" v-if="data">
         <MapDetailsGlebe :data="data" :isClickedClassified="isClickedClassified"/>
       </div>
-      <div class="divButton">
-        <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
-        <button class="btn btn-primary button"@click="zoom = zoom + 1">Avaliar</button>
-      </div>
+
+      <!-- Botões flutuantes -->
+      <template v-if="!isEditing && !isClickedClassified">
+        <div class="divButton">
+          <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
+          <button class="btn btn-primary button" @click="zoom = zoom + 1">Avaliar</button>
+        </div>
+      </template>
     </div>
   </Layout>
 </template>
@@ -165,6 +200,7 @@ hr {
   display: flex;
   gap: 20px;
 }
+
 .button {
   width: 150px;
 }

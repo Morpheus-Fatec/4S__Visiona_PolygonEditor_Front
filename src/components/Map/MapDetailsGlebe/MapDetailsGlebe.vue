@@ -27,21 +27,6 @@ const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
-
-const polygonsDraw = ref({
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "MultiPolygon",
-        coordinates: []
-      }
-    }
-  ]
-});
-
 const drawnItemsLayer = ref(L.layerGroup());
 
 const onMapReady = async (map) => {
@@ -121,54 +106,10 @@ const onMapReady = async (map) => {
   });
 };
 
-let drawControl = null;
-
-watchEffect(() => {
-  if (!mapRef.value) return; // Garante que o mapa já está carregado
-
-  if (props.isClickedClassified && !drawControl) {
-    // Adiciona o controle de desenho se ainda não foi adicionado
-    drawControl = new L.Control.Draw({
-      position: 'topright',
-      draw: {
-        polygon: true,
-        polyline: false,
-        rectangle: false,
-        circle: false,
-        circlemarker: false,
-        marker: false,
-        circleMarker: false,
-      },
-    });
-
-    mapRef.value.addControl(drawControl); // Adiciona o controle ao mapa
-    drawnItemsLayer.value.addTo(mapRef.value);
-
-    mapRef.value.on(L.Draw.Event.CREATED, (e) => {
-      const layer = e.layer;
-      const geojson = layer.toGeoJSON();
-      const coords = geojson.geometry.coordinates;
-
-      if (geojson.geometry.type === "Polygon") {
-        polygonsDraw.value.features[0].geometry.coordinates.push(coords);
-      }
-
-      drawnItemsLayer.value.addLayer(layer);
-    });
-
-    console.log("Controle de desenho adicionado!");
-  }
-
-  if (!props.isClickedClassified && drawControl) {
-    // Remove o controle de desenho se ele foi adicionado e isClickedClassified for false
-    mapRef.value.removeControl(drawControl);
-    drawnItemsLayer.value.clearLayers(); // Limpa os polígonos desenhados
-    drawControl = null; // Limpa a referência do controle
-    console.log("Controle de desenho removido!");
-  }
-});
-
-
+function normalizeCoordinates(coordinates) {
+  const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
+  return coords.map(polygon => polygon.map(ring => ring));
+}
 
 async function loadTif(url, layerIndex, coordinates) {
   console.log('Carregando GeoTIFF:', url);
@@ -210,14 +151,83 @@ function createClipAreaFromCoordinates(coordinates) {
   };
 }
 
-function normalizeCoordinates(coordinates) {
-  const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
-  return coords.map(polygon => polygon.map(ring => ring));
-}
+// Controle de desenho
+let drawControl = null;
 
 watchEffect(() => {
-  console.log('isClickedClassified', props.isClickedClassified);
+  if (!mapRef.value) return;
+
+  if (props.isClickedClassified && !drawControl) {
+    mapRef.value.off(L.Draw.Event.CREATED);
+    // Adiciona o controle de desenho se ainda não foi adicionado
+    drawControl = new L.Control.Draw({
+      position: 'topright',
+      draw: {
+        polygon: true,
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        circlemarker: false,
+        marker: false,
+        circleMarker: false,
+      },
+      // edit: {
+      //   featureGroup: drawnItemsLayer.value,
+      //   edit: true,
+      //   remove: false,
+      // }
+    });
+
+    mapRef.value.addControl(drawControl); // Adiciona o controle ao mapa
+    drawnItemsLayer.value.addTo(mapRef.value);
+
+    mapRef.value.on(L.Draw.Event.CREATED, (e) => {
+      const layer = e.layer;
+      const geojson = layer.toGeoJSON();
+      const coords = geojson.geometry.coordinates;
+
+      if (geojson.geometry.type === "Polygon") {
+        polygonsDraw.value.features[0].geometry.coordinates.push(coords);
+      }
+
+      drawnItemsLayer.value.addLayer(layer);
+    });
+
+    console.log("Controle de desenho adicionado!");
+  }
+
+  // Remove o controle de desenho se ele foi adicionado e isClickedClassified for false
+  if (!props.isClickedClassified && drawControl) {
+    mapRef.value.removeControl(drawControl);
+    drawnItemsLayer.value.clearLayers();
+    drawControl = null;
+    polygonsDraw.value = getEmptyPolygonsDraw();
+  }
 });
+
+const getEmptyPolygonsDraw = () => ({
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: []
+      }
+    }
+  ]
+});
+
+// Responsável por armazenar os poligonos desenhados
+const polygonsDraw = ref(getEmptyPolygonsDraw());
+
+watch(() => polygonsDraw.value.features,
+  (newVal) => {
+    console.log('Coordenadas alteradas:', JSON.stringify(newVal));
+  },
+  { deep: true }
+);
 </script>
 
 <template>
@@ -225,7 +235,7 @@ watchEffect(() => {
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="18"
+      :max-zoom="isClickedClassified === true ? 22 : 18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
