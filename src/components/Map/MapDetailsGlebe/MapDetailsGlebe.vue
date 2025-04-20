@@ -197,13 +197,8 @@ watchEffect(() => {
       const coords = geojson.geometry.coordinates;
 
       const newId = Date.now();
-      layer.feature = {
-        type: "Feature",
-        properties: {
-          id: newId
-        },
-        geometry: geojson.geometry
-      };
+      geojson.properties = { id: newId };
+      layer.feature = geojson;
 
       layer.on('click', (event) => {
         event.originalEvent.stopPropagation();
@@ -233,16 +228,10 @@ watchEffect(() => {
         weight: 2
       });
 
-      polygonsDraw.value.features.push({
-        type: "Feature",
-        properties: {
-          id: newId
-        },
-        geometry: {
-          type: "MultiPolygon",
-          coordinates: [[[coords[0]]]]
-        }
-      });
+      const exists = polygonsDraw.value.features.find(f => f.properties.id === newId);
+      if (!exists) {
+        polygonsDraw.value.features.push(layer.toGeoJSON());
+      }
 
       drawnItemsLayer.value.addLayer(layer);
     });
