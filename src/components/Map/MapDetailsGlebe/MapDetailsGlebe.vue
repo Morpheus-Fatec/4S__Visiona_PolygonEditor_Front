@@ -28,6 +28,19 @@ const classificationLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
 const drawnItemsLayer = ref(new L.FeatureGroup());
+const editingLayer = ref(null);
+
+const getEmptyPolygonsDraw = () => ({
+  type: "FeatureCollection",
+  name: "CLASS_MANUAL",
+  crs: {
+    type: "name",
+    properties: {}
+  },
+  features: []
+});
+
+const polygonsDraw = ref(getEmptyPolygonsDraw());
 
 const onMapReady = async (map) => {
   mapRef.value = map;
@@ -97,11 +110,11 @@ const onMapReady = async (map) => {
   const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
   map.fitBounds(bounds);
 
-  map.on('overlayadd', async (event) => {
-    const layerIndex = props.data.images.findIndex(img => img.name === event.name);
-    if (layerIndex !== -1 && !tifLayersLoaded.value[layerIndex]) {
-      await loadTif(props.data.images[layerIndex].link, layerIndex, coordinates);
-      tifLayersLoaded.value[layerIndex] = true;
+  map.on('click', (event) => {
+    if (editingLayer.value && !editingLayer.value.getBounds().contains(event.latlng)) {
+      editingLayer.value.editing.disable();
+      editingLayer.value = null;
+      console.log("Edição finalizada ao clicar fora do polígono.");
     }
   });
 };
@@ -151,15 +164,12 @@ function createClipAreaFromCoordinates(coordinates) {
   };
 }
 
-// Controle de desenho
 let drawControl = null;
 
 watchEffect(() => {
   if (!mapRef.value) return;
 
   if (props.isClickedClassified && !drawControl) {
-    mapRef.value.off(L.Draw.Event.CREATED);
-    // Adiciona o controle de desenho se ainda não foi adicionado
     drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -172,101 +182,109 @@ watchEffect(() => {
         circleMarker: false,
       },
       edit: {
-        featureGroup: drawnItemsLayer.value,
-        // edit: false,
-        // remove: true,
+        edit: false,
+        remove: true,
+        featureGroup: drawnItemsLayer.value
       },
     });
 
-    mapRef.value.addControl(drawControl); // Adiciona o controle ao mapa
+    mapRef.value.addControl(drawControl);
     drawnItemsLayer.value.addTo(mapRef.value);
 
-    // Adiciona um polygon ao desenho
     mapRef.value.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geojson = layer.toGeoJSON();
       const coords = geojson.geometry.coordinates;
 
-      layer.setStyle({
-        color: 'orange', 
-        fillColor: 'orange',
-        weight: 2 
+      const newId = Date.now();
+      layer.feature = {
+        type: "Feature",
+        properties: {
+          id: newId
+        },
+        geometry: geojson.geometry
+      };
+
+      layer.on('click', (event) => {
+        event.originalEvent.stopPropagation();
+        startEditPolygon(layer);
       });
 
-      const randomID = Math.floor(Math.random() * 1000000);
+      layer.setStyle({
+        color: 'orange',
+        fillColor: 'orange',
+        weight: 2
+      });
 
-      if (geojson.geometry.type === "Polygon") {
-        polygonsDraw.value.features[0].geometry.coordinates.push(coords);
-      }
+      polygonsDraw.value.features.push({
+        type: "Feature",
+        properties: {
+          id: newId
+        },
+        geometry: {
+          type: "MultiPolygon",
+          coordinates: [[[coords[0]]]]
+        }
+      });
 
       drawnItemsLayer.value.addLayer(layer);
     });
 
-    console.log("Controle de desenho adicionado!");
+    function startEditPolygon(layer) {
+      drawnItemsLayer.value.eachLayer(l => {
+        if (l.editing && l.editing.enabled() && l !== layer) {
+          l.editing.disable();
+        }
+      });
+
+      if (layer.editing) {
+        layer.editing.enable();
+        editingLayer.value = layer;
+
+        layer.on('edit', () => {
+          const geojson = layer.toGeoJSON();
+          const id = layer.feature?.properties?.id;
+
+          const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
+          if (index !== -1) {
+            polygonsDraw.value.features[index].geometry = {
+              type: "MultiPolygon",
+              coordinates: [[[geojson.geometry.coordinates[0]]]]
+            };
+            console.log("Polígono editado individualmente:", polygonsDraw.value.features[index]);
+          }
+        });
+      }
+    }
+
+    mapRef.value.on(L.Draw.Event.DELETED, (e) => {
+      e.layers.eachLayer((layer) => {
+        const id = layer.feature?.properties?.id;
+        const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
+        if (index !== -1) {
+          polygonsDraw.value.features.splice(index, 1);
+        }
+        layer.off('click');
+      });
+      if (editingLayer.value && e.layers.hasLayer(editingLayer.value)) {
+        editingLayer.value = null;
+      }
+    });
   }
 
-  // Edita o controle de desenho
-  mapRef.value.on(L.Draw.Event.EDITED, (e) => {
-    const layers = e.layers;
-    layers.eachLayer((layer) => {
-      console.log('layer', layer);
-      const geojson = layer.toGeoJSON();
-
-      const index = polygonsDraw.value.features.findIndex(
-        (feature) => feature.properties.id === layer.feature.id
-      );
-
-      if (index !== -1) {
-        polygonsDraw.value.features[index].geometry = geojson.geometry;
-        polygonsDraw.value.features[index].properties = geojson.properties;
-        console.log("Polígono editado! polygonsDraw:", JSON.stringify(polygonsDraw.value, null, 2));
-      } else {
-          console.warn("Camada editada não encontrada em polygonsDraw!");
-      }
-    });
-  });
-  
-  mapRef.value.on(L.Draw.Event.DELETED, (e) => {
-    const layers = e.layers;
-    layers.eachLayer((layer) => {
-      const index = polygonsDraw.value.features.findIndex(
-        (feature) => feature._leaflet_id === layer._leaflet_id
-      );
-      if (index !== -1) {
-        polygonsDraw.value.features.splice(index, 1);
-      }
-    });
-  });
-
-  // Remove o controle de desenho se ele foi adicionado e isClickedClassified for false
   if (!props.isClickedClassified && drawControl) {
     mapRef.value.removeControl(drawControl);
     drawnItemsLayer.value.clearLayers();
     drawControl = null;
     polygonsDraw.value = getEmptyPolygonsDraw();
+    editingLayer.value = null;
   }
 });
 
-const getEmptyPolygonsDraw = () => ({
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "MultiPolygon",
-        coordinates: []
-      }
-    }
-  ]
-});
-
-// Responsável por armazenar os poligonos desenhados
-const polygonsDraw = ref(getEmptyPolygonsDraw());
-
-watch(() => polygonsDraw.value.features,
+watch(
+  polygonsDraw,
   (newVal) => {
-      console.log('Coordenadas alteradas (watch):', JSON.stringify(newVal, null, 2));
+    console.log("polygonsDraw atualizado:", JSON.stringify(newVal, null, 2));
   },
   { deep: true }
 );
