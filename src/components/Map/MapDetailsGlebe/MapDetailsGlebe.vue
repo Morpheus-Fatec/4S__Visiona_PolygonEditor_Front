@@ -183,7 +183,7 @@ watchEffect(() => {
       },
       edit: {
         edit: false,
-        remove: true,
+        remove: false,
         featureGroup: drawnItemsLayer.value
       },
     });
@@ -208,6 +208,23 @@ watchEffect(() => {
       layer.on('click', (event) => {
         event.originalEvent.stopPropagation();
         startEditPolygon(layer);
+      });
+
+      let pressTimer = null;
+
+      layer.on('mousedown', (event) => {
+        event.originalEvent.stopPropagation();
+        pressTimer = setTimeout(() => {
+          deletePolygon(layer);
+        }, 400);
+      });
+
+      layer.on('mouseup', () => {
+        clearTimeout(pressTimer);
+      });
+
+      layer.on('mouseout', () => {
+        clearTimeout(pressTimer);
       });
 
       layer.setStyle({
@@ -257,19 +274,17 @@ watchEffect(() => {
       }
     }
 
-    mapRef.value.on(L.Draw.Event.DELETED, (e) => {
-      e.layers.eachLayer((layer) => {
-        const id = layer.feature?.properties?.id;
+    function deletePolygon(layer) {
+      const id = layer.feature?.properties?.id;
+      if (id != null) {
         const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
         if (index !== -1) {
           polygonsDraw.value.features.splice(index, 1);
+          drawnItemsLayer.value.removeLayer(layer);
+          console.log("Polígono deletado:", id);
         }
-        layer.off('click');
-      });
-      if (editingLayer.value && e.layers.hasLayer(editingLayer.value)) {
-        editingLayer.value = null;
       }
-    });
+    }
   }
 
   if (!props.isClickedClassified && drawControl) {
