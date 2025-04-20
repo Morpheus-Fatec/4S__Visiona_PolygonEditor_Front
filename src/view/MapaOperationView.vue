@@ -30,10 +30,6 @@ function cancelClassified() {
   isClickedClassified.value = false;
 }
 
-// watch(infoList, (newVal) => {
-//   console.log('infoList atualizada:', JSON.stringify(newVal, null, 2));
-// }, { deep: true });
-
 function handleEdit() {
   originalInfoList.value = infoList.value.map(item => ({ ...item }));
   isEditing.value = true;
@@ -128,13 +124,13 @@ watchEffect(() => {
           </div>
           <template v-if="isEditing">
             <div class="w-100 mt-auto d-flex flex-column gap-2">
-              <button class="btn w-100 buttonEdit text-white fw-bold" @click="cancelEdit">Cancelar</button>
-              <button class="btn w-100 buttonEdit text-white fw-bold bg-success" @click="saveEdit">Salvar Edição</button>
+              <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelEdit">Cancelar</button>
+              <button class="btn btn-success w-100 fw-bold" @click="saveEdit">Salvar Edição</button>
             </div>
           </template>
           <template v-else>
             <div class="w-100 mt-auto d-flex flex-column gap-2">
-              <button class="btn w-100 buttonEdit text-white fw-bold" @click="handleEdit">Editar</button>
+              <button class="btn btn-success w-100 fw-bold" @click="handleEdit">Editar</button>
             </div>
           </template>  
         </div>
@@ -142,11 +138,69 @@ watchEffect(() => {
 
       <!-- Classificação -->
       <template v-if="isClickedClassified === true">
-        <div v-if="data" class="sidebar d-flex flex-column p-3 h-100">
-          <p>Oi</p>
+        <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
+          <div class="card border-info bg-info">
+            <div class="d-flex align-items-center px-3 pt-3">
+              <button class="d-flex justify-content-between align-items-center w-100 bg-transparent border-0 fw-bold h4 border-bottom border-2 border-white pb-2 text-white"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#manualClassificationContent"
+                      aria-expanded="false"
+                      aria-controls="manualClassificationContent">
+                <span>Como Classificar?</span>
+                <i class="bi bi-question-circle ms-2"></i>
+              </button>
+            </div>
+            <div id="manualClassificationContent" class="collapse">
+              <div class="card-body d-flex flex-column gap-3">
+                <div>
+                  <h5 class="h5 card-title fw-semibold text-light">Desenhar um polígono:</h5>
+                  <p class="card-text text-edited lh-sm">Clique no ícone de desenho localizado no canto superior direito da tela para desenhar um polígono.</p>
+                </div>
+                <div>
+                  <h5 class="h5 card-title fw-semibold text-light">Editar um polígono:</h5>
+                  <p class="card-text text-edited  lh-sm">Clique no polígono para realizar a edição. Para finalizar, clique fora do polígono.</p>
+                </div>
+                <div>
+                  <h5 class="h5 card-title fw-semibold text-light">Apagar um polígono:</h5>
+                  <p class="card-text text-edited lh-sm">Clique e segure no polígono para realizar a exclusão.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card d-flex flex-column gap-3 overflow-auto border-dark-subtle">
+            <div class="card-body d-flex flex-column gap-3">
+              <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100 ">Classificação Manual</h5>
+              <h5 class="fw-bold h5 w-100 text-body-secondary">Dados do Classificação</h5>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Editor</p>
+                <input class="form-control"  />
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Área</p>
+                <input class="form-control"  />
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Data Iniciada</p>
+                <input class="form-control"  />
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Data Encerrada</p>
+                <input class="form-control"  />
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Pipipi</p>
+                <input class="form-control"  />
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Popopo</p>
+                <input class="form-control"  />
+              </div>
+            </div>
+          </div>
           <div class="w-100 mt-auto d-flex flex-column gap-2">
-            <button class="btn bg-white w-100 buttonEdit text-dark fw-bold border border-1 border-dark" @click="cancelClassified">Cancelar</button>
-            <button class="btn w-100 buttonEdit text-white fw-bold">Salvar Classificação</button>
+            <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClassified">Cancelar</button>
+            <button class="btn btn-success w-100 fw-bold">Salvar Classificação</button>
           </div>
         </div>
       </template>
@@ -188,10 +242,6 @@ hr {
   border-top: 1px solid #dee2e6;
 }
 
-.buttonEdit {
-  background-color: #18813d;
-}
-
 .divButton {
   z-index: 9999;
   position: absolute;
@@ -203,5 +253,8 @@ hr {
 
 .button {
   width: 150px;
+}
+.text-edited {
+  color: #343A40 !important;
 }
 </style>
