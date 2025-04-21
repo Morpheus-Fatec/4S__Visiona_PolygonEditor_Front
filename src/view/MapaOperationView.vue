@@ -11,7 +11,12 @@ const data = ref(null);
 const infoList = ref([]);
 const originalInfoList = ref([]);
 const isClickedClassified = ref(false);
+const isClickedToAssess = ref(false);
 const isEditing = ref(false);
+
+const showRejectionInput = ref(false);
+const showApprovalInput = ref(false);
+const rejectionReason = ref('');
 
 function parseCoordinatesString(coordinatesString) {
   try {
@@ -29,6 +34,47 @@ function handleClickClassified() {
 
 function cancelClassified() {
   isClickedClassified.value = false;
+}
+
+// Responsável pela avaliacao
+function handleClickToAssess() {
+  isClickedToAssess.value = true;
+}
+
+function cancelClickToAssess() {
+  isClickedToAssess.value = false;
+}
+
+function resetModal() {
+  showRejectionInput.value = false;
+  rejectionReason.value = '';
+}
+
+function confirmRejection() {
+  if (!rejectionReason.value.trim()) {
+    alert("Por favor, descreva o motivo da recusa.");
+    return;
+  }
+
+  console.log("Motivo da recusa:", rejectionReason.value);
+  resetModal();
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalSaveToAssess'));
+  modal.hide();
+
+  const successModal = new bootstrap.Modal(document.getElementById('modalRejectionSuccess'));
+  successModal.show();
+
+  isClickedToAssess.value = false;
+}
+function confirmApproval() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalSaveToAssess'));
+  modal.hide();
+
+  const successModal = new bootstrap.Modal(document.getElementById('modalApprovalSuccess'));
+  successModal.show();
+
+  isClickedToAssess.value = false;
 }
 
 // Responsável pelo edit
@@ -116,7 +162,7 @@ watch(infoList, (newVal) => {
     <div class="d-flex w-100">
 
       <!-- Detalhes da Área -->
-      <template v-if="isClickedClassified === false">
+      <template v-if="isClickedClassified === false && isClickedToAssess === false">
         <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes da Área</h5>
           <div class="w-100 overflow-auto">
@@ -141,9 +187,19 @@ watch(infoList, (newVal) => {
             <div class="w-100 mt-auto d-flex flex-column gap-2">
               <button class="btn btn-success w-100 fw-bold" @click="handleEdit">Editar</button>
               <button class="btn btn-dark w-100 fw-bold">Download do talhão</button>
-
             </div>
           </template>  
+        </div>
+      </template>
+
+      <!-- Avaliação -->
+      <template v-if="isClickedToAssess === true">
+        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
+          <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Realizar Avaliação</h5>
+          <div class="w-100 mt-auto d-flex flex-column gap-2">
+            <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClickToAssess">Cancelar Avaliação</button>
+            <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Realizar aprovação</button>
+          </div>
         </div>
       </template>
 
@@ -166,15 +222,15 @@ watch(infoList, (newVal) => {
               <div class="card-body d-flex flex-column gap-3">
                 <div>
                   <h5 class="h5 card-title fw-semibold text-light">Desenhar um polígono:</h5>
-                  <p class="card-text text-edited lh-sm">Clique no ícone de desenho localizado no canto superior direito da tela para desenhar um polígono.</p>
+                  <p class="card-text text-black lh-sm">Clique no ícone de desenho localizado no canto superior direito da tela para desenhar um polígono.</p>
                 </div>
                 <div>
                   <h5 class="h5 card-title fw-semibold text-light">Editar um polígono:</h5>
-                  <p class="card-text text-edited  lh-sm">Clique no polígono para realizar a edição. Para finalizar, clique fora do polígono.</p>
+                  <p class="card-text text-black  lh-sm">Clique no polígono para realizar a edição. Para finalizar, clique fora do polígono.</p>
                 </div>
                 <div>
                   <h5 class="h5 card-title fw-semibold text-light">Apagar um polígono:</h5>
-                  <p class="card-text text-edited lh-sm">Clique e segure no polígono para realizar a exclusão.</p>
+                  <p class="card-text text-black lh-sm">Clique e segure no polígono para realizar a exclusão.</p>
                 </div>
               </div>
             </div>
@@ -184,8 +240,13 @@ watch(infoList, (newVal) => {
               <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100 ">Classificação Manual</h5>
               <h5 class="fw-bold h5 w-100 text-body-secondary">Dados do Classificação</h5>
               <div>
-                <p class="mb-2 text-muted fw-semibold">Editor</p>
-                <input class="form-control"  />
+                <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
+                <select class="form-select text-muted">
+                  <option selected>Escolha o analista</option>
+                  <option value="1">One</option>
+                  <option value="2">Two</option>
+                  <option value="3">Three</option>
+                </select>
               </div>
               <div>
                 <p class="mb-2 text-muted fw-semibold">Área</p>
@@ -222,10 +283,10 @@ watch(infoList, (newVal) => {
       </div>
 
       <!-- Botões flutuantes -->
-      <template v-if="!isEditing && !isClickedClassified">
+      <template v-if="!isEditing && !isClickedClassified && !isClickedToAssess">
         <div class="divButton">
           <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
-          <button class="btn btn-primary button" @click="zoom = zoom + 1">Avaliar</button>
+          <button class="btn btn-primary button" @click="handleClickToAssess">Avaliar</button>
         </div>
       </template>
 
@@ -243,8 +304,75 @@ watch(infoList, (newVal) => {
               de análise.
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Revisar</button>
-              <button type="button" class="btn btn-primary">Salvar Classificação</button>
+              <button type="button" class="btn btn-dark fw-bold border" data-bs-dismiss="modal">Revisar</button>
+              <button type="button" class="btn btn-success fw-bold">Salvar Classificação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Realizar avaliação -->
+      <div class="modal fade" id="modalSaveToAssess" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-4" id="exampleModalLabel">Como deseja avaliar a classificação?</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
+            </div>
+            <div class="modal-body lh-base">
+              A classificação manual foi realizada pelo consultor <span class="fw-bold">Elbert Jean</span>. Após a sua análise e verificação das informações fornecidas na classificação, 
+              você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
+
+              <div v-if="showRejectionInput" class="mt-3">
+                <label for="rejectionReason" class="form-label fw-bold">Descreva o motivo</label>
+                <textarea id="rejectionReason" class="form-control" v-model="rejectionReason" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <template v-if="!showRejectionInput">
+                <button type="button" class="btn btn-dark fw-bold border" @click="showRejectionInput = true">Recusar</button>
+                <button type="button" class="btn btn-success fw-bold" @click="confirmApproval">Aprovar</button>
+              </template>
+              <template v-else>
+                <button type="button" class="btn btn-secondary fw-bold border" @click="resetModal">Cancelar</button>
+                <button type="button" class="btn btn-danger fw-bold" @click="confirmRejection">Confirmar Recusa</button>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal modalApprovalSuccess -->
+      <div class="modal fade" id="modalApprovalSuccess" tabindex="-1" aria-labelledby="modalApprovalSuccessLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-success">
+            <div class="modal-header bg-success text-white">
+              <h1 class="modal-title fs-4" id="modalApprovalSuccessLabel">Aprovação realizada com sucesso!</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              A classificação foi aprovada e registrada com sucesso no sistema.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-success fw-bold" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Recusa com Sucesso -->
+      <div class="modal fade" id="modalRejectionSuccess" tabindex="-1" aria-labelledby="modalRejectionSuccessLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+              <h1 class="modal-title fs-4" id="modalRejectionSuccessLabel">Classificação recusada com sucesso!</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              A classificação foi recusada e o motivo foi registrado no sistema.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Fechar</button>
             </div>
           </div>
         </div>
@@ -285,8 +413,5 @@ hr {
 
 .button {
   width: 150px;
-}
-.text-edited {
-  color: #343A40 !important;
 }
 </style>
