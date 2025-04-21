@@ -1,7 +1,7 @@
 <script setup>
 import { ref, resolveComponent } from "vue";
 import axios from "axios";
-import {nextTick } from 'vue';
+import { nextTick } from 'vue';
 
 
 const fileName1 = ref("");
@@ -31,11 +31,14 @@ const errorRef = ref(null);
 const handleFileUpload = (event) => {
   try {
     const file = event.target.files[0];
-    if (!file) throw new Error("Nenhum arquivo selecionado");
+    if (!file) {
+      errorMessage.value = "Nenhum arquivo selecionado";
+      return
+    }
 
     if (!file.name.toLowerCase().endsWith(".geojson")) {
-      throw new Error("Arquivo inválido, selecione um arquivo GeoJSON");
-
+      errorMessage.value = "Arquivo inválido, selecione um arquivo GeoJSON";
+      return;
     }
 
     const fileType = event.target.name;
@@ -54,11 +57,10 @@ const handleFileUpload = (event) => {
       } catch (error) {
         if (fileType === "field") geojsonField.value = null;
         if (fileType === "classification") geojsonClassification.value = null;
-        throw new Error("Arquivo inválido, selecione um arquivo GeoJSON");
+        errorMessage.value = "Arquivo inválido, selecione um arquivo GeoJSON válido";
       }
     }
     reader.readAsText(file);
-
   } catch (error) {
     errorMessage.value = error.message;
   }
@@ -80,12 +82,12 @@ const sendFile = () => {
     geojsonField.value.features.forEach((featuresField, index) => {
       let weedsList = [];
       if (!featuresField.properties.MN_TL || !featuresField.properties.AREA_HA_TL || !featuresField.properties.SOLO || !featuresField.properties.CULTURA || !featuresField.properties.SAFRA || !featuresField.properties.FAZENDA || !featuresField.geometry.coordinates) {
-        throw new Error("Conteúdo do arquivo GeoJSON inválido");
+        errorMessage.value = "Conteúdo do arquivo GeoJSON inválido";
       }
 
       geojsonClassification.value.features.forEach((featuresClassification) => {
         if (!featuresClassification.properties.MN_TL || !featuresClassification.properties.CLASSE || !featuresClassification.geometry.coordinates) {
-          throw new Error("Conteúdo do arquivo GeoJSON inválido");
+          errorMessage.value = "Conteúdo do arquivo GeoJSON inválido";
         }
         if (featuresField.properties.MN_TL == featuresClassification.properties.MN_TL) {
           weedsList.push({
@@ -121,13 +123,12 @@ const sendFile = () => {
       geojsonClassification.value = "";
       geojsonField.value = "";
     } else {
-      throw new Error("Nenhum talhão encontrado");
+      errorMessage.value = "Nenhum talhão encontrado";
     }
   } catch (error) {
-    errorMessage.value = error.message;
+    errorMessage.value = error.response?.data?.error || error.message;
   }
 };
-
 
 const openCoordinatesModal = (talhao) => {
   selectedCoordinates.value = JSON.parse(talhao.coordinates);
@@ -175,6 +176,7 @@ const saveScan = async () => {
     const response = await axios.post("http://localhost:8080/scan", payload);
     scanId.value = response.data;
   } catch (error) {
+    errorMessage.value = error.response?.data?.error
   } finally {
     const modalElement = document.getElementById('modalGeoJson');
     if (modalElement) {
@@ -253,7 +255,7 @@ const saveImages = (event) => {
     })
     .catch(error => {
       setTimeout(() => {
-        errorMessageImage.value = "Erro ao enviar a imagem";
+        errorMessageImage.value = error.response?.data?.error;
       }, 3000);
       isLoadingImages.value = false;
     });
@@ -426,7 +428,7 @@ const cancelImages = () => {
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div  ref="errorRef"  v-if="errorMessageModal" class="alert alert-field" role="alert">
+            <div ref="errorRef" v-if="errorMessageModal" class="alert alert-field" role="alert">
               {{ errorMessageModal }}
             </div>
             <table class="table table-striped table-hover ">
