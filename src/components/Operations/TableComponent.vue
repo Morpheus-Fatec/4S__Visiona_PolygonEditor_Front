@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import axios from 'axios';
+import api from "@/components/util/API.js";
 import { useRouter } from 'vue-router';
 import areasSJC from '../Map/data/areasSJC';
 import areasMock from '../Map/data/areasMock.json'
@@ -13,7 +13,7 @@ const store = useFilterStore();
 
 const fetchData = async () => {
   try {
-    const response = await axios.get("http://localhost:8090/field/featureCollectionSimple", {
+    const response = await api.get("/field/featureCollectionSimple", {
       withCredentials: true
     });
 
@@ -57,7 +57,7 @@ onMounted(() => {
 
 const updateTable = async (filters) => {
   try {
-    let url = 'http://localhost:8090/field/featureCollectionSimple?';
+    let url = `${api.baseURL}/field/featureCollectionSimple?`;
 
     if (filters.harvest) {
       url += `harvest=${filters.harvest}&`;
@@ -79,7 +79,7 @@ const updateTable = async (filters) => {
       url = url.slice(0, -1);
     }
 
-    const response = await axios.get(url, { withCredentials: true });
+    const response = await api.get(url, { withCredentials: true });
 
     if (response && response.data && Array.isArray(response.data.features)) {
       dataList.value = response.data;

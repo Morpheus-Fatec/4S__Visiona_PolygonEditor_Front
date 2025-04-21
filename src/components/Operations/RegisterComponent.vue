@@ -1,7 +1,7 @@
 <script setup>
 import { ref, resolveComponent } from "vue";
-import axios from "axios";
 import { nextTick } from 'vue';
+import api from "@/components/util/API.js";
 
 
 const fileName1 = ref("");
@@ -173,7 +173,7 @@ const saveScan = async () => {
     fields: JSON.parse(JSON.stringify(Array.from(talhoesMap.value.values())))
   };
   try {
-    const response = await axios.post("http://localhost:8080/scan", payload);
+    const response = await api.post("/scan", payload);
     scanId.value = response.data;
   } catch (error) {
     errorMessage.value = error.response?.data?.error
@@ -236,7 +236,8 @@ const saveImages = (event) => {
     formData.append('desc', img.desc);
   });
 
-  axios.post('http://localhost:8080/image', formData, {
+
+  api.post('/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
