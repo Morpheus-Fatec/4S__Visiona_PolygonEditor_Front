@@ -22,6 +22,7 @@ function parseCoordinatesString(coordinatesString) {
   }
 }
 
+// Responsável pela classificação
 function handleClickClassified() {
   isClickedClassified.value = true;
 }
@@ -30,6 +31,7 @@ function cancelClassified() {
   isClickedClassified.value = false;
 }
 
+// Responsável pelo edit
 function handleEdit() {
   originalInfoList.value = infoList.value.map(item => ({ ...item }));
   isEditing.value = true;
@@ -100,6 +102,13 @@ watchEffect(() => {
     { title: 'Estado', value: data.value.properties.farm?.farmState ?? 'Não informado' }
   ];
 });
+
+watch(infoList, (newVal) => {
+  if (isEditing.value) {
+    console.log('Dados editados:', JSON.stringify(newVal, null, 2));
+  }
+}, { deep: true });
+
 </script>
 
 <template>
@@ -114,7 +123,7 @@ watchEffect(() => {
             <div v-for="(item, index) in infoList" :key="index" class="mb-3">
               <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
               <template v-if="isEditing">
-                <input v-model="item.value" class="form-control" />
+                <input v-model="item.value" class="form-control" :disabled="['ID', 'Área (ha)', 'Status'].includes(item.title)"/>
               </template>
               <template v-else>
                 <p class="mb-1">{{ item.value }}</p>
@@ -131,6 +140,8 @@ watchEffect(() => {
           <template v-else>
             <div class="w-100 mt-auto d-flex flex-column gap-2">
               <button class="btn btn-success w-100 fw-bold" @click="handleEdit">Editar</button>
+              <button class="btn btn-dark w-100 fw-bold">Download do talhão</button>
+
             </div>
           </template>  
         </div>
@@ -139,7 +150,7 @@ watchEffect(() => {
       <!-- Classificação -->
       <template v-if="isClickedClassified === true">
         <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
-          <div class="card border-info bg-info">
+          <div class="card border-info bg-info bg-gradient">
             <div class="d-flex align-items-center px-3 pt-3">
               <button class="d-flex justify-content-between align-items-center w-100 bg-transparent border-0 fw-bold h4 border-bottom border-2 border-white pb-2 text-white"
                       type="button"
@@ -200,7 +211,7 @@ watchEffect(() => {
           </div>
           <div class="w-100 mt-auto d-flex flex-column gap-2">
             <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClassified">Cancelar</button>
-            <button class="btn btn-success w-100 fw-bold">Salvar Classificação</button>
+            <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveClassified">Salvar Classificação</button>
           </div>
         </div>
       </template>
@@ -217,6 +228,27 @@ watchEffect(() => {
           <button class="btn btn-primary button" @click="zoom = zoom + 1">Avaliar</button>
         </div>
       </template>
+
+      <!-- Modal modalSaveClassified -->
+      <div class="modal fade" id="modalSaveClassified" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-4 " id="exampleModalLabel">Deseja salvar a classificação?</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body lh-base">
+              Ao clicar em <span class="fw-bold">Salvar Classificação</span>, os dados inseridos na classificação manual serão registrados no sistema e 
+              armazenados no banco de dados. Em seguida, essa classificação será encaminhada automaticamente para o processo 
+              de análise.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Revisar</button>
+              <button type="button" class="btn btn-primary">Salvar Classificação</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </Layout>
 </template>
