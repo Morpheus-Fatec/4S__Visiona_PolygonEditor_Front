@@ -1,6 +1,6 @@
 <script setup>
 import Layout from '@/components/Layout/Layout.vue';
-import UserRegisterView from '@/components/Operations/UserRegisterComponent.vue';
+import UserRegisterView from '@/components/Auth/UserRegisterComponent.vue';
 
 </script>
 

@@ -1,12 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
-import axios from "axios";
+import { ref, onMounted, computed, reactive } from "vue";
+import api from '@/components/util/api';
 
-const name = ref('');
-const email = ref('');
-const confirmEmail = ref('');
-const password = ref('');
-const userType = ref('');
+const userFields = reactive({
+  name: '',
+  email: '',
+  confirmEmail: '',
+  password: '',
+  userType: ''
+});
 const errorMessage = ref('');
 const successMessage = ref('');
 const formValidated = ref(false);
@@ -25,31 +27,31 @@ const buttonRegister = async () => {
     formValidated.value = true;
     editEnabled.value = false;
 
-    if (!validateEmail(email.value)) {
+    if (!validateEmail(userFields.email)) {
         return;
     }
 
-    if (email.value !== confirmEmail.value) {
+    if (userFields.email !== userFields.confirmEmail) {
         error.response?.data?.error;
         return;
     }
 
-    if (!name.value.trim() || !email.value.trim() || !confirmEmail.value.trim() || !password.value.trim() || !userType.value) {
+    if (!userFields.name.trim() || !userFields.email.trim() || !userFields.confirmEmail.trim() || !userFields.password.trim() || !userFields.userType) {
         error.response?.data?.error;
         return;
     }
 
     const payload = {
-        name: name.value,
-        email: email.value,
-        password: password.value,
-        isAdmin: userType.value === 'isAdmin',
-        isAnalyst: userType.value === 'isAnalyst',
-        isConsultant: userType.value === 'isConsultant'
+        name: userFields.name,
+        email: userFields.email,
+        password: userFields.password,
+        isAdmin: userFields.userType === 'isAdmin',
+        isAnalyst: userFields.userType === 'isAnalyst',
+        isConsultant: userFields.userType === 'isConsultant'
     };
 
     try {
-        const response = await axios.post('http://localhost:8080/user/cadastrarUsuario', payload);
+        const response = await api.post('/user/cadastrarUsuario', payload);
         successMessage.value = "Usuário cadastrado com sucesso.";
         setTimeout(() => {
             successMessage.value = "";
@@ -69,12 +71,12 @@ const buttonRegister = async () => {
 };
 
 const validateEmail = (email) => {
-    return email.includes('@') && email.includes('.com');
+    return userFields.email.includes('@') && userFields.email.includes('.com');
 };
 
 const fetchUsers = async () => {
     try {
-        const response = await axios.get('http://localhost:8080/user/listarUsuarios');
+        const response =  await api.get('/user/listarUsuarios');
         users.value = response.data.map(user => ({
             id: user.id,
             name: user.name,
@@ -96,7 +98,7 @@ const fetchUsers = async () => {
 const deleteUser = async () => {
     try {
         if (userIdToDelete.value) {
-            await axios.delete(`http://localhost:8080/user/deletarUsuario/${userIdToDelete.value}`);
+            await api.delete(`/user/deletarUsuario/${userIdToDelete.value}`);
             successMessage.value = 'Usuário excluído com sucesso.';
             setTimeout(() => {
                 successMessage.value = "";
@@ -140,11 +142,11 @@ const editUser = (userId) => {
 
     const user = users.value.find(user => user.id === userId);
     if (user) {
-        name.value = user.name;
-        email.value = user.email;
-        confirmEmail.value = user.email;
-        password.value = user.password;
-        userType.value = user.isAdmin ? 'isAdmin' : user.isAnalyst ? 'isAnalyst' : 'isConsultant';
+        userFields.name = user.name;
+        userFields.email = user.email;
+        userFields.confirmEmail = user.email;
+        userFields.password = user.password;
+        userFields.userType = user.isAdmin ? 'isAdmin' : user.isAnalyst ? 'isAnalyst' : 'isConsultant';
         editingUserId.value = user.id;
     }
     toggleEditCollapse()
@@ -152,35 +154,35 @@ const editUser = (userId) => {
 
 const buttonEdit = async () => {
 
-    if (!validateEmail(email.value)) {
+    if (!validateEmail(userFields.email)) {
         return;
     }
 
-    if (email.value !== confirmEmail.value) {
+    if (userFields.email !== userFields.confirmEmail) {
         return;
     }
 
     if (
-        !name.value.trim() ||
-        !email.value.trim() ||
-        !confirmEmail.value.trim() ||
-        !password.value.trim() ||
-        !userType.value
+        !userFields.name.trim() ||
+        !userFields.email.trim() ||
+        !userFields.confirmEmail.trim() ||
+        !userFields.password.trim() ||
+        !userFields.userType
     ) {
         return;
     }
 
     const payload = {
-        name: name.value,
-        email: email.value,
-        password: password.value,
-        isAdmin: userType.value === 'isAdmin',
-        isAnalyst: userType.value === 'isAnalyst',
-        isConsultant: userType.value === 'isConsultant'
+        name: userFields.name,
+        email: userFields.email,
+        password: userFields.password,
+        isAdmin: userFields.userType === 'isAdmin',
+        isAnalyst: userFields.userType === 'isAnalyst',
+        isConsultant: userFields.userType === 'isConsultant'
     };
 
     try {
-        const response = await axios.put(`http://localhost:8080/user/${editingUserId.value}`, payload);
+        const response = await api.put(`/user/${editingUserId.value}`, payload);
         successMessage.value = "Usuário editado com sucesso.";
         setTimeout(() => {
             successMessage.value = "";
@@ -218,11 +220,9 @@ const toggleEditCollapse = () => {
 };
 
 const resetForm = () => {
-    name.value = '';
-    email.value = '';
-    confirmEmail.value = '';
-    password.value = '';
-    userType.value = '';
+  Object.keys(userFields).forEach(key => {
+        userFields[key] = '';
+    });
     formValidated.value = false;
     editEnabled.value = false;
     editingUserId.value = null;
@@ -261,13 +261,13 @@ onMounted(fetchUsers);
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nome:</label>
-                        <input v-model="name" type="text" class="form-control" placeholder="Seu nome"
-                            :class="{ 'is-invalid': formValidated && !name.trim() }" />
+                        <input v-model="userFields.name" type="text" class="form-control" placeholder="Seu nome"
+                            :class="{ 'is-invalid': formValidated && !userFields.name.trim() }" />
                         <div class="invalid-feedback">Nome é obrigatório.</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tipo de Usuário:</label>
-                        <select v-model="userType" class="form-select"
+                        <select v-model="userFields.userType" class="form-select"
                             :class="{ 'is-invalid': formValidated && !userType }">
                             <option disabled value="">Selecione</option>
                             <option value="isAdmin">Administrador</option>
@@ -281,15 +281,15 @@ onMounted(fetchUsers);
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Email:</label>
-                        <input v-model="email" type="email" class="form-control"
+                        <input v-model="userFields.email" type="email" class="form-control"
                             :class="{ 'is-invalid': formValidated && !validateEmail(email) }"
                             placeholder="name@example.com" />
                         <div class="invalid-feedback">Email inválido.</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Confirme o Email:</label>
-                        <input v-model="confirmEmail" type="email" class="form-control" placeholder="name@example.com"
-                            :class="{ 'is-invalid': formValidated && (!confirmEmail.trim() || confirmEmail !== email) }" />
+                        <input v-model="userFields.confirmEmail" type="email" class="form-control" placeholder="name@example.com"
+                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
                 </div>
@@ -297,8 +297,8 @@ onMounted(fetchUsers);
                 <div class="mb-3">
                     <label class="form-label">Senha:</label>
                     <div class="input-group">
-                        <input v-model="password" :type="passwordVisible ? 'text' : 'password'" class="form-control"
-                            :class="{ 'is-invalid': formValidated && !password.trim() }" />
+                        <input v-model="userFields.password" :type="passwordVisible ? 'text' : 'password'" class="form-control"
+                            :class="{ 'is-invalid': formValidated && !userFields.password.trim() }" />
                         <button class="btn btn-outline-secondary" type="button" @click="passwordVisibility"
                             tabindex="-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -327,14 +327,14 @@ onMounted(fetchUsers);
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nome:</label>
-                        <input v-model="name" type="text" class="form-control" placeholder="Seu nome"
-                            :class="{ 'is-invalid': formValidated && !name.trim() }" />
+                        <input v-model="userFields.name" type="text" class="form-control" placeholder="Seu nome"
+                            :class="{ 'is-invalid': formValidated && !userFields.name.trim() }" />
                         <div class="invalid-feedback">Nome é obrigatório.</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tipo de Usuário:</label>
-                        <select v-model="userType" class="form-select"
-                            :class="{ 'is-invalid': formValidated && !userType }">
+                        <select v-model="userFields.userType" class="form-select"
+                            :class="{ 'is-invalid': formValidated && !userFields.userType }">
                             <option disabled value="">Selecione</option>
                             <option value="isAdmin">Administrador</option>
                             <option value="isAnalyst">Analista</option>
@@ -347,17 +347,17 @@ onMounted(fetchUsers);
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Email:</label>
-                        <input v-model="email" type="email" class="form-control"
+                        <input v-model="userFields.email" type="email" class="form-control"
                             :class="{ 'is-invalid': formValidated && !validateEmail(email) }"
                             placeholder="name@example.com" />
                         <div class="invalid-feedback">
-                            {{ !email.trim() ? 'Email é obrigatório.' : 'Email inválido.' }}
+                            {{ !userFields.email.trim() ? 'Email é obrigatório.' : 'Email inválido.' }}
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Confirme o Email:</label>
-                        <input v-model="confirmEmail" type="email" class="form-control" placeholder="name@example.com"
-                            :class="{ 'is-invalid': formValidated && (!confirmEmail.trim() || confirmEmail !== email) }" />
+                        <input v-model="userFields.confirmEmail" type="email" class="form-control" placeholder="name@example.com"
+                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
                 </div>
@@ -365,8 +365,8 @@ onMounted(fetchUsers);
                 <div class="mb-3">
                     <label class="form-label">Senha:</label>
                     <div class="input-group">
-                        <input v-model="password" :type="passwordVisible ? 'text' : 'password'" class="form-control"
-                            :class="{ 'is-invalid': formValidated && !password.trim() }" />
+                        <input v-model="userFields.password" :type="passwordVisible ? 'text' : 'password'" class="form-control"
+                            :class="{ 'is-invalid': formValidated && !userFields.password.trim() }" />
                         <button class="btn btn-outline-secondary" type="button" @click="passwordVisibility"
                             tabindex="-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
