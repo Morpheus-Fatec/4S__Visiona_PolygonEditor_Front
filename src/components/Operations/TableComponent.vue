@@ -33,7 +33,7 @@ const fetchData = async () => {
 };
 
 async function handlePageChange(page) {
-  const response = await axios.get('http://localhost:8080/field/featureCollectionSimple', {
+  const response = await api.get("/field/featureCollectionSimple", {
     params: {
       page: page,   
       harvest: currentFilters.value.harvest,      
@@ -82,7 +82,10 @@ const updateTable = async (filters) => {
   };
 
   try {
-    let url = `${api.baseURL}/field/featureCollectionSimple?`;
+    const apiUrl = import.meta.env.VITE_API_URL;
+    let url = `${apiUrl}/field/featureCollectionSimple?`;
+
+    console.log(url)
 
     if (filters.harvest) {
       url += `harvest=${filters.harvest}&`;
