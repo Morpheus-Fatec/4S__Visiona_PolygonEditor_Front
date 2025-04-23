@@ -110,6 +110,7 @@ const onMapReady = async (map) => {
   const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
   map.fitBounds(bounds);
 
+
   map.on('click', (event) => {
     if (editingLayer.value && !editingLayer.value.getBounds().contains(event.latlng)) {
       editingLayer.value.editing.disable();
@@ -117,17 +118,21 @@ const onMapReady = async (map) => {
       console.log("Edição finalizada ao clicar fora do polígono.");
     }
   });
-};
 
-function normalizeCoordinates(coordinates) {
-  const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
-  return coords.map(polygon => polygon.map(ring => ring));
-}
+  map.on('overlayadd', async (event) => {
+    const layerIndex = props.data.images.findIndex(img => img.name === event.name);
+    if (layerIndex !== -1 && !tifLayersLoaded.value[layerIndex]) {
+      await loadTif(props.data.images[layerIndex].link, layerIndex, coordinates);
+      tifLayersLoaded.value[layerIndex] = true;
+    }
+  });
+};
 
 async function loadTif(url, layerIndex, coordinates) {
   console.log('Carregando GeoTIFF:', url);
   try {
     const clipArea = createClipAreaFromCoordinates(coordinates);
+
     const response = await fetch(url);
     if (!response.ok) throw new Error("Erro ao carregar GeoTIFF: " + url);
 
@@ -162,6 +167,13 @@ function createClipAreaFromCoordinates(coordinates) {
       }
     ]
   };
+}
+
+function normalizeCoordinates(coordinates) {
+  const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
+  return coords.map(polygon =>
+    polygon.map(ring => ring)
+  );
 }
 
 let drawControl = null;
