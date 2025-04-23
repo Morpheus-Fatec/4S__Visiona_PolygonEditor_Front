@@ -3,11 +3,11 @@ import { ref, onMounted, computed, reactive } from "vue";
 import api from '@/components/util/api';
 
 const userFields = reactive({
-  name: '',
-  email: '',
-  confirmEmail: '',
-  password: '',
-  userType: ''
+    name: '',
+    email: '',
+    confirmEmail: '',
+    password: '',
+    userType: ''
 });
 const errorMessage = ref('');
 const successMessage = ref('');
@@ -21,6 +21,7 @@ const isRegisterCollapseOpen = ref(false);
 const isEditCollapseOpen = ref(false);
 const term = ref('');
 const passwordVisible = ref(false);
+const isPasswordChangedModal = ref(false);
 
 
 const buttonRegister = async () => {
@@ -57,6 +58,7 @@ const buttonRegister = async () => {
             successMessage.value = "";
         }, 3000);
         fetchUsers();
+        openModalConfirmationEmail(userFields.email);
     } catch (error) {
         console.error(error);
         errorMessage.value = error.response?.data?.error;
@@ -64,7 +66,6 @@ const buttonRegister = async () => {
             errorMessage.value = "";
         }, 3000);
     } finally {
-        resetForm();
         isRegisterCollapseOpen.value = false;
         formValidated.value = false;
     }
@@ -76,7 +77,7 @@ const validateEmail = (email) => {
 
 const fetchUsers = async () => {
     try {
-        const response =  await api.get('/user/listarUsuarios');
+        const response = await api.get('/user/listarUsuarios');
         users.value = response.data.map(user => ({
             id: user.id,
             name: user.name,
@@ -172,6 +173,9 @@ const buttonEdit = async () => {
         return;
     }
 
+    const originalUser = users.value.find(user => user.id === editingUserId.value);
+    const isPasswordChanged = originalUser && originalUser.password !== userFields.password;
+
     const payload = {
         name: userFields.name,
         email: userFields.email,
@@ -189,6 +193,9 @@ const buttonEdit = async () => {
         }, 3000);
         fetchUsers();
         toggleEditCollapse();
+        if (isPasswordChanged) {
+            openModalConfirmationEmail(userFields.email, isPasswordChanged);
+        }
     } catch (error) {
         console.error(error);
         errorMessage.value = error.response?.data?.error;
@@ -196,7 +203,6 @@ const buttonEdit = async () => {
             errorMessage.value = "";
         }, 3000);
     } finally {
-        resetForm();
         isEditCollapseOpen.value = false;
         formValidated.value = false;
     }
@@ -220,7 +226,7 @@ const toggleEditCollapse = () => {
 };
 
 const resetForm = () => {
-  Object.keys(userFields).forEach(key => {
+    Object.keys(userFields).forEach(key => {
         userFields[key] = '';
     });
     formValidated.value = false;
@@ -241,6 +247,14 @@ const filteredUsers = computed(() => {
 function passwordVisibility() {
     passwordVisible.value = !passwordVisible.value
 }
+
+const openModalConfirmationEmail = (userEmail, isPasswordChanged) => {
+    const modalElement = document.getElementById('modalConfirmationEmail');
+    const modal = new bootstrap.Modal(modalElement);
+    isPasswordChangedModal.value = isPasswordChanged;
+    modal.show();
+
+};
 
 onMounted(fetchUsers);
 </script>
@@ -288,7 +302,8 @@ onMounted(fetchUsers);
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Confirme o Email:</label>
-                        <input v-model="userFields.confirmEmail" type="email" class="form-control" placeholder="name@example.com"
+                        <input v-model="userFields.confirmEmail" type="email" class="form-control"
+                            placeholder="name@example.com"
                             :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
@@ -297,17 +312,12 @@ onMounted(fetchUsers);
                 <div class="mb-3">
                     <label class="form-label">Senha:</label>
                     <div class="input-group">
-                        <input v-model="userFields.password" :type="passwordVisible ? 'text' : 'password'" class="form-control"
+                        <input v-model="userFields.password" :type="passwordVisible ? 'text' : 'password'"
+                            class="form-control"
                             :class="{ 'is-invalid': formValidated && !userFields.password.trim() }" />
                         <button class="btn btn-outline-secondary" type="button" @click="passwordVisibility"
                             tabindex="-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                class="bi bi-eye" viewBox="0 0 16 16">
-                                <path
-                                    d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                                <path
-                                    d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                            </svg>
+                            <i class="bi bi-eye-fill"></i>
                         </button>
                         <div class="invalid-feedback">Senha é obrigatória.</div>
                     </div>
@@ -356,7 +366,8 @@ onMounted(fetchUsers);
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Confirme o Email:</label>
-                        <input v-model="userFields.confirmEmail" type="email" class="form-control" placeholder="name@example.com"
+                        <input v-model="userFields.confirmEmail" type="email" class="form-control"
+                            placeholder="name@example.com"
                             :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
@@ -365,17 +376,12 @@ onMounted(fetchUsers);
                 <div class="mb-3">
                     <label class="form-label">Senha:</label>
                     <div class="input-group">
-                        <input v-model="userFields.password" :type="passwordVisible ? 'text' : 'password'" class="form-control"
+                        <input v-model="userFields.password" :type="passwordVisible ? 'text' : 'password'"
+                            class="form-control"
                             :class="{ 'is-invalid': formValidated && !userFields.password.trim() }" />
                         <button class="btn btn-outline-secondary" type="button" @click="passwordVisibility"
                             tabindex="-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                class="bi bi-eye" viewBox="0 0 16 16">
-                                <path
-                                    d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                                <path
-                                    d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                            </svg>
+                            <i class="bi bi-eye-fill"></i>
                         </button>
                         <div class="invalid-feedback">Senha é obrigatória.</div>
                     </div>
@@ -393,13 +399,9 @@ onMounted(fetchUsers);
         <div class="input-group mb-3">
             <input v-model="term" type="text" class="form-control" placeholder="Pesquisar" aria-label="Pesquisar"
                 aria-describedby="basic-addon1">
-            <span class="input-group-text" id="basic-addon1"><svg xmlns="http://www.w3.org/2000/svg" width="16"
-                    height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                    <path
-                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-                </svg></span>
+            <span class="input-group-text" id="basic-addon1"><i class="bi bi-search"></i></span>
         </div>
-        
+
         <!--tabela de usuários-->
         <div row class="mb-3 mt-3">
             <div class="modal-body">
@@ -457,13 +459,52 @@ onMounted(fetchUsers);
                 </div>
             </div>
         </div>
+
+        <!--modal de confirmação -->
+        <div class="modal fade" tabindex="-1" id="modalConfirmationEmail" data-bs-backdrop="static"
+            data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div v-if="!isPasswordChangedModal" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha enviada</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class=" fs-5  mb-4">A senha foi enviada para o email cadastrado: <strong>{{ userFields.email
+                                }}</strong></p>
+                        <p> </p>
+                        <p class="text-muted mb-2">Verifique a caixa de entrada ou pasta de spam.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+                    </div>
+                </div>
+                <div v-else class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha enviada</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class=" fs-5  mb-4">A nova senha foi enviada para o email cadastrado: <strong>{{
+                            userFields.email
+                                }}</strong></p>
+                        <p> </p>
+                        <p class="text-muted mb-2">Verifique a caixa de entrada ou pasta de spam.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
 .custom-table {
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 6px;
-  overflow: hidden;
-}</style>
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+</style>
