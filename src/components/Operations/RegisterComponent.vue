@@ -22,7 +22,7 @@ const images = ref([]);
 const descImage = ref("");
 const isLoadingTalhoes = ref(false);
 const isLoadingImages = ref(false);
-const enableUploadImage = ref(false);
+const enableUploadImage = ref(true);
 const scanId = ref(1);
 const noAssociation = ref("");
 const errorRef = ref(null);
@@ -216,6 +216,17 @@ const cancelEdit = (talhao) => {
 };
 
 const addImage = (event) => {
+  const file = event.target.files[0];
+
+  if (file.type !== "image/tiff") {
+    errorMessageImage.value = "Arquivo inválido. Selecione um arquivo TIFF.";
+    setTimeout(() => {
+      errorMessageImage.value = "";
+    }, 3000);
+    event.target.value = "";
+    return;
+  }
+
   images.value.push({ name: event.target.files[0].name, image: event.target.files[0], desc: descImage.value });
   descImage.value = "";
   event.target.value = "";
