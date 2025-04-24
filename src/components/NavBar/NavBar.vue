@@ -31,7 +31,6 @@ import {RouterLink} from 'vue-router'
                 Gerenciar
             </a>
             <ul class="dropdown-menu" aria-labelledby="gerenciarDropdown">
-                <li><RouterLink class="dropdown-item" to="/cadastrar">Talhões</RouterLink></li>
                 <li><RouterLink class="dropdown-item" to="/fazenda">Fazendas</RouterLink></li>
                 <li><RouterLink class="dropdown-item" to="/cultura">Culturas</RouterLink></li>
                 <li><RouterLink class="dropdown-item" to="/solo">Solos</RouterLink></li>
