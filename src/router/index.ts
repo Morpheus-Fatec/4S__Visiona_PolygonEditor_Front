@@ -9,6 +9,7 @@ import RegisterView from '@/view/RegisterView.vue';
 import Cultura from '@/view/Cultura.vue';
 import Solo from '@/view/Solo.vue';
 import Fazenda from '@/view/Fazenda.vue';
+import UserRegisterView from '@/view/UserRegisterView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -68,6 +69,10 @@ const router = createRouter({
       path: '/fazenda',
       name:'fazenda',
       component: Fazenda
+    },
+      path: '/usuario',
+      name: 'usuario',
+      component: UserRegisterView, 
     }
   ],
 })

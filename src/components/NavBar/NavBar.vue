@@ -34,6 +34,7 @@ import {RouterLink} from 'vue-router'
                 <li><RouterLink class="dropdown-item" to="/fazenda">Fazendas</RouterLink></li>
                 <li><RouterLink class="dropdown-item" to="/cultura">Culturas</RouterLink></li>
                 <li><RouterLink class="dropdown-item" to="/solo">Solos</RouterLink></li>
+                <li><RouterLink class="dropdown-item" to="/usuario">Usuários</RouterLink></li>
             </ul>
         </li>
 
@@ -52,7 +53,6 @@ import {RouterLink} from 'vue-router'
         </li>
     </ul>
 </div>
-
         </div>
     </nav>
 </template>
