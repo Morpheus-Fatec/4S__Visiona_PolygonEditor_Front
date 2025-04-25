@@ -6,6 +6,9 @@ import NotFound from '../view/NotFoundView.vue';
 import Operacoes from '../view/OperacoesView.vue';
 import MapaOperationView from '@/view/MapaOperationView.vue';
 import RegisterView from '@/view/RegisterView.vue';
+import Cultura from '@/view/Cultura.vue';
+import Solo from '@/view/Solo.vue';
+import Fazenda from '@/view/Fazenda.vue';
 import UserRegisterView from '@/view/UserRegisterView.vue';
 
 const router = createRouter({
@@ -43,7 +46,7 @@ const router = createRouter({
       component: Operacoes,
     },
     {
-      path: '/cadastro',
+      path: '/',
       name: 'register',
       component: RegisterView,
     },
@@ -53,11 +56,26 @@ const router = createRouter({
       component: NotFound,
     },
     {
+      path: '/cultura',
+      name:'cultura',
+      component: Cultura
+    },
+    {
+      path: '/solo',
+      name:'solo',
+      component: Solo
+    },
+    {
+      path: '/fazenda',
+      name:'fazenda',
+      component: Fazenda
+    },
+    {
       path: '/usuario',
       name: 'usuario',
-      component: UserRegisterView, 
-    },
-  ],
+      component: UserRegisterView,       
+    }
+  ]
 })
 
 export default router
