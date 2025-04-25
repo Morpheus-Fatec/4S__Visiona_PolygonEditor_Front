@@ -70,11 +70,12 @@ const router = createRouter({
       name:'fazenda',
       component: Fazenda
     },
+    {
       path: '/usuario',
       name: 'usuario',
-      component: UserRegisterView, 
+      component: UserRegisterView,       
     }
-  ],
+  ]
 })
 
 export default router
