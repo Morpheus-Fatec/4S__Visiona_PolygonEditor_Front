@@ -242,6 +242,11 @@ watchEffect(() => {
 
       const exists = polygonsDraw.value.features.find(f => f.properties.id === newId);
       if (!exists) {
+        const description = prompt("Polígono adicionado com sucesso! Digite uma descrição:");
+        layer.feature.properties = {
+          ...layer.feature.properties,
+          description: description || ''
+        };
         polygonsDraw.value.features.push(layer.toGeoJSON());
       }
 

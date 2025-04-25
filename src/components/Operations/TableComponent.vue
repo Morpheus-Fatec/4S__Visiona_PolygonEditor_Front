@@ -57,13 +57,13 @@ const updateTable = async (filters) => {
     let url = `${api.defaults.baseURL}/field/featureCollectionSimple?`;
 
     if (filters.harvest) {
-      url += `harvest=${filters.harvest}&`;
+      url += `harvest=${filters.harvest.nome}&`;
     }
     if (filters.farm) {
       url += `farmName=${filters.farm}&`;
     }
     if (filters.soil) {
-      url += `soil=${filters.soil}&`;
+      url += `soil=${filters.soil.nome}&`;
     }
     if (filters.name) {
       url += `name=${filters.name}&`;
@@ -116,9 +116,9 @@ const updateTable = async (filters) => {
           </tr>
           <tr v-for="data in dataList.features" :key="data.properties.id">
             <td class="text-center px-3 py-3">{{ data.properties.name }}</td>
-            <td class="text-wrap py-3">{{ data.properties.culture }}</td>
+            <td class="text-wrap py-3">{{ data.properties.culture.nome }}</td>
             <td class="text-wrap py-3">{{ data.properties.area }}</td>
-            <td class="text-wrap py-3">{{ data.properties.soil }}</td>
+            <td class="text-wrap py-3">{{ data.properties.soil.nome }}</td>
             <td class="text-wrap py-3">{{ data.properties.harvest }}</td>
             <td class="text-center py-3">{{ data.properties.farm ? data.properties.farm.farmName : 'N/A' }}</td>
             <td class="text-center py-3">

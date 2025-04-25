@@ -18,6 +18,26 @@ const showRejectionInput = ref(false);
 const showApprovalInput = ref(false);
 const rejectionReason = ref('');
 
+const cultures = ref([]);
+const soils = ref([]);
+const farms = ref([]);
+
+onMounted(async () => {
+  try {
+    const response = await api.get(`/field/featureCollection/${areaId}`, {
+      withCredentials: true
+    });
+
+    if (response && response.data) {
+      data.value = processGeoJsonCoordinates(response.data.features);
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
+  } catch (error) {
+    console.error("Erro ao carregar dados da API:", error);
+  }
+});
+
 function parseCoordinatesString(coordinatesString) {
   try {
     return JSON.parse(coordinatesString);
@@ -88,9 +108,78 @@ function cancelEdit() {
   isEditing.value = false;
 }
 
-function saveEdit() {
-  alert("Dados salvos com sucesso!");
-  isEditing.value = false;
+// Editar
+function mapInfoListToDataStructure() {
+  const cultureName = getValueByTitle('Cultura');
+  const soilName = getValueByTitle('Solo');
+  const farmName = getValueByTitle('Nome da Fazenda');
+
+  const selectedCulture = cultures.value.find(c => c.name === cultureName);
+  const selectedSoil = soils.value.find(s => s.name === soilName);
+  const selectedFarm = farms.value.find(f => f.farmName === farmName);
+
+  return {
+    id: data.value.properties.id,
+    name: getValueByTitle('Nome'),
+    culture: {
+      id: selectedCulture?.id || null,
+      name: cultureName
+    },
+    area: parseFloat(getValueByTitle('Área (ha)')) || null,
+    harvest: getValueByTitle('Safra'),
+    soil: {
+      id: selectedSoil?.id || null,
+      name: soilName
+    },
+    productivity: parseFloat(getValueByTitle('Produtividade')) || null,
+    farm: {
+      id: selectedFarm?.id || null,
+      farmName: farmName,
+      farmCity: getValueByTitle('Cidade'),
+      farmState: getValueByTitle('Estado')
+    }
+  };
+}
+
+function getValueByTitle(title) {
+  const item = infoList.value.find(i => i.title === title);
+  return item ? item.value : null;
+}
+
+watch( farms, () => {
+  console.log(JSON.stringify(farms.value, null, 2));
+}, { deep: true });
+
+watch( soils, () => {
+  console.log(JSON.stringify(soils.value, null, 2));
+}, { deep: true });
+
+watch( cultures, () => {
+  console.log(JSON.stringify(cultures.value, null, 2));
+}, { deep: true });
+
+
+async function saveEdit() {
+  const editedData = mapInfoListToDataStructure();
+  console.log("Dados prontos para envio:", editedData);
+
+  try {
+    console.log('buceta ta aqui');
+    const response = await api.put(`/field/${areaId}/avaliar`, editedData, {
+      withCredentials: true
+    });
+
+    console.log("Resposta da API:", response.data);
+
+    const modal = new bootstrap.Modal(document.getElementById('modalUpdateSuccess'));
+    modal.show();
+    isEditing.value = false;
+  } catch (error) {
+    console.error("Erro ao salvar dados:", error);
+
+    const modal = new bootstrap.Modal(document.getElementById('modalUpdateError'));
+    modal.show();
+  }
 }
 
 const processGeoJsonCoordinates = (geoJson) => {
@@ -115,19 +204,42 @@ const processGeoJsonCoordinates = (geoJson) => {
   return geoJson;
 };
 
+watch(
+  () => getValueByTitle('Nome da Fazenda'),
+  (newFarmName) => {
+    const selectedFarm = farms.value.find(f => f.farmName === newFarmName);
+    if (selectedFarm) {
+      setValueByTitle('Cidade', selectedFarm.farmCity ?? 'Não informado');
+      setValueByTitle('Estado', selectedFarm.farmState ?? 'Não informado');
+    }
+  }
+);
+
+function setValueByTitle(title, newValue) {
+  const item = infoList.value.find(i => i.title === title);
+  if (item) item.value = newValue;
+}
+
 onMounted(async () => {
   try {
-    const response = await api.get(`/field/featureCollection/${areaId}`, {
-      withCredentials: true
-    });
+    const [culturesRes, soilsRes, farmsRes, featureRes] = await Promise.all([
+      api.get('/cultures', { withCredentials: true }),
+      api.get('/soil', { withCredentials: true }),
+      api.get('/farm', { withCredentials: true }),
+      api.get(`/field/featureCollection/${areaId}`, { withCredentials: true })
+    ]);
 
-    if (response && response.data) {
-      data.value = processGeoJsonCoordinates(response.data.features);
+    cultures.value = culturesRes.data;
+    soils.value = soilsRes.data;
+    farms.value = farmsRes.data;
+
+    if (featureRes && featureRes.data) {
+      data.value = processGeoJsonCoordinates(featureRes.data.features);
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
   } catch (error) {
-    console.error("Erro ao carregar dados da API:", error);
+    console.error("Erro ao carregar dados:", error);
   }
 });
 
@@ -137,23 +249,17 @@ watchEffect(() => {
   infoList.value = [
     { title: 'ID', value: data.value.properties.id },
     { title: 'Nome', value: data.value.properties.name },
-    { title: 'Cultura', value: data.value.properties.culture },
+    { title: 'Cultura', value: data.value.properties.culture.nome },
     { title: 'Área (ha)', value: data.value.properties.area },
     { title: 'Safra', value: data.value.properties.harvest },
     { title: 'Status', value: data.value.properties.status },
-    { title: 'Solo', value: data.value.properties.soil ?? 'Não informado' },
+    { title: 'Solo', value: data.value.properties.soil.nome ?? 'Não informado' },
     { title: 'Produtividade', value: data.value.properties.productivity ?? 'Não informado' },
     { title: 'Nome da Fazenda', value: data.value.properties.farm?.farmName ?? 'Não informado' },
     { title: 'Cidade', value: data.value.properties.farm?.farmCity ?? 'Não informado' },
     { title: 'Estado', value: data.value.properties.farm?.farmState ?? 'Não informado' }
   ];
 });
-
-watch(infoList, (newVal) => {
-  if (isEditing.value) {
-    console.log('Dados editados:', JSON.stringify(newVal, null, 2));
-  }
-}, { deep: true });
 
 </script>
 
@@ -164,12 +270,38 @@ watch(infoList, (newVal) => {
       <!-- Detalhes da Área -->
       <template v-if="isClickedClassified === false && isClickedToAssess === false">
         <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
-          <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes da Área</h5>
+          <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes do Talhão</h5>
           <div class="w-100 overflow-auto">
             <div v-for="(item, index) in infoList" :key="index" class="mb-3">
               <p class="mb-1 text-muted fw-semibold">{{ item.title }}</p>
               <template v-if="isEditing">
-                <input v-model="item.value" class="form-control" :disabled="['ID', 'Área (ha)', 'Status'].includes(item.title)"/>
+                <template v-if="item.title === 'Cultura'">
+                  <select v-model="item.value" class="form-select">
+                    <option v-for="culture in cultures" :key="culture.id" :value="culture.name">
+                      {{ culture.name }}
+                    </option>
+                  </select>
+                </template>
+
+                <template v-else-if="item.title === 'Solo'">
+                  <select v-model="item.value" class="form-select">
+                    <option v-for="soil in soils" :key="soil.id" :value="soil.name">
+                      {{ soil.name }}
+                    </option>
+                  </select>
+                </template>
+
+                <template v-else-if="item.title === 'Nome da Fazenda'">
+                  <select v-model="item.value" class="form-select">
+                    <option v-for="farm in farms" :key="farm.id" :value="farm.farmName">
+                      {{ farm.farmName }}
+                    </option>
+                  </select>
+                </template>
+
+                <template v-else>
+                  <input v-model="item.value" class="form-control" :disabled="['ID', 'Área (ha)', 'Status'].includes(item.title)" />
+                </template>
               </template>
               <template v-else>
                 <p class="mb-1">{{ item.value }}</p>
@@ -373,6 +505,40 @@ watch(infoList, (newVal) => {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="modalUpdateSuccess" tabindex="-1" aria-labelledby="modalUpdateSuccessLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-success">
+            <div class="modal-header bg-success text-white">
+              <h1 class="modal-title fs-4" id="modalUpdateSuccessLabel">Dados atualizados com sucesso!</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              Sua edição foi salva com sucesso.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-success fw-bold" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="modalUpdateError" tabindex="-1" aria-labelledby="modalUpdateErrorLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-error">
+            <div class="modal-header bg-danger text-white">
+              <h1 class="modal-title fs-4" id="modalUpdateErrorLabel">Erro ao atualizar os dados!</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              Por favor, revise os dados inseridos e tente novamente.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Revisar</button>
             </div>
           </div>
         </div>
