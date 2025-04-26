@@ -1,9 +1,14 @@
 <script setup>
-import { ref, watchEffect, onMounted, watch } from 'vue';
+import { ref, watchEffect, onMounted, watch, computed } from 'vue';
 import Layout from '../components/Layout/Layout.vue';
 import MapDetailsGlebe from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
 import { useRoute } from 'vue-router';
 import api from "@/components/util/API.js";
+import { usePolygonStore } from '../store/PolygonStore';
+
+const polygonStore = usePolygonStore();
+const polygons = computed(() => polygonStore.polygonsDraw);
+console.log(polygons.value);
 
 const route = useRoute();
 const areaId = route.params.id;
@@ -21,6 +26,35 @@ const rejectionReason = ref('');
 const cultures = ref([]);
 const soils = ref([]);
 const farms = ref([]);
+
+const users = ref([]);
+const selectedUser = ref('');
+const analysts = computed(() => users.value.filter(user => user.isAnalyst));
+
+const beginTime = ref(null);
+const endTime = ref(null);
+
+const modalMessageTitle = ref('');
+const modalMessageBody = ref('');
+const modalMessageType = ref('success');
+
+function showModalMessage(title, body, type = 'success') {
+  const openModals = document.querySelectorAll('.modal.show');
+  openModals.forEach(modal => {
+    const modalInstance = bootstrap.Modal.getInstance(modal);
+    if (modalInstance) {
+      modalInstance.hide();
+    }
+  });
+
+  modalMessageTitle.value = title;
+  modalMessageBody.value = body;
+  modalMessageType.value = type;
+
+  const modalEl = document.getElementById('modalMessage');
+  const modalInstance = new bootstrap.Modal(modalEl);
+  modalInstance.show();
+}
 
 onMounted(async () => {
   try {
@@ -50,10 +84,59 @@ function parseCoordinatesString(coordinatesString) {
 // Responsável pela classificação
 function handleClickClassified() {
   isClickedClassified.value = true;
+   beginTime.value = new Date().toISOString(); 
 }
 
 function cancelClassified() {
   isClickedClassified.value = false;
+}
+
+function buildSaveClassificationPayload() {
+  endTime.value = new Date().toISOString();
+
+  const payload = {
+    idField: data.value.properties.id,
+    userResponsable: selectedUser.value,
+    status: "Pendente",
+    begin: beginTime.value,
+    end: endTime.value,
+    features: polygons.value.features,
+  };
+
+  return payload;
+}
+
+function canSave() {
+  return selectedUser.value !== "" && polygons.value.features.length > 0;
+}
+
+function handleSaveClassification() {
+  const modalSaveEl = document.getElementById('modalSaveClassified');
+  const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
+  if (modalSaveInstance) {
+    modalSaveInstance.hide();
+  }
+
+  if (!canSave()) {
+    showModalMessage(
+      'Dados Incompletos',
+      'Por favor, selecione um usuário e adicione um polígono.',
+      'error'
+    );
+    return;
+  }
+
+  const payload = buildSaveClassificationPayload();
+  console.log(payload);
+
+  isClickedClassified.value = false;
+  selectedUser.value = "";
+
+  showModalMessage(
+    'Classificação Salva',
+    'Sua classificação foi registrada corretamente no sistema!',
+    'success'
+  );
 }
 
 // Responsável pela avaliacao
@@ -225,16 +308,19 @@ function setValueByTitle(title, newValue) {
 
 onMounted(async () => {
   try {
-    const [culturesRes, soilsRes, farmsRes, featureRes] = await Promise.all([
+    const [culturesRes, soilsRes, farmsRes, featureRes, usersRes] = await Promise.all([
       api.get('/cultures', { withCredentials: true }),
       api.get('/soil', { withCredentials: true }),
       api.get('/farm', { withCredentials: true }),
-      api.get(`/field/featureCollection/${areaId}`, { withCredentials: true })
+      api.get(`/field/featureCollection/${areaId}`, { withCredentials: true }),
+      api.get('/user/listarUsuarios', { withCredentials: true })
     ]);
 
     cultures.value = culturesRes.data;
     soils.value = soilsRes.data;
     farms.value = farmsRes.data;
+    users.value = usersRes.data;
+    console.log('users', users.value);
 
     if (featureRes && featureRes.data) {
       data.value = processGeoJsonCoordinates(featureRes.data.features);
@@ -374,36 +460,40 @@ watchEffect(() => {
           </div>
           <div class="card d-flex flex-column gap-3 overflow-auto border-dark-subtle">
             <div class="card-body d-flex flex-column gap-3">
-              <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100 ">Classificação Manual</h5>
-              <h5 class="fw-bold h5 w-100 text-body-secondary">Dados do Classificação</h5>
+              <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100">Classificação Manual</h5>
+              <h5 class="fw-bold h5 w-100 text-body-secondary">Dados da Classificação</h5>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">ID da Fazenda</p>
+                <input class="form-control" disabled :value=data.properties.farm.farm_id />
+              </div>
+              
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Fazenda</p>
+                <input class="form-control" disabled :value=data.properties.farm.farmName />
+              </div>
+
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Cidade</p>
+                <input class="form-control" disabled :value=data.properties.farm.farmCity />
+              </div>
+
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Estado</p>
+                <input class="form-control" disabled :value=data.properties.farm.farmState />
+              </div>
+
               <div>
                 <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-                <select class="form-select text-muted">
-                  <option selected>Escolha o analista</option>
-                  <option value="1">One</option>
-                  <option value="2">Two</option>
-                  <option value="3">Three</option>
+                <select class="form-select text-muted" v-model="selectedUser">
+                  <option disabled value="">Escolha o analista</option>
+                  <option 
+                    v-for="user in analysts" 
+                    :key="user.id" 
+                    :value="user.id"
+                  >
+                    {{ user.name }}
+                  </option>
                 </select>
-              </div>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Área</p>
-                <input class="form-control"  />
-              </div>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Data Iniciada</p>
-                <input class="form-control"  />
-              </div>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Data Encerrada</p>
-                <input class="form-control"  />
-              </div>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Pipipi</p>
-                <input class="form-control"  />
-              </div>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Popopo</p>
-                <input class="form-control"  />
               </div>
             </div>
           </div>
@@ -442,13 +532,13 @@ watchEffect(() => {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-dark fw-bold border" data-bs-dismiss="modal">Revisar</button>
-              <button type="button" class="btn btn-success fw-bold">Salvar Classificação</button>
+              <button type="button" class="btn btn-success fw-bold" @click="handleSaveClassification">Salvar Classificação</button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Realizar avaliação -->
+      <!-- Modal Realizar avaliação -->
       <div class="modal fade" id="modalSaveToAssess" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
@@ -551,7 +641,7 @@ watchEffect(() => {
         </div>
       </div>
 
-
+      <!-- Modal modalDownloadError -->
       <div class="modal fade" id="modalDownloadError" tabindex="-1" aria-labelledby="modalDownloadErrorLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content border-error">
@@ -564,6 +654,46 @@ watchEffect(() => {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal modalClassifySuccess -->
+      <div class="modal fade" id="modalClassifySuccess" tabindex="-1" aria-labelledby="modalClassifySuccessLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-success">
+            <div class="modal-header bg-success text-white">
+              <h1 class="modal-title fs-4" id="modalClassifySuccessLabel">Classificação salva com sucesso!</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              Sua classificação foi registrada corretamente no sistema.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-success fw-bold" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Generico -->
+      <div class="modal fade" id="modalMessage" tabindex="-1" aria-labelledby="modalMessageLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header" :class="modalMessageType === 'success' ? 'bg-success text-white' : 'bg-danger text-white'">
+              <h1 class="modal-title fs-4" id="modalMessageLabel">{{ modalMessageTitle }}</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              {{ modalMessageBody }}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn fw-bold" 
+                      :class="modalMessageType === 'success' ? 'btn-success' : 'btn-danger'" 
+                      data-bs-dismiss="modal">
+                Fechar
+              </button>
             </div>
           </div>
         </div>

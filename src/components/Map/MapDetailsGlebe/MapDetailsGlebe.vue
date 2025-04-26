@@ -5,6 +5,10 @@ import 'leaflet-draw';
 import { LMap, LControlScale } from '@vue-leaflet/vue-leaflet';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
 import georaster from 'georaster';
+import { usePolygonStore } from '../../../store/PolygonStore';
+import * as turf from '@turf/turf';
+
+const polygonStore = usePolygonStore();
 
 const props = defineProps({
   data: Object,
@@ -31,12 +35,6 @@ const drawnItemsLayer = ref(new L.FeatureGroup());
 const editingLayer = ref(null);
 
 const getEmptyPolygonsDraw = () => ({
-  type: "FeatureCollection",
-  name: "CLASS_MANUAL",
-  crs: {
-    type: "name",
-    properties: {}
-  },
   features: []
 });
 
@@ -57,24 +55,18 @@ const onMapReady = async (map) => {
 
   glebaLayerGroup.value = L.layerGroup();
 
-  const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
-  const automaticClassification = props.data.automatic.features;
+const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
+  const classification = props.data.classification.features;
 
   const multiPolygons = props.data.geometry.coordinates.map(polygon =>
     polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
   );
 
-  const classificationMultiPolygons = automaticClassification.map(item => {
-  console.log(item.geometry);
-
-  const rawCoords = item.geometry.coordinates;
-  const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-  return parsedCoords.map(polygon =>
-    polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-  );
-});
-
+  const classificationMultiPolygons = classification.map(item =>
+    item.geometry.coordinates.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+    )
+  );
 
   let bounds = L.latLngBounds();
 
@@ -161,7 +153,6 @@ async function loadTif(url, layerIndex, coordinates) {
 
 function createClipAreaFromCoordinates(coordinates) {
   return {
-    type: "FeatureCollection",
     features: [
       {
         type: "Feature",
@@ -215,7 +206,14 @@ watchEffect(() => {
       const coords = geojson.geometry.coordinates;
 
       const newId = Date.now();
-      geojson.properties = { id: newId };
+
+      const area = turf.area(geojson).toFixed(2);
+
+      geojson.properties = { 
+        id: newId,
+        area: area,
+        classEntity: "DANINHA"
+      };
       layer.feature = geojson;
 
       layer.on('click', (event) => {
@@ -248,11 +246,11 @@ watchEffect(() => {
 
       const exists = polygonsDraw.value.features.find(f => f.properties.id === newId);
       if (!exists) {
-        const description = prompt("Polígono adicionado com sucesso! Digite uma descrição:");
-        layer.feature.properties = {
-          ...layer.feature.properties,
-          description: description || ''
-        };
+        // const description = prompt("Polígono adicionado com sucesso! Digite uma descrição:");
+        // layer.feature.properties = {
+        //   ...layer.feature.properties,
+        //   description: description || ''
+        // };
         polygonsDraw.value.features.push(layer.toGeoJSON());
       }
 
@@ -315,6 +313,15 @@ watch(
   },
   { deep: true }
 );
+
+watch(
+  polygonsDraw,
+  (newVal) => {
+    polygonStore.setPolygonsDraw(newVal);
+  },
+  { deep: true }
+);
+
 
 </script>
 
