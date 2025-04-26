@@ -107,10 +107,11 @@ function buildSaveClassificationPayload() {
 }
 
 function canSave() {
-  return selectedUser.value !== "" && polygons.value.features.length > 0;
+  return selectedUser.value !== "" && polygons.value && Array.isArray(polygons.value.features) && polygons.value.features.length > 0;
 }
 
 function handleSaveClassification() {
+
   const modalSaveEl = document.getElementById('modalSaveClassified');
   const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
   if (modalSaveInstance) {
