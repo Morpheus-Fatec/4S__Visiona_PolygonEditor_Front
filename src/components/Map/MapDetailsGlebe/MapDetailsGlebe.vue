@@ -58,17 +58,23 @@ const onMapReady = async (map) => {
   glebaLayerGroup.value = L.layerGroup();
 
   const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
-  const classification = props.data.classification.features;
+  const automaticClassification = props.data.automatic.features;
 
   const multiPolygons = props.data.geometry.coordinates.map(polygon =>
     polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
   );
 
-  const classificationMultiPolygons = classification.map(item =>
-    item.geometry.coordinates.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    )
+  const classificationMultiPolygons = automaticClassification.map(item => {
+  console.log(item.geometry);
+
+  const rawCoords = item.geometry.coordinates;
+  const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+  return parsedCoords.map(polygon =>
+    polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
   );
+});
+
 
   let bounds = L.latLngBounds();
 
