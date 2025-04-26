@@ -82,9 +82,21 @@ function parseCoordinatesString(coordinatesString) {
 }
 
 // Responsável pela classificação
+function formatDate(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 function handleClickClassified() {
   isClickedClassified.value = true;
-   beginTime.value = new Date().toISOString(); 
+  beginTime.value = formatDate(new Date());
 }
 
 function cancelClassified() {
@@ -92,15 +104,17 @@ function cancelClassified() {
 }
 
 function buildSaveClassificationPayload() {
-  endTime.value = new Date().toISOString();
+  endTime.value = formatDate(new Date());
+
+  const featuresGeometry = polygons.value.features.map(feature => feature);
 
   const payload = {
     idField: data.value.properties.id,
     userResponsable: selectedUser.value,
-    status: "Pendente",
+    status: "PENDING",
     begin: beginTime.value,
     end: endTime.value,
-    features: polygons.value.features,
+    features: featuresGeometry,
   };
 
   return payload;
@@ -110,8 +124,7 @@ function canSave() {
   return selectedUser.value !== "" && polygons.value && Array.isArray(polygons.value.features) && polygons.value.features.length > 0;
 }
 
-function handleSaveClassification() {
-
+async function handleSaveClassification() {
   const modalSaveEl = document.getElementById('modalSaveClassified');
   const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
   if (modalSaveInstance) {
@@ -128,16 +141,42 @@ function handleSaveClassification() {
   }
 
   const payload = buildSaveClassificationPayload();
-  console.log(payload);
+  console.log(payload); // Confirme que o payload está correto
 
-  isClickedClassified.value = false;
-  selectedUser.value = "";
+  try {
+    // Requisição POST com axios
+    const response = await api.post('/classification/manualClassification', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true, 
+    });
 
-  showModalMessage(
-    'Classificação Salva',
-    'Sua classificação foi registrada corretamente no sistema!',
-    'success'
-  );
+    if (response && response.data) {
+      console.log('Resposta da API:', response.data);
+      showModalMessage(
+        'Classificação Salva',
+        'Sua classificação foi registrada corretamente no sistema!',
+        'success'
+      );
+      isClickedClassified.value = false;
+      selectedUser.value = "";
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'data'");
+      showModalMessage(
+        'Erro',
+        'Ocorreu um erro ao salvar a classificação. Tente novamente.',
+        'error'
+      );
+    }
+  } catch (error) {
+    console.error("Erro ao salvar classificação:", error);
+    showModalMessage(
+      'Erro',
+      'Ocorreu um erro ao salvar a classificação. Tente novamente.',
+      'error'
+    );
+  }
 }
 
 // Responsável pela avaliacao
