@@ -103,6 +103,26 @@ function handleEdit() {
   isEditing.value = true;
 }
 
+const errorDownload = ref("");
+
+async function handleDownloadGlebe() { 
+  try {
+    const response = await api.get(`/field/${areaId}/downloadTalhao`, {
+      withCredentials: true
+    });
+
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.error) {
+      errorDownload.value = error.response.data.error;
+    } else {
+      errorDownload.value = "Erro inesperado ao fazer download.";
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalDownloadError'));
+    modal.show();
+  }
+}
+
 function cancelEdit() {
   infoList.value = originalInfoList.value.map(item => ({ ...item }));
   isEditing.value = false;
@@ -146,30 +166,13 @@ function getValueByTitle(title) {
   return item ? item.value : null;
 }
 
-watch( farms, () => {
-  console.log(JSON.stringify(farms.value, null, 2));
-}, { deep: true });
-
-watch( soils, () => {
-  console.log(JSON.stringify(soils.value, null, 2));
-}, { deep: true });
-
-watch( cultures, () => {
-  console.log(JSON.stringify(cultures.value, null, 2));
-}, { deep: true });
-
-
 async function saveEdit() {
   const editedData = mapInfoListToDataStructure();
-  console.log("Dados prontos para envio:", editedData);
 
   try {
-    console.log('buceta ta aqui');
     const response = await api.put(`/field/${areaId}/avaliar`, editedData, {
       withCredentials: true
     });
-
-    console.log("Resposta da API:", response.data);
 
     const modal = new bootstrap.Modal(document.getElementById('modalUpdateSuccess'));
     modal.show();
@@ -318,7 +321,9 @@ watchEffect(() => {
           <template v-else>
             <div class="w-100 mt-auto d-flex flex-column gap-2">
               <button class="btn btn-success w-100 fw-bold" @click="handleEdit">Editar</button>
-              <button class="btn btn-dark w-100 fw-bold">Download do talhão</button>
+              <template v-if="infoList.find(item => item.title === 'Status')?.value === 'Aprovado'">
+                <button class="btn btn-dark w-100 fw-bold" @click="handleDownloadGlebe">Download do talhão</button>
+              </template>
             </div>
           </template>  
         </div>
@@ -510,6 +515,7 @@ watchEffect(() => {
         </div>
       </div>
 
+      <!-- Modal modalUpdateSuccess -->
       <div class="modal fade" id="modalUpdateSuccess" tabindex="-1" aria-labelledby="modalUpdateSuccessLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content border-success">
@@ -527,6 +533,7 @@ watchEffect(() => {
         </div>
       </div>
 
+      <!-- Modal modalUpdateError -->
       <div class="modal fade" id="modalUpdateError" tabindex="-1" aria-labelledby="modalUpdateErrorLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content border-error">
@@ -539,6 +546,24 @@ watchEffect(() => {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Revisar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="modal fade" id="modalDownloadError" tabindex="-1" aria-labelledby="modalDownloadErrorLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-error">
+            <div class="modal-header bg-danger text-white">
+              <h1 class="modal-title fs-4" id="modalDownloadErrorLabel">Erro ao realizar o download!</h1>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              {{ errorDownload }}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Fechar</button>
             </div>
           </div>
         </div>
