@@ -244,9 +244,30 @@ const errorDownload = ref("");
 
 async function handleDownloadGlebe() {
   try {
+    // Requisição para obter o arquivo
     const response = await api.get(`/field/${areaId}/downloadTalhao`, {
-      withCredentials: true
+      withCredentials: true,
+      responseType: 'blob'  // Especifica que a resposta será um arquivo binário (como um ZIP)
     });
+
+    // Criação de um link temporário para o download
+    const link = document.createElement('a');
+    const url = window.URL.createObjectURL(new Blob([response.data]));  // Criação de URL temporária para o arquivo
+    link.href = url;
+
+    // Obtendo o nome do arquivo diretamente dos cabeçalhos da resposta
+    const disposition = response.headers['content-disposition'];
+    const matches = /filename="([^"]*)"/.exec(disposition);
+    const filename = matches && matches[1] ? matches[1] : 'download.zip'; // Caso não encontre, usa 'download.zip' como nome padrão
+    link.setAttribute('download', filename);  // Define o nome do arquivo a ser baixado
+
+    // Aciona o clique para forçar o download
+    document.body.appendChild(link);
+    link.click();
+
+    // Remove o link após o download
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);  // Limpa a URL temporária
 
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
@@ -259,6 +280,7 @@ async function handleDownloadGlebe() {
     modal.show();
   }
 }
+
 
 function cancelEdit() {
   infoList.value = originalInfoList.value.map(item => ({ ...item }));
