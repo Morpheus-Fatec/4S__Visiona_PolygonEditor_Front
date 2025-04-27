@@ -63,11 +63,10 @@ const onMapReady = async (map) => {
   );
 
   const classificationMultiPolygons = automaticClassification.map(item => {
-  console.log(item.geometry);
- 
+
    const rawCoords = item.geometry.coordinates;
    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
- 
+
     return parsedCoords.map(polygon =>
       polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
     );
@@ -213,9 +212,9 @@ watchEffect(() => {
       const newId = Date.now();
 
       const areaInSquareMeters = turf.area(geojson);
-      const area = (areaInSquareMeters / 10000).toFixed(4); 
+      const area = (areaInSquareMeters / 10000).toFixed(4);
 
-      geojson.properties = { 
+      geojson.properties = {
         id: newId,
         area: area,
         classEntity: "DANINHAS"

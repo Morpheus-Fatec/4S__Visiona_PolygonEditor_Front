@@ -46,7 +46,7 @@ const router = createRouter({
       component: Operacoes,
     },
     {
-      path: '/',
+      path: '/cadastro',
       name: 'register',
       component: RegisterView,
     },
@@ -73,7 +73,7 @@ const router = createRouter({
     {
       path: '/usuario',
       name: 'usuario',
-      component: UserRegisterView,       
+      component: UserRegisterView,
     }
   ]
 })
