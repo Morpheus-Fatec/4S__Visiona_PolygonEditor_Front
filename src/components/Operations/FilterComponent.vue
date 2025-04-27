@@ -13,17 +13,14 @@ const filters = ref({
 });
 
 const applyFilter = () => {
-
-  console.log(filters.value);
-
   emit('filteredData', filters.value);
 };
 
 </script>
 
 <template>
-  <div class="filter-component mb-4 bg-white shadow">
-    <div class="filters-container p-4 h-100 p-4">
+  <div class="filter-component bg-white shadow">
+    <div class="filters-container h-100 pt-4 pe-4 ps-4 pb-0">
       <div class="filter-item">
         <label for="talhaoFilter" class="h6">Nome do talhão</label>
         <input type="text" id="input-talhao" class="form-control" v-model="filters.name" maxlength="8" size="10" placeholder="Insira talhão..."/>
@@ -50,7 +47,7 @@ const applyFilter = () => {
       </div>
     </div>
 
-    <div class="w-100 d-flex justify-content-center mt-3">
+    <div class="w-100 d-flex justify-content-center">
       <button @click="applyFilter" class="btn btn-primary w-100">Aplicar filtros</button>
     </div>
   </div>
@@ -64,7 +61,6 @@ const applyFilter = () => {
   flex-direction: column;
   width: 400px;
   gap: 1rem;
-  padding-bottom: 2px;
 }
 
 .btn-component h1 {
@@ -77,20 +73,15 @@ const applyFilter = () => {
   letter-spacing: 0.2px;
 }
 
-.btn-criar {
-  padding: 1rem;
-  width: 180px;
-}
-
 .filters-container {
   display: flex;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
 .filter-item {
   flex: 1 1 200px;
   display: flex;
   flex-direction: column;
-  margin-top: 15px;
 }
 </style>
