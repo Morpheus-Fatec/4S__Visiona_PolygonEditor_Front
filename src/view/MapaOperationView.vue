@@ -90,7 +90,7 @@ function formatDate(date) {
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
   const seconds = String(d.getSeconds()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
@@ -106,7 +106,20 @@ function cancelClassified() {
 function buildSaveClassificationPayload() {
   endTime.value = formatDate(new Date());
 
-  const featuresGeometry = polygons.value.features.map(feature => feature);
+  const featuresGeometry = polygons.value.features.map(feature => {
+    const updatedFeature = {
+      ...feature,
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: JSON.stringify(
+          feature.geometry.type === "Polygon"
+            ? [feature.geometry.coordinates]
+            : feature.geometry.coordinates
+        )
+      }
+    };
+    return updatedFeature;
+  });
 
   const payload = {
     idField: data.value.properties.id,
@@ -149,8 +162,9 @@ async function handleSaveClassification() {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true, 
+      withCredentials: true,
     });
+    console.log('JSON:', payload);
 
     if (response && response.data) {
       console.log('Resposta da API:', response.data);
@@ -228,7 +242,7 @@ function handleEdit() {
 
 const errorDownload = ref("");
 
-async function handleDownloadGlebe() { 
+async function handleDownloadGlebe() {
   try {
     const response = await api.get(`/field/${areaId}/downloadTalhao`, {
       withCredentials: true
@@ -240,7 +254,7 @@ async function handleDownloadGlebe() {
     } else {
       errorDownload.value = "Erro inesperado ao fazer download.";
     }
-    
+
     const modal = new bootstrap.Modal(document.getElementById('modalDownloadError'));
     modal.show();
   }
@@ -451,7 +465,7 @@ watchEffect(() => {
                 <button class="btn btn-dark w-100 fw-bold" @click="handleDownloadGlebe">Download do talhão</button>
               </template>
             </div>
-          </template>  
+          </template>
         </div>
       </template>
 
@@ -506,7 +520,7 @@ watchEffect(() => {
                 <p class="mb-2 text-muted fw-semibold">ID da Fazenda</p>
                 <input class="form-control" disabled :value=data.properties.farm.farm_id />
               </div>
-              
+
               <div>
                 <p class="mb-2 text-muted fw-semibold">Fazenda</p>
                 <input class="form-control" disabled :value=data.properties.farm.farmName />
@@ -526,9 +540,9 @@ watchEffect(() => {
                 <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
                 <select class="form-select text-muted" v-model="selectedUser">
                   <option disabled value="">Escolha o analista</option>
-                  <option 
-                    v-for="user in analysts" 
-                    :key="user.id" 
+                  <option
+                    v-for="user in analysts"
+                    :key="user.id"
                     :value="user.id"
                   >
                     {{ user.name }}
@@ -566,8 +580,8 @@ watchEffect(() => {
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body lh-base">
-              Ao clicar em <span class="fw-bold">Salvar Classificação</span>, os dados inseridos na classificação manual serão registrados no sistema e 
-              armazenados no banco de dados. Em seguida, essa classificação será encaminhada automaticamente para o processo 
+              Ao clicar em <span class="fw-bold">Salvar Classificação</span>, os dados inseridos na classificação manual serão registrados no sistema e
+              armazenados no banco de dados. Em seguida, essa classificação será encaminhada automaticamente para o processo
               de análise.
             </div>
             <div class="modal-footer">
@@ -587,7 +601,7 @@ watchEffect(() => {
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
             </div>
             <div class="modal-body lh-base">
-              A classificação manual foi realizada pelo consultor <span class="fw-bold">Elbert Jean</span>. Após a sua análise e verificação das informações fornecidas na classificação, 
+              A classificação manual foi realizada pelo consultor <span class="fw-bold">Elbert Jean</span>. Após a sua análise e verificação das informações fornecidas na classificação,
               você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
 
               <div v-if="showRejectionInput" class="mt-3">
@@ -729,8 +743,8 @@ watchEffect(() => {
               {{ modalMessageBody }}
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn fw-bold" 
-                      :class="modalMessageType === 'success' ? 'btn-success' : 'btn-danger'" 
+              <button type="button" class="btn fw-bold"
+                      :class="modalMessageType === 'success' ? 'btn-success' : 'btn-danger'"
                       data-bs-dismiss="modal">
                 Fechar
               </button>
