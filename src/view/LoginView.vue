@@ -1,39 +1,75 @@
 <script setup lang="ts">
-    import { RouterLink } from 'vue-router';
-    
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import api from "@/components/util/API.js";
+
+const email = ref('');
+const senha = ref('');
+const router = useRouter();
+const loading = ref(false); 
+const errorMessage = ref(''); 
+
+const realizarLogin = async () => {
+  loading.value = true;  
+  errorMessage.value = '';  
+
+  try {
+    console.log(email.value);
+    console.log(senha.value);
+    const response = await api.post('/auth/login', {
+      email: email.value,
+      password: senha.value,
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
+    console.log(response);
+
+    localStorage.setItem('token', response.data.token);
+
+    router.push('/mapa-global');
+  } catch (error) {
+    loading.value = false;  
+
+    errorMessage.value = 'Erro ao realizar login. Verifique suas credenciais ou tente novamente mais tarde.';
+  }
+};
 </script>
 
 <template>
   <div class="d-flex justify-content-center align-items-center vh-100 bg-image">
-    <!-- Formulário -->
     <div class="d-flex flex-column align-items-center bg-white w-25 rounded-3">
-      <div class="col-lg-6 align-items-center justify-content-center d-flex h-100 w-100 shadow-lg" >
+      <div class="col-lg-6 align-items-center justify-content-center d-flex h-100 w-100 shadow-lg">
         <div class="card-body p-5 shadow-lg">
-
           <div class="text-center">
-            <img src="../assets/Logo_Morpheus.png" class="w-100"
-              style="width: 185px;" alt="logo">
+            <img src="../assets/Logo_Morpheus.png" class="w-100" style="width: 185px;" alt="logo">
             <h4 class="h4 mt-2 mb-5 pb-1">Realize seu login</h4>
           </div>
 
-          <form>
+          <form @submit.prevent="realizarLogin">
             <div class="form-outline mb-4">
               <label class="form-label" for="form2Example11">E-mail</label>
-              <input type="email" id="form2Example11" class="form-control"
-                placeholder="admin@admin.com.br" />
+              <input v-model="email" type="email" id="form2Example11" class="form-control"
+                placeholder="admin@admin.com.br" required />
             </div>
 
-            <div data-mdb-input-init class="form-outline mb-4">
+            <div class="form-outline mb-4">
               <label class="form-label" for="form2Example22">Senha</label>
-              <input type="password" id="form2Example22" class="form-control" placeholder="***************"/>
+              <input v-model="senha" type="password" id="form2Example22" class="form-control" 
+                placeholder="***************" required />
+            </div>
+
+            <div v-if="errorMessage" class="text-danger mb-4">
+              {{ errorMessage }}
             </div>
 
             <div class="text-center pt-1 mb-5 pb-1">
-              <RouterLink to="/mapa-global">
-                  <button class="btn btn-primary mb-3 w-100" type="button">Entrar</button>
-              </RouterLink>
-              </div>
-
+              <button class="btn btn-primary mb-3 w-100" type="submit" :disabled="loading.valueOf">
+                <span v-if="loading.valueOf()" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Entrar
+              </button>
+            </div>
           </form>
         </div>
       </div>
