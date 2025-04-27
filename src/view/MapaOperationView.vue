@@ -38,6 +38,8 @@ const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
 
+
+
 function showModalMessage(title, body, type = 'success') {
   const openModals = document.querySelectorAll('.modal.show');
   openModals.forEach(modal => {
@@ -58,6 +60,7 @@ function showModalMessage(title, body, type = 'success') {
 
 onMounted(async () => {
   try {
+   // Lógica para carregar os dados do talhão
     const response = await api.get(`/field/featureCollection/${areaId}`, {
       withCredentials: true
     });
@@ -154,7 +157,7 @@ async function handleSaveClassification() {
   }
 
   const payload = buildSaveClassificationPayload();
-  console.log(payload); // Confirme que o payload está correto
+  console.log(payload);
 
   try {
     // Requisição POST com axios
@@ -195,9 +198,74 @@ async function handleSaveClassification() {
 
 // Responsável pela avaliacao
 function handleClickToAssess() {
-  isClickedToAssess.value = true;
-}
+  if (!data.value || !data.value.properties.status) {
+    showModalMessage(
+      'Erro',
+      'Não foi possível identificar o status do talhão.',
+      'error'
+    );
+    return;
+  }
 
+  const status = data.value.properties.status;
+
+  // Mensagens personalizadas para cada status
+  switch (status) {
+    case 'PENDING':
+    case 'Pendente':
+    case 'Pending':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão está com o status "Pendente". Por favor, aguarde a análise inicial.',
+        'error'
+      );
+      break;
+
+    case 'APPROVED':
+    case 'Aprovado':
+    case 'Approved':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão já foi aprovado. Não é possível realizar uma nova avaliação.',
+        'error'
+      );
+      break;
+
+    case 'REJECTED':
+    case 'Reprovado':
+    case 'Rejected':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão foi reprovado. Não é possível realizar uma nova análise.',
+        'error'
+      );
+      break;
+
+    case 'NO_SOLUTION':
+    case 'Sem Solução':
+    case 'No Solution':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão está marcado como "Sem Solução". Não é possível realizar uma avaliação.',
+        'error'
+      );
+      break;
+
+    case 'UNDER_ANALYSIS':
+    case 'Em Análise':
+    case 'Under Analysis':
+      // Permite a avaliação
+      isClickedToAssess.value = true;
+      break;
+
+    default:
+      showModalMessage(
+        'Erro',
+        'Status desconhecido. Não é possível realizar a avaliação.',
+        'error'
+      );
+  }
+}
 function cancelClickToAssess() {
   isClickedToAssess.value = false;
 }
