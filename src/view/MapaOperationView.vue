@@ -30,6 +30,7 @@ const farms = ref([]);
 const users = ref([]);
 const selectedUser = ref('');
 const analysts = computed(() => users.value.filter(user => user.isAnalyst));
+const consultants = computed(() => users.value.filter(user => user.isConsultant));
 
 const beginTime = ref(null);
 const endTime = ref(null);
@@ -38,7 +39,8 @@ const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
 
-
+const glebeAvailable = ref([]);
+const isClickedClassifiedManual = ref(false);
 
 function showModalMessage(title, body, type = 'success') {
   const openModals = document.querySelectorAll('.modal.show');
@@ -197,7 +199,7 @@ async function handleSaveClassification() {
 }
 
 // Responsável pela avaliacao
-function handleClickToAssess() {
+async function handleClickToAssess() {
   if (!data.value || !data.value.properties.status) {
     showModalMessage(
       'Erro',
@@ -265,9 +267,18 @@ function handleClickToAssess() {
         'error'
       );
   }
+
+  const response = await api.get(`/field/manualCollection/${areaId}`, {
+    withCredentials: true,
+  });
+  glebeAvailable.value = response.data;
+
+  isClickedClassifiedManual.value = true;
 }
 function cancelClickToAssess() {
   isClickedToAssess.value = false;
+  glebeAvailable.value = null;
+  isClickedClassifiedManual.value = false;
 }
 
 function resetModal() {
@@ -302,7 +313,6 @@ function confirmApproval() {
   isClickedToAssess.value = false;
 }
 
-// Responsável pelo edit
 function handleEdit() {
   originalInfoList.value = infoList.value.map(item => ({ ...item }));
   isEditing.value = true;
@@ -312,30 +322,26 @@ const errorDownload = ref("");
 
 async function handleDownloadGlebe() {
   try {
-    // Requisição para obter o arquivo
+
     const response = await api.get(`/field/${areaId}/downloadTalhao`, {
       withCredentials: true,
-      responseType: 'blob'  // Especifica que a resposta será um arquivo binário (como um ZIP)
+      responseType: 'blob' 
     });
 
-    // Criação de um link temporário para o download
     const link = document.createElement('a');
-    const url = window.URL.createObjectURL(new Blob([response.data]));  // Criação de URL temporária para o arquivo
+    const url = window.URL.createObjectURL(new Blob([response.data]));
     link.href = url;
 
-    // Obtendo o nome do arquivo diretamente dos cabeçalhos da resposta
     const disposition = response.headers['content-disposition'];
     const matches = /filename="([^"]*)"/.exec(disposition);
-    const filename = matches && matches[1] ? matches[1] : 'download.zip'; // Caso não encontre, usa 'download.zip' como nome padrão
-    link.setAttribute('download', filename);  // Define o nome do arquivo a ser baixado
+    const filename = matches && matches[1] ? matches[1] : 'download.zip';
+    link.setAttribute('download', filename); 
 
-    // Aciona o clique para forçar o download
     document.body.appendChild(link);
     link.click();
 
-    // Remove o link após o download
     document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);  // Limpa a URL temporária
+    window.URL.revokeObjectURL(url); 
 
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
@@ -561,8 +567,74 @@ watchEffect(() => {
 
       <!-- Avaliação -->
       <template v-if="isClickedToAssess === true">
-        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
-          <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Realizar Avaliação</h5>
+        <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
+          <div class="card border-info bg-info bg-gradient">
+            <div class="d-flex align-items-center px-3 pt-3">
+              <button class="d-flex justify-content-between align-items-center w-100 bg-transparent border-0 fw-bold h4 border-bottom border-2 border-white pb-2 text-white"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#manualClassificationContent"
+                      aria-expanded="false"
+                      aria-controls="manualClassificationContent">
+                <span>Como Avaliar?</span>
+                <i class="bi bi-question-circle ms-2"></i>
+              </button>
+            </div>
+            <div id="manualClassificationContent" class="collapse">
+              <div class="card-body d-flex flex-column gap-3">
+                <div>
+                  <h5 class="h5 card-title fw-semibold text-light">Desenhar um polígono:</h5>
+                  <p class="card-text text-black lh-sm">Clique no ícone de desenho no canto superior direito da tela para desenhar um polígono. Após concluir o desenho do polígono, é necessário adicionar uma observação à classificação.</p>
+                </div>
+                <div>
+                  <h5 class="h5 card-title fw-semibold text-light">Editar um polígono:</h5>
+                  <p class="card-text text-black  lh-sm">Clique no polígono para realizar a edição. Para finalizar, clique fora do polígono.</p>
+                </div>
+                <div>
+                  <h5 class="h5 card-title fw-semibold text-light">Apagar um polígono:</h5>
+                  <p class="card-text text-black lh-sm">Clique e segure no polígono para realizar a exclusão.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card d-flex flex-column gap-3 overflow-auto border-dark-subtle">
+            <div class="card-body d-flex flex-column gap-3">
+              <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100">Avaliação da Classificação Manual</h5>
+              <h5 class="fw-bold h5 w-100 text-body-secondary">Dados da Classificação</h5>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Consultor responsável</p>
+                <select class="form-select text-muted" v-model="selectedUser">
+                  <option disabled value="">Consultor responsável</option>
+                  <option
+                    v-for="user in consultants"
+                    :key="user.id"
+                    :value="user.id"
+                  >
+                    {{ user.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Nome Talhão</p>
+                <input class="form-control" disabled :value=data.properties.name />
+              </div>
+
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Fazenda</p>
+                <input class="form-control" disabled :value=data.properties.farm.farmName />
+              </div>
+
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Cidade</p>
+                <input class="form-control" disabled :value=data.properties.farm.farmCity />
+              </div>
+
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Estado</p>
+                <input class="form-control" disabled :value=data.properties.farm.farmState />
+              </div>
+            </div>
+          </div>
           <div class="w-100 mt-auto d-flex flex-column gap-2">
             <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClickToAssess">Cancelar Avaliação</button>
             <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Realizar aprovação</button>
@@ -649,7 +721,7 @@ watchEffect(() => {
 
       <!-- Mapa -->
       <div class="flex-grow-1" v-if="data">
-        <MapDetailsGlebe :data="data" :isClickedClassified="isClickedClassified"/>
+        <MapDetailsGlebe :data="data" :isClickedClassified="isClickedClassified" :glebeAvailable="glebeAvailable" :isClickedClassifiedManual="isClickedClassifiedManual"/>
       </div>
 
       <!-- Botões flutuantes -->
