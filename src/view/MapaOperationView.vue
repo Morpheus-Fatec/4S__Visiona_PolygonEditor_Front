@@ -307,7 +307,7 @@ async function saveEdit() {
   const editedData = mapInfoListToDataStructure();
 
   try {
-    const response = await api.put(`/field/${areaId}/avaliar`, editedData, {
+    const response = await api.put(`/field/${areaId}/update`, editedData, {
       withCredentials: true
     });
 
@@ -443,7 +443,7 @@ watchEffect(() => {
                 </template>
 
                 <template v-else>
-                  <input v-model="item.value" class="form-control" :disabled="['ID', 'Área (ha)', 'Status'].includes(item.title)" />
+                  <input v-model="item.value" class="form-control" :disabled="['ID', 'Área (ha)', 'Status', 'Cidade', 'Estado'].includes(item.title)" />
                 </template>
               </template>
               <template v-else>
@@ -517,8 +517,21 @@ watchEffect(() => {
               <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100">Classificação Manual</h5>
               <h5 class="fw-bold h5 w-100 text-body-secondary">Dados da Classificação</h5>
               <div>
-                <p class="mb-2 text-muted fw-semibold">ID da Fazenda</p>
-                <input class="form-control" disabled :value=data.properties.farm.farm_id />
+                <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
+                <select class="form-select text-muted" v-model="selectedUser">
+                  <option disabled value="">Escolha o analista</option>
+                  <option
+                    v-for="user in analysts"
+                    :key="user.id"
+                    :value="user.id"
+                  >
+                    {{ user.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <p class="mb-2 text-muted fw-semibold">Nome Talhão</p>
+                <input class="form-control" disabled :value=data.properties.name />
               </div>
 
               <div>
@@ -534,20 +547,6 @@ watchEffect(() => {
               <div>
                 <p class="mb-2 text-muted fw-semibold">Estado</p>
                 <input class="form-control" disabled :value=data.properties.farm.farmState />
-              </div>
-
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-                <select class="form-select text-muted" v-model="selectedUser">
-                  <option disabled value="">Escolha o analista</option>
-                  <option
-                    v-for="user in analysts"
-                    :key="user.id"
-                    :value="user.id"
-                  >
-                    {{ user.name }}
-                  </option>
-                </select>
               </div>
             </div>
           </div>
