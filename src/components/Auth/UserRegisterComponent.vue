@@ -282,7 +282,7 @@ onMounted(fetchUsers);
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tipo de Usuário:</label>
                         <select v-model="userFields.userType" class="form-select"
-                            :class="{ 'is-invalid': formValidated && !userType }">
+                            :class="{ 'is-invalid': formValidated && !userFields.userType }">
                             <option disabled value="">Selecione</option>
                             <option value="isAdmin">Administrador</option>
                             <option value="isAnalyst">Analista</option>
@@ -304,7 +304,7 @@ onMounted(fetchUsers);
                         <label class="form-label">Confirme o Email:</label>
                         <input v-model="userFields.confirmEmail" type="email" class="form-control"
                             placeholder="name@example.com"
-                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
+                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || userFields.confirmEmail !== userFields.email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
                 </div>
@@ -368,7 +368,7 @@ onMounted(fetchUsers);
                         <label class="form-label">Confirme o Email:</label>
                         <input v-model="userFields.confirmEmail" type="email" class="form-control"
                             placeholder="name@example.com"
-                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
+                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || userFields.confirmEmail !== userFields.email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
                 </div>
