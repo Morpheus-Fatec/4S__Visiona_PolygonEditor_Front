@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import api from "@/components/util/API.js";
+import api from "../util/API.js";
 import { useRouter } from 'vue-router';
 import { useFilterStore } from '@/store/FilterStore';
 import FilterComponent from '@/components/Operations/FilterComponent.vue';
@@ -18,7 +18,7 @@ const fetchData = async () => {
     const response = await api.get("/field/featureCollectionSimple", {
       withCredentials: true
     });
-    
+
     if (response && response.data && Array.isArray(response.data.features)) {
       dataList.value = response.data;
       totalItems.value = response.data.totalItems;
@@ -35,19 +35,19 @@ const fetchData = async () => {
 async function handlePageChange(page) {
   const response = await api.get("/field/featureCollectionSimple", {
     params: {
-      page: page,   
-      harvest: currentFilters.value.harvest,      
-      farmName: currentFilters.value.farmName,      
-      soil: currentFilters.value.soil,      
-      name: currentFilters.value.name,      
-      culture: currentFilters.value.culture     
+      page: page,
+      harvest: currentFilters.value.harvest,
+      farmName: currentFilters.value.farmName,
+      soil: currentFilters.value.soil,
+      name: currentFilters.value.name,
+      culture: currentFilters.value.culture
     }
   });
   dataList.value = response.data;
   totalItems.value = response.data.totalItems;
   totalPages.value = response.data.totalPages;
 }
-  
+
 const handlePrintId = (id) => {
   if (!dataList || !Array.isArray(dataList.value.features)) {
     console.error("O objeto 'areasSJC' não está carregado corretamente");
@@ -88,13 +88,13 @@ const updateTable = async (filters) => {
     console.log(url)
 
     if (filters.harvest) {
-      url += `harvest=${filters.harvest}&`;
+      url += `harvest=${filters.harvest.nome}&`;
     }
     if (filters.farm) {
       url += `farmName=${filters.farm}&`;
     }
     if (filters.soil) {
-      url += `soil=${filters.soil}&`;
+      url += `soil=${filters.soil.nome}&`;
     }
     if (filters.name) {
       url += `name=${filters.name}&`;
@@ -144,15 +144,15 @@ const updateTable = async (filters) => {
           <tbody>
             <tr v-for="data in dataList.features" :key="data.properties.id">
               <td class="text-center px-3 py-3">{{ data.properties.name }}</td>
-              <td class="text-wrap py-3">{{ data.properties.culture }}</td>
+              <td class="text-wrap py-3">{{ data.properties.culture.nome }}</td>
               <td class="text-wrap py-3">{{ data.properties.area }}</td>
-              <td class="text-wrap py-3">{{ data.properties.soil }}</td>
+              <td class="text-wrap py-3">{{ data.properties.soil.nome }}</td>
               <td class="text-wrap py-3">{{ data.properties.harvest }}</td>
               <td class="text-center py-3">{{ data.properties.farm ? data.properties.farm.farmName : 'N/A' }}</td>
               <td class="text-center py-3">
                 {{ (data.properties.farm.farmCity || 'Sem registro') + '/' + (data.properties.farm.farmState || 'Sem registro') }}
               </td>
-  
+
               <td class="text-center py-3">{{ data.properties.status }}</td>
               <td class="text-center px-3">
                 <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">+</button>
