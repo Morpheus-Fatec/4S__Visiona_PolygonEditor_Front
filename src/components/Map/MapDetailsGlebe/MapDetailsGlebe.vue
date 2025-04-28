@@ -207,17 +207,18 @@ async function loadTif(url, layerIndex, coordinates) {
 
 function createClipAreaFromCoordinates(coordinates) {
   return {
-    features: [
+    "type": "FeatureCollection",
+    "features": [
       {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "MultiPolygon",
-          coordinates: coordinates
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "MultiPolygon",
+          "coordinates": coordinates
         }
-      }
-    ]
-  };
+      }
+    ]
+  };
 }
 
 function normalizeCoordinates(coordinates) {
@@ -435,6 +436,7 @@ watchEffect(() => {
   }
 
   if (!props.isClickedClassifiedManual && manualDrawControl) {
+    mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
     drawnItemsLayerAvailable.value.clearLayers();
     manualDrawControl = null;
@@ -502,6 +504,14 @@ watch(
   polygonsDraw,
   (newVal) => {
     polygonStore.setPolygonsDraw(newVal);
+  },
+  { deep: true }
+);
+
+watch(
+  polygonsDrawAnalisct,
+  (newVal) => {
+    polygonStore.setPolygonsDrawAnalisct(newVal);
   },
   { deep: true }
 );

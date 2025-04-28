@@ -8,7 +8,7 @@ import { usePolygonStore } from '../store/PolygonStore';
 
 const polygonStore = usePolygonStore();
 const polygons = computed(() => polygonStore.polygonsDraw);
-console.log(polygons.value);
+const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
 
 const route = useRoute();
 const areaId = route.params.id;
@@ -29,6 +29,7 @@ const farms = ref([]);
 
 const users = ref([]);
 const selectedUser = ref('');
+const selectedUserConsultant = ref('');
 const analysts = computed(() => users.value.filter(user => user.isAnalyst));
 const consultants = computed(() => users.value.filter(user => user.isConsultant));
 
@@ -41,6 +42,11 @@ const modalMessageType = ref('success');
 
 const glebeAvailable = ref([]);
 const isClickedClassifiedManual = ref(false);
+
+const getConsultantName = (selectedUserConsultantId) => {
+  const consultant = consultants.value.find(user => user.id === selectedUserConsultantId);
+  return consultant ? consultant.name : 'Consultor desconhecido';
+};
 
 function showModalMessage(title, body, type = 'success') {
   const openModals = document.querySelectorAll('.modal.show');
@@ -62,7 +68,6 @@ function showModalMessage(title, body, type = 'success') {
 
 onMounted(async () => {
   try {
-   // Lógica para carregar os dados do talhão
     const response = await api.get(`/field/featureCollection/${areaId}`, {
       withCredentials: true
     });
@@ -86,7 +91,6 @@ function parseCoordinatesString(coordinatesString) {
   }
 }
 
-// Responsável pela classificação
 function formatDate(date) {
   const d = new Date(date);
   const year = d.getFullYear();
@@ -162,7 +166,7 @@ async function handleSaveClassification() {
   console.log(payload);
 
   try {
-    // Requisição POST com axios
+
     const response = await api.post('/classification/manualClassification', payload, {
       headers: {
         'Content-Type': 'application/json',
@@ -180,6 +184,7 @@ async function handleSaveClassification() {
       );
       isClickedClassified.value = false;
       selectedUser.value = "";
+      loadData();
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'data'");
       showModalMessage(
@@ -198,7 +203,13 @@ async function handleSaveClassification() {
   }
 }
 
-// Responsável pela avaliacao
+// FUNCÕES PARA AVALIAR 
+function cancelClickToAssess() {
+  isClickedToAssess.value = false;
+  glebeAvailable.value = null;
+  isClickedClassifiedManual.value = false;
+}
+
 async function handleClickToAssess() {
   if (!data.value || !data.value.properties.status) {
     showModalMessage(
@@ -208,10 +219,10 @@ async function handleClickToAssess() {
     );
     return;
   }
-
+  
+  beginTime.value = formatDate(new Date());
   const status = data.value.properties.status;
 
-  // Mensagens personalizadas para cada status
   switch (status) {
     case 'PENDING':
     case 'Pendente':
@@ -275,10 +286,106 @@ async function handleClickToAssess() {
 
   isClickedClassifiedManual.value = true;
 }
-function cancelClickToAssess() {
-  isClickedToAssess.value = false;
-  glebeAvailable.value = null;
-  isClickedClassifiedManual.value = false;
+
+function buildSaveAvailablePayload(status) {
+  endTime.value = formatDate(new Date());
+
+  if (!Array.isArray(users.value)) {
+    console.error("users não é um array válido");
+    return;
+  }
+
+  const userResponsable = users.value.find(user => user.id === selectedUserConsultant.value);
+
+  if (!userResponsable) {
+    console.error("Usuário não encontrado");
+    return;
+  }
+
+  const featuresGeometry = polygonsAnalisct.value.features.map(feature => {
+    const updatedFeature = {
+      ...feature,
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: JSON.stringify(
+          feature.geometry.type === "Polygon"
+            ? [feature.geometry.coordinates]
+            : feature.geometry.coordinates
+        )
+      }
+    };
+    return updatedFeature;
+  });
+
+  const payload = {
+    idField: data.value.properties.id,
+    userResponsable: userResponsable.id,
+    status: status,
+    begin: beginTime.value,
+    end: endTime.value,
+    features: featuresGeometry,
+  };
+
+  return payload;
+}
+
+function canSaveAnalisct() {
+  return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features) && polygonsAnalisct.value.features.length > 0;
+}
+
+async function handleSaveAnalisct(status) {
+  const modalSaveEl = document.getElementById('modalSaveClassified');
+  const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
+  if (modalSaveInstance) {
+    modalSaveInstance.hide();
+  }
+
+  if (!canSaveAnalisct()) {
+    showModalMessage(
+      'Dados Incompletos',
+      'Por favor, selecione um usuário e adicione um polígono.',
+      'error'
+    );
+    return;
+  }
+
+  const payload = buildSaveAvailablePayload(status);  // Passando o status para a função
+
+  try {
+    const response = await api.post('/classification/revisonClassification', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    console.log('JSON:', payload);
+
+    if (response && response.data) {
+      console.log('Resposta da API:', response.data);
+      showModalMessage(
+        'Classificação Salva',
+        'Sua classificação foi registrada corretamente no sistema!',
+        'success'
+      );
+      isClickedToAssess.value = false;
+      selectedUserConsultant.value = "";
+      loadData();
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'data'");
+      showModalMessage(
+        'Erro',
+        'Ocorreu um erro ao salvar a classificação. Tente novamente.',
+        'error'
+      );
+    }
+  } catch (error) {
+    console.error("Erro ao salvar classificação:", error);
+    showModalMessage(
+      'Erro',
+      'Ocorreu um erro ao salvar a classificação. Tente novamente.',
+      'error'
+    );
+  }
 }
 
 function resetModal() {
@@ -286,33 +393,7 @@ function resetModal() {
   rejectionReason.value = '';
 }
 
-function confirmRejection() {
-  if (!rejectionReason.value.trim()) {
-    alert("Por favor, descreva o motivo da recusa.");
-    return;
-  }
-
-  console.log("Motivo da recusa:", rejectionReason.value);
-  resetModal();
-
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalSaveToAssess'));
-  modal.hide();
-
-  const successModal = new bootstrap.Modal(document.getElementById('modalRejectionSuccess'));
-  successModal.show();
-
-  isClickedToAssess.value = false;
-}
-function confirmApproval() {
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalSaveToAssess'));
-  modal.hide();
-
-  const successModal = new bootstrap.Modal(document.getElementById('modalApprovalSuccess'));
-  successModal.show();
-
-  isClickedToAssess.value = false;
-}
-
+// EDITAR TALHÃO
 function handleEdit() {
   originalInfoList.value = infoList.value.map(item => ({ ...item }));
   isEditing.value = true;
@@ -354,7 +435,6 @@ async function handleDownloadGlebe() {
     modal.show();
   }
 }
-
 
 function cancelEdit() {
   infoList.value = originalInfoList.value.map(item => ({ ...item }));
@@ -456,7 +536,7 @@ function setValueByTitle(title, newValue) {
   if (item) item.value = newValue;
 }
 
-onMounted(async () => {
+async function loadData() {
   try {
     const [culturesRes, soilsRes, farmsRes, featureRes, usersRes] = await Promise.all([
       api.get('/cultures', { withCredentials: true }),
@@ -470,7 +550,6 @@ onMounted(async () => {
     soils.value = soilsRes.data;
     farms.value = farmsRes.data;
     users.value = usersRes.data;
-    console.log('users', users.value);
 
     if (featureRes && featureRes.data) {
       data.value = processGeoJsonCoordinates(featureRes.data.features);
@@ -480,6 +559,10 @@ onMounted(async () => {
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
   }
+};
+
+onMounted(() => {
+  loadData();
 });
 
 watchEffect(() => {
@@ -602,9 +685,17 @@ watchEffect(() => {
               <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100">Avaliação da Classificação Manual</h5>
               <h5 class="fw-bold h5 w-100 text-body-secondary">Dados da Classificação</h5>
               <div>
+                <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
+                <input
+                  class="form-control"
+                  disabled
+                  :value="(analysts.find(u => u.id) || {}).name || ''"
+                />
+              </div>
+              <div>
                 <p class="mb-2 text-muted fw-semibold">Consultor responsável</p>
-                <select class="form-select text-muted" v-model="selectedUser">
-                  <option disabled value="">Consultor responsável</option>
+                <select class="form-select text-muted" v-model="selectedUserConsultant">
+                  <option disabled value="">Escolha o consultor</option>
                   <option
                     v-for="user in consultants"
                     :key="user.id"
@@ -727,8 +818,12 @@ watchEffect(() => {
       <!-- Botões flutuantes -->
       <template v-if="!isEditing && !isClickedClassified && !isClickedToAssess">
         <div class="divButton">
-          <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
-          <button class="btn btn-primary button" @click="handleClickToAssess">Avaliar</button>
+          <template v-if="data?.properties?.status !== 'Aprovado'">
+            <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
+          </template>
+          <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado'">
+            <button class="btn btn-primary button" @click="handleClickToAssess">Avaliar</button>
+          </template>
         </div>
       </template>
 
@@ -762,23 +857,12 @@ watchEffect(() => {
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
             </div>
             <div class="modal-body lh-base">
-              A classificação manual foi realizada pelo consultor <span class="fw-bold">Elbert Jean</span>. Após a sua análise e verificação das informações fornecidas na classificação,
+              A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ getConsultantName(selectedUserConsultant) }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
               você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
-
-              <div v-if="showRejectionInput" class="mt-3">
-                <label for="rejectionReason" class="form-label fw-bold">Descreva o motivo</label>
-                <textarea id="rejectionReason" class="form-control" v-model="rejectionReason" rows="3"></textarea>
-              </div>
             </div>
             <div class="modal-footer">
-              <template v-if="!showRejectionInput">
-                <button type="button" class="btn btn-dark fw-bold border" @click="showRejectionInput = true">Recusar</button>
-                <button type="button" class="btn btn-success fw-bold" @click="confirmApproval">Aprovar</button>
-              </template>
-              <template v-else>
-                <button type="button" class="btn btn-secondary fw-bold border" @click="resetModal">Cancelar</button>
-                <button type="button" class="btn btn-danger fw-bold" @click="confirmRejection">Confirmar Recusa</button>
-              </template>
+              <button type="button" class="btn btn-dark fw-bold border" @click="handleSaveAnalisct('REJECTED')">Recusar</button>
+              <button type="button" class="btn btn-success fw-bold" @click="handleSaveAnalisct('APPROVED')">Aprovar</button>
             </div>
           </div>
         </div>
