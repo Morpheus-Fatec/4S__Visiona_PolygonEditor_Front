@@ -6,6 +6,10 @@ import NotFound from '../view/NotFoundView.vue';
 import Operacoes from '../view/OperacoesView.vue';
 import MapaOperationView from '@/view/MapaOperationView.vue';
 import RegisterView from '@/view/RegisterView.vue';
+import Cultura from '@/view/Cultura.vue';
+import Solo from '@/view/Solo.vue';
+import Fazenda from '@/view/Fazenda.vue';
+import UserRegisterView from '@/view/UserRegisterView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,7 +55,27 @@ const router = createRouter({
       name: 'not-found',
       component: NotFound,
     },
-  ],
+    {
+      path: '/cultura',
+      name:'cultura',
+      component: Cultura
+    },
+    {
+      path: '/solo',
+      name:'solo',
+      component: Solo
+    },
+    {
+      path: '/fazenda',
+      name:'fazenda',
+      component: Fazenda
+    },
+    {
+      path: '/usuario',
+      name: 'usuario',
+      component: UserRegisterView,
+    }
+  ]
 })
 
 export default router
