@@ -14,7 +14,9 @@ const props = defineProps({
   data: Object,
   isClickedClassified: Boolean,
   isClickedClassifiedManual: Boolean,
-  glebeAvailable: Object
+  glebeAvailable: Object,
+  revisionAvailable: Object,
+  manualAvailable: Object
 });
 
 const tileProviders = ref([
@@ -32,6 +34,8 @@ const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const glebeAvailableLayerGroup = ref(L.layerGroup());
+const revisionLayerGroup = ref(L.layerGroup());
+const manualLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
 const drawnItemsLayer = ref(new L.FeatureGroup());
@@ -62,20 +66,12 @@ const onMapReady = async (map) => {
 
   const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
   const automaticClassification = props.data.automatic.features;
+  const revisionClassification = props.revisionAvailable?.features || [];
+  const manualClassification = props.manualAvailable?.features || [];
 
   const multiPolygons = props.data.geometry.coordinates.map(polygon =>
     polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
   );
-
-  const classificationMultiPolygons = automaticClassification.map(item => {
-
-   const rawCoords = item.geometry.coordinates;
-   const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-    return parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    );
-  });
 
   let bounds = L.latLngBounds();
 
@@ -88,16 +84,96 @@ const onMapReady = async (map) => {
     bounds = bounds.extend(glebaPolygon.getBounds());
   });
 
-  classificationMultiPolygons.forEach(item => {
+  loadRevisionClassification(revisionClassification);
+  loadManualClassification(manualClassification);
+  loadAutomaticClassification(automaticClassification);
+
+  function loadRevisionClassification(revisionClassification){
+    if(revisionClassification == null || revisionClassification.size == 0){
+      return;
+    }
+    const revisionMultiPolygons = revisionClassification.map(item => {
+      const rawCoords = item.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return {
+        description: item.properties.description,
+        polygons: parsedCoords.map(polygon =>
+          polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+        )
+      };
+    });
+
+    revisionMultiPolygons.forEach(item => {
+      item.polygons.forEach(polygonCoords => {
+        const revisionPolygon = L.polygon(polygonCoords, {
+          weight: 4,
+          color: 'yellow',
+          fillOpacity: 0
+        });
+
+        revisionPolygon.bindTooltip(item.description, {
+          permanent: true,
+          direction: 'center',
+          className: 'polygon-label'
+        });
+
+        revisionLayerGroup.value.addLayer(revisionPolygon);
+      });
+    });
+  }
+
+
+  function loadManualClassification(manualClassification){
+    if(manualClassification == null || manualClassification.size == 0){
+      console.log('caiu');
+      return;
+    }
+    const manualMultiPolygons = manualClassification.map(item => {
+
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+    return parsedCoords.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+    );
+    });
+
+    manualMultiPolygons.forEach(item => {
     item.forEach(polygonCoords => {
-      const classificationPolygon = L.polygon(polygonCoords, {
+      const revisionPolygon = L.polygon(polygonCoords, {
         weight: 4,
-        color: 'red',
+        color: 'blue',
         fillOpacity: 0
       });
-      classificationLayerGroup.value.addLayer(classificationPolygon);
+      manualLayerGroup.value.addLayer(revisionPolygon);
     });
-  });
+    });
+  }
+
+  function loadAutomaticClassification(automaticClassification){
+    const classificationMultiPolygons = automaticClassification.map(item => {
+
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return parsedCoords.map(polygon =>
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      );
+    });
+
+    classificationMultiPolygons.forEach(item => {
+      item.forEach(polygonCoords => {
+        const classificationPolygon = L.polygon(polygonCoords, {
+          weight: 4,
+          color: 'red',
+          fillOpacity: 0
+        });
+        classificationLayerGroup.value.addLayer(classificationPolygon);
+      });
+    });
+  }
+
 
   glebaLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
@@ -105,11 +181,23 @@ const onMapReady = async (map) => {
   const overlays = {
   'Gleba Polígono': glebaLayerGroup.value,
   'Classificação Automática': classificationLayerGroup.value,
-  'Classificação Manual': glebeAvailableLayerGroup.value
   };
 
+  if (manualLayerGroup.value.getLayers().length > 0) {
+  overlays['Classificação Manual'] = manualLayerGroup.value;
+  }
+
+  if (revisionLayerGroup.value.getLayers().length > 0) {
+    overlays['Revisão Manual'] = revisionLayerGroup.value;
+  }
+
   mapRef.value.createPane('manualClassificationPane');
-  mapRef.value.getPane('manualClassificationPane').style.zIndex = 99999;
+  mapRef.value.getPane('manualClassificationPane').style.zIndex = 650;
+
+  mapRef.value.createPane('revisionClassificationPane');
+  mapRef.value.getPane('revisionClassificationPane').style.zIndex = 600;
+
+
 
   props.data.images.forEach((image, index) => {
     const layerGroup = L.layerGroup();
@@ -159,6 +247,25 @@ const onMapReady = async (map) => {
           pane: 'manualClassificationPane'
         });
         glebeAvailableLayerGroup.value.addLayer(polygon);
+      });
+    });
+  }
+
+  function loadRevisionLayer(features) {
+    console.log('revision: ', features);
+    features.forEach(feature => {
+      const rawCoords = feature.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      parsedCoords.forEach(polygonCoords => {
+        const latlngs = polygonCoords.map(ring => ring.map(coord => [coord[1], coord[0]]));
+        const polygon = L.polygon(latlngs, {
+          weight: 2,
+          color: 'blue', // Você pode mudar a cor se quiser
+          fillOpacity: 0.3,
+          pane: 'revisionClassificationPane'
+        });
+        revisionLayerGroup.value.addLayer(polygon);
       });
     });
   }
@@ -368,7 +475,7 @@ watchEffect(() => {
       draw: {
         polygon: true,
         polyline: false,
-        rectangle: false, 
+        rectangle: false,
         circle: false,
         marker: false,
         circlemarker: false,

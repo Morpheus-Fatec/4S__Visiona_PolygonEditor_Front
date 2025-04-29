@@ -13,6 +13,8 @@ const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
 const route = useRoute();
 const areaId = route.params.id;
 const data = ref(null);
+const revisionAvailable = ref([]);
+const manualAvailable = ref([]);
 const infoList = ref([]);
 const originalInfoList = ref([]);
 const isClickedClassified = ref(false);
@@ -186,7 +188,8 @@ async function handleSaveClassification() {
       );
       isClickedClassified.value = false;
       selectedUser.value = "";
-      loadData();
+      window.location.reload();
+      //loadData();
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'data'");
       showModalMessage(
@@ -335,11 +338,33 @@ function canSaveAnalisct() {
   return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features) && polygonsAnalisct.value.features.length > 0;
 }
 
+
 async function handleSaveAnalisct(status) {
   const modalSaveEl = document.getElementById('modalSaveClassified');
   const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
+  console.log("aquiii ", polygonsAnalisct.value.features.length === 0);
+  console.log("aquiissasai ", polygonsAnalisct.value.features.length);
   if (modalSaveInstance) {
     modalSaveInstance.hide();
+  }
+
+  if(status === 'APPROVED'){
+    if(selectedUserConsultant.value === ""){
+      showModalMessage(
+      'Dados Incompletos',
+      'Por favor, selecione um usuário.',
+      'error'
+      );
+      return;
+    }
+    if(polygonsAnalisct.value.features.length > 0){
+      showModalMessage(
+      'Dados Incorretos',
+      'Por favor, retire os poligonos.',
+      'error'
+      );
+      return;
+    }
   }
 
   if (!canSaveAnalisct()) {
@@ -371,7 +396,9 @@ async function handleSaveAnalisct(status) {
       );
       isClickedToAssess.value = false;
       selectedUserConsultant.value = "";
-      loadData();
+      window.location.reload()
+      //loadData();
+
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'data'");
       showModalMessage(
@@ -540,14 +567,14 @@ function setValueByTitle(title, newValue) {
 
 async function loadData() {
   try {
-    const [culturesRes, soilsRes, farmsRes, featureRes, usersRes, manualFeatureRes, revisionFeatureRes] = await Promise.all([
+    const [culturesRes, soilsRes, farmsRes, featureRes, usersRes, revisionFeatureRes, manualFeatureRes] = await Promise.all([
       api.get('/cultures', { withCredentials: true }),
       api.get('/soil', { withCredentials: true }),
       api.get('/farm', { withCredentials: true }),
       api.get(`/field/featureCollection/${areaId}`, { withCredentials: true }),
       api.get('/user/listarUsuarios', { withCredentials: true }),
-      api.get(`/field/manualCollection/${areaId}`, { withCredentials: true }),
-      api.get(`/field/revisionCollection/${areaId}`, { withCredentials: true })
+      api.get(`/field/revisionCollection/${areaId}`, { withCredentials: true }),
+      api.get(`/field/manualCollection/${areaId}`, { withCredentials: true })
     ]);
 
     cultures.value = culturesRes.data;
@@ -561,11 +588,20 @@ async function loadData() {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
 
-    if(manualFeatureRes.data.features){
-      console.log(manualFeatureRes.data.features);
+    if (revisionFeatureRes && revisionFeatureRes.data) {
+      const updatedFeatures = processGeoJsonCoordinates(revisionFeatureRes.data.features);
+      revisionAvailable.value = {
+        ...revisionFeatureRes.data,
+        features: updatedFeatures
+      };
     }
-    if(revisionFeatureRes.data.features){
-      console.log(revisionFeatureRes.data.features);
+
+    if (manualFeatureRes && manualFeatureRes.data) {
+      const updatedFeatures = processGeoJsonCoordinates(manualFeatureRes.data.features);
+      manualAvailable.value = {
+        ...manualFeatureRes.data,
+        features: updatedFeatures
+      };
     }
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
@@ -822,8 +858,15 @@ watchEffect(() => {
       </template>
 
       <!-- Mapa -->
-      <div class="flex-grow-1" v-if="data">
-        <MapDetailsGlebe :data="data" :isClickedClassified="isClickedClassified" :glebeAvailable="glebeAvailable" :isClickedClassifiedManual="isClickedClassifiedManual"/>
+      <div class="flex-grow-1" v-if="data && glebeAvailable && revisionAvailable">
+        <MapDetailsGlebe
+          :data="data"
+          :isClickedClassified="isClickedClassified"
+          :glebeAvailable="glebeAvailable"
+          :isClickedClassifiedManual="isClickedClassifiedManual"
+          :revisionAvailable="revisionAvailable"
+          :manualAvailable="manualAvailable"
+        />
       </div>
 
       <!-- Botões flutuantes -->
