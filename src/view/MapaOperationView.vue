@@ -82,6 +82,8 @@ onMounted(async () => {
   }
 });
 
+
+
 function parseCoordinatesString(coordinatesString) {
   try {
     return JSON.parse(coordinatesString);
@@ -203,7 +205,7 @@ async function handleSaveClassification() {
   }
 }
 
-// FUNCÕES PARA AVALIAR 
+// FUNCÕES PARA AVALIAR
 function cancelClickToAssess() {
   isClickedToAssess.value = false;
   glebeAvailable.value = null;
@@ -219,7 +221,7 @@ async function handleClickToAssess() {
     );
     return;
   }
-  
+
   beginTime.value = formatDate(new Date());
   const status = data.value.properties.status;
 
@@ -406,7 +408,7 @@ async function handleDownloadGlebe() {
 
     const response = await api.get(`/field/${areaId}/downloadTalhao`, {
       withCredentials: true,
-      responseType: 'blob' 
+      responseType: 'blob'
     });
 
     const link = document.createElement('a');
@@ -416,13 +418,13 @@ async function handleDownloadGlebe() {
     const disposition = response.headers['content-disposition'];
     const matches = /filename="([^"]*)"/.exec(disposition);
     const filename = matches && matches[1] ? matches[1] : 'download.zip';
-    link.setAttribute('download', filename); 
+    link.setAttribute('download', filename);
 
     document.body.appendChild(link);
     link.click();
 
     document.body.removeChild(link);
-    window.URL.revokeObjectURL(url); 
+    window.URL.revokeObjectURL(url);
 
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
@@ -538,12 +540,14 @@ function setValueByTitle(title, newValue) {
 
 async function loadData() {
   try {
-    const [culturesRes, soilsRes, farmsRes, featureRes, usersRes] = await Promise.all([
+    const [culturesRes, soilsRes, farmsRes, featureRes, usersRes, manualFeatureRes, revisionFeatureRes] = await Promise.all([
       api.get('/cultures', { withCredentials: true }),
       api.get('/soil', { withCredentials: true }),
       api.get('/farm', { withCredentials: true }),
       api.get(`/field/featureCollection/${areaId}`, { withCredentials: true }),
-      api.get('/user/listarUsuarios', { withCredentials: true })
+      api.get('/user/listarUsuarios', { withCredentials: true }),
+      api.get(`/field/manualCollection/${areaId}`, { withCredentials: true }),
+      api.get(`/field/revisionCollection/${areaId}`, { withCredentials: true })
     ]);
 
     cultures.value = culturesRes.data;
@@ -555,6 +559,13 @@ async function loadData() {
       data.value = processGeoJsonCoordinates(featureRes.data.features);
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
+
+    if(manualFeatureRes.data.features){
+      console.log(manualFeatureRes.data.features);
+    }
+    if(revisionFeatureRes.data.features){
+      console.log(revisionFeatureRes.data.features);
     }
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
@@ -728,7 +739,7 @@ watchEffect(() => {
           </div>
           <div class="w-100 mt-auto d-flex flex-column gap-2">
             <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClickToAssess">Cancelar Avaliação</button>
-            <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Realizar aprovação</button>
+            <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Finalizar Revisão</button>
           </div>
         </div>
       </template>
@@ -818,10 +829,10 @@ watchEffect(() => {
       <!-- Botões flutuantes -->
       <template v-if="!isEditing && !isClickedClassified && !isClickedToAssess">
         <div class="divButton">
-          <template v-if="data?.properties?.status !== 'Aprovado'">
+          <template v-if="data?.properties?.status === 'Pendente' || data?.properties?.status === 'Reprovado'">
             <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
           </template>
-          <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado'">
+          <template v-if="data?.properties?.status === 'Em Análise'">
             <button class="btn btn-primary button" @click="handleClickToAssess">Avaliar</button>
           </template>
         </div>
