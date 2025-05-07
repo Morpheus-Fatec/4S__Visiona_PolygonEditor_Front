@@ -3,8 +3,7 @@ import { ref, defineProps, watchEffect, watch } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LControlScale } from '@vue-leaflet/vue-leaflet';
-import GeoRasterLayer from 'georaster-layer-for-leaflet';
-import georaster from 'georaster';
+import { useGeoTiffLoader } from './util/useGeotiffLoader.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
 
@@ -171,55 +170,9 @@ const onMapReady = async (map) => {
     }
   });
 
-  map.on('overlayadd', async (event) => {
-    const layerIndex = props.data.images.findIndex(img => img.name === event.name);
-    if (layerIndex !== -1 && !tifLayersLoaded.value[layerIndex]) {
-      await loadTif(props.data.images[layerIndex].link, layerIndex, coordinates);
-      tifLayersLoaded.value[layerIndex] = true;
-    }
-  });
+  useGeoTiffLoader(map, tifLayerGroups, props.data, coordinates, tifLayersLoaded);
 };
 
-async function loadTif(url, layerIndex, coordinates) {
-  console.log('Carregando GeoTIFF:', url);
-  try {
-    const clipArea = createClipAreaFromCoordinates(coordinates);
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Erro ao carregar GeoTIFF: " + url);
-
-    const arrayBuffer = await response.arrayBuffer();
-    const raster = await georaster(arrayBuffer);
-
-    const layer = new GeoRasterLayer({
-      georaster: raster,
-      opacity: 1,
-      resolution: 512,
-      mask: clipArea,
-      mask_strategy: "outside"
-    });
-
-    tifLayerGroups.value[layerIndex].addLayer(layer);
-  } catch (error) {
-    console.error("Erro ao carregar o GeoTIFF:", error);
-  }
-}
-
-function createClipAreaFromCoordinates(coordinates) {
-  return {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "properties": {},
-        "geometry": {
-          "type": "MultiPolygon",
-          "coordinates": coordinates
-        }
-      }
-    ]
-  };
-}
 
 function normalizeCoordinates(coordinates) {
   const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
@@ -368,7 +321,7 @@ watchEffect(() => {
       draw: {
         polygon: true,
         polyline: false,
-        rectangle: false, 
+        rectangle: false,
         circle: false,
         marker: false,
         circlemarker: false,
