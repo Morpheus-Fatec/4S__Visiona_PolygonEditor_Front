@@ -2,21 +2,21 @@
 import { ref, watchEffect, onMounted, watch, computed } from 'vue';
 import Layout from '../components/Layout/Layout.vue';
 import MapDetailsGlebe from '../components/Map/MapDetailsGlebe/MapDetailsGlebe.vue';
+import ManualClassificationPanel from '../components/Map/MapDetailsGlebe/ManualClassificationPanel.vue'
 import { useRoute } from 'vue-router';
 import api from "@/components/util/API.js";
 import { usePolygonStore } from '../store/PolygonStore';
 
 const polygonStore = usePolygonStore();
-const polygons = computed(() => polygonStore.polygonsDraw);
 const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
 
 const route = useRoute();
 const areaId = route.params.id;
 const data = ref(null);
 const infoList = ref([]);
-const originalInfoList = ref([]);
-const isClickedClassified = ref(false);
-const isClickedToAssess = ref(false);
+const originalInfoList = ref([]);;
+const isClickedToManual = ref(false);
+const isClickedToAvaliation = ref(false);
 const isEditing = ref(false);
 
 const showRejectionInput = ref(false);
@@ -43,10 +43,46 @@ const modalMessageType = ref('success');
 const glebeAvailable = ref([]);
 const isClickedClassifiedManual = ref(false);
 
+
+
 const getConsultantName = (selectedUserConsultantId) => {
   const consultant = consultants.value.find(user => user.id === selectedUserConsultantId);
   return consultant ? consultant.name : 'Consultor desconhecido';
 };
+
+onMounted(async () => {
+  try {
+    const response = await api.get(`/field/featureCollection/${areaId}`, {
+      withCredentials: true
+    });
+
+    if (response && response.data) {
+      data.value = processGeoJsonCoordinates(response.data.features);
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+    }
+
+    const manualResponse = await api.get(`/field/manualCollection/${areaId}`, {
+    withCredentials: true,
+    });
+
+    console.log('Resposta da API:', data.value);
+    glebeAvailable.value = manualResponse.data;
+    console.log('Glebe disponível:', glebeAvailable.value);
+
+    } catch (error) {
+      console.error("Erro ao carregar dados da API:", error);
+    }
+});
+
+function parseCoordinatesString(coordinatesString) {
+  try {
+    return JSON.parse(coordinatesString);
+  } catch (error) {
+    console.error("Erro ao analisar a string de coordenadas:", error);
+    return null;
+  }
+}
 
 function showModalMessage(title, body, type = 'success') {
   const openModals = document.querySelectorAll('.modal.show');
@@ -66,31 +102,6 @@ function showModalMessage(title, body, type = 'success') {
   modalInstance.show();
 }
 
-onMounted(async () => {
-  try {
-    const response = await api.get(`/field/featureCollection/${areaId}`, {
-      withCredentials: true
-    });
-
-    if (response && response.data) {
-      data.value = processGeoJsonCoordinates(response.data.features);
-    } else {
-      console.error("Resposta da API inválida ou sem a propriedade 'features'");
-    }
-  } catch (error) {
-    console.error("Erro ao carregar dados da API:", error);
-  }
-});
-
-function parseCoordinatesString(coordinatesString) {
-  try {
-    return JSON.parse(coordinatesString);
-  } catch (error) {
-    console.error("Erro ao analisar a string de coordenadas:", error);
-    return null;
-  }
-}
-
 function formatDate(date) {
   const d = new Date(date);
   const year = d.getFullYear();
@@ -103,109 +114,9 @@ function formatDate(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
-function handleClickClassified() {
-  isClickedClassified.value = true;
-  beginTime.value = formatDate(new Date());
-}
-
-function cancelClassified() {
-  isClickedClassified.value = false;
-}
-
-function buildSaveClassificationPayload() {
-  endTime.value = formatDate(new Date());
-
-  const featuresGeometry = polygons.value.features.map(feature => {
-    const updatedFeature = {
-      ...feature,
-      geometry: {
-        type: "MultiPolygon",
-        coordinates: JSON.stringify(
-          feature.geometry.type === "Polygon"
-            ? [feature.geometry.coordinates]
-            : feature.geometry.coordinates
-        )
-      }
-    };
-    return updatedFeature;
-  });
-
-  const payload = {
-    idField: data.value.properties.id,
-    userResponsable: selectedUser.value,
-    status: "PENDING",
-    begin: beginTime.value,
-    end: endTime.value,
-    features: featuresGeometry,
-  };
-
-  return payload;
-}
-
-function canSave() {
-  return selectedUser.value !== "" && polygons.value && Array.isArray(polygons.value.features) && polygons.value.features.length > 0;
-}
-
-async function handleSaveClassification() {
-  const modalSaveEl = document.getElementById('modalSaveClassified');
-  const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
-  if (modalSaveInstance) {
-    modalSaveInstance.hide();
-  }
-
-  if (!canSave()) {
-    showModalMessage(
-      'Dados Incompletos',
-      'Por favor, selecione um usuário e adicione um polígono.',
-      'error'
-    );
-    return;
-  }
-
-  const payload = buildSaveClassificationPayload();
-  console.log(payload);
-
-  try {
-
-    const response = await api.post('/classification/manualClassification', payload, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true,
-    });
-    console.log('JSON:', payload);
-
-    if (response && response.data) {
-      console.log('Resposta da API:', response.data);
-      showModalMessage(
-        'Classificação Salva',
-        'Sua classificação foi registrada corretamente no sistema!',
-        'success'
-      );
-      isClickedClassified.value = false;
-      selectedUser.value = "";
-      loadData();
-    } else {
-      console.error("Resposta da API inválida ou sem a propriedade 'data'");
-      showModalMessage(
-        'Erro',
-        'Ocorreu um erro ao salvar a classificação. Tente novamente.',
-        'error'
-      );
-    }
-  } catch (error) {
-    console.error("Erro ao salvar classificação:", error);
-    showModalMessage(
-      'Erro',
-      'Ocorreu um erro ao salvar a classificação. Tente novamente.',
-      'error'
-    );
-  }
-}
-
-// FUNCÕES PARA AVALIAR 
+// FUNCÕES PARA AVALIAR
 function cancelClickToAssess() {
-  isClickedToAssess.value = false;
+  isClickedToAvaliation.value = false;
   glebeAvailable.value = null;
   isClickedClassifiedManual.value = false;
 }
@@ -219,7 +130,7 @@ async function handleClickToAssess() {
     );
     return;
   }
-  
+
   beginTime.value = formatDate(new Date());
   const status = data.value.properties.status;
 
@@ -268,7 +179,7 @@ async function handleClickToAssess() {
     case 'Em Análise':
     case 'Under Analysis':
       // Permite a avaliação
-      isClickedToAssess.value = true;
+      isClickedToAvaliation.value = true;
       break;
 
     default:
@@ -278,11 +189,6 @@ async function handleClickToAssess() {
         'error'
       );
   }
-
-  const response = await api.get(`/field/manualCollection/${areaId}`, {
-    withCredentials: true,
-  });
-  glebeAvailable.value = response.data;
 
   isClickedClassifiedManual.value = true;
 }
@@ -367,7 +273,7 @@ async function handleSaveAnalisct(status) {
         'Sua classificação foi registrada corretamente no sistema!',
         'success'
       );
-      isClickedToAssess.value = false;
+      isClickedToAvaliation.value = false;
       selectedUserConsultant.value = "";
       loadData();
     } else {
@@ -406,7 +312,7 @@ async function handleDownloadGlebe() {
 
     const response = await api.get(`/field/${areaId}/downloadTalhao`, {
       withCredentials: true,
-      responseType: 'blob' 
+      responseType: 'blob'
     });
 
     const link = document.createElement('a');
@@ -416,13 +322,13 @@ async function handleDownloadGlebe() {
     const disposition = response.headers['content-disposition'];
     const matches = /filename="([^"]*)"/.exec(disposition);
     const filename = matches && matches[1] ? matches[1] : 'download.zip';
-    link.setAttribute('download', filename); 
+    link.setAttribute('download', filename);
 
     document.body.appendChild(link);
     link.click();
 
     document.body.removeChild(link);
-    window.URL.revokeObjectURL(url); 
+    window.URL.revokeObjectURL(url);
 
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
@@ -590,7 +496,7 @@ watchEffect(() => {
     <div class="d-flex w-100">
 
       <!-- Detalhes da Área -->
-      <template v-if="isClickedClassified === false && isClickedToAssess === false">
+      <template v-if="isClickedToManual === false && isClickedToAvaliation === false">
         <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes do Talhão</h5>
           <div class="w-100 overflow-auto">
@@ -649,7 +555,7 @@ watchEffect(() => {
       </template>
 
       <!-- Avaliação -->
-      <template v-if="isClickedToAssess === true">
+      <template v-if="isClickedToAvaliation === true">
         <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
           <div class="card border-info bg-info bg-gradient">
             <div class="d-flex align-items-center px-3 pt-3">
@@ -734,92 +640,25 @@ watchEffect(() => {
       </template>
 
       <!-- Classificação -->
-      <template v-if="isClickedClassified === true">
-        <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
-          <div class="card border-info bg-info bg-gradient">
-            <div class="d-flex align-items-center px-3 pt-3">
-              <button class="d-flex justify-content-between align-items-center w-100 bg-transparent border-0 fw-bold h4 border-bottom border-2 border-white pb-2 text-white"
-                      type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#manualClassificationContent"
-                      aria-expanded="false"
-                      aria-controls="manualClassificationContent">
-                <span>Como Classificar?</span>
-                <i class="bi bi-question-circle ms-2"></i>
-              </button>
-            </div>
-            <div id="manualClassificationContent" class="collapse">
-              <div class="card-body d-flex flex-column gap-3">
-                <div>
-                  <h5 class="h5 card-title fw-semibold text-light">Desenhar um polígono:</h5>
-                  <p class="card-text text-black lh-sm">Clique no ícone de desenho localizado no canto superior direito da tela para desenhar um polígono.</p>
-                </div>
-                <div>
-                  <h5 class="h5 card-title fw-semibold text-light">Editar um polígono:</h5>
-                  <p class="card-text text-black  lh-sm">Clique no polígono para realizar a edição. Para finalizar, clique fora do polígono.</p>
-                </div>
-                <div>
-                  <h5 class="h5 card-title fw-semibold text-light">Apagar um polígono:</h5>
-                  <p class="card-text text-black lh-sm">Clique e segure no polígono para realizar a exclusão.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card d-flex flex-column gap-3 overflow-auto border-dark-subtle">
-            <div class="card-body d-flex flex-column gap-3">
-              <h5 class="fw-bold border-bottom border-2 pb-2 h4 w-100">Classificação Manual</h5>
-              <h5 class="fw-bold h5 w-100 text-body-secondary">Dados da Classificação</h5>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-                <select class="form-select text-muted" v-model="selectedUser">
-                  <option disabled value="">Escolha o analista</option>
-                  <option
-                    v-for="user in analysts"
-                    :key="user.id"
-                    :value="user.id"
-                  >
-                    {{ user.name }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Nome Talhão</p>
-                <input class="form-control" disabled :value=data.properties.name />
-              </div>
-
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Fazenda</p>
-                <input class="form-control" disabled :value=data.properties.farm.farmName />
-              </div>
-
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Cidade</p>
-                <input class="form-control" disabled :value=data.properties.farm.farmCity />
-              </div>
-
-              <div>
-                <p class="mb-2 text-muted fw-semibold">Estado</p>
-                <input class="form-control" disabled :value=data.properties.farm.farmState />
-              </div>
-            </div>
-          </div>
-          <div class="w-100 mt-auto d-flex flex-column gap-2">
-            <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClassified">Cancelar</button>
-            <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveClassified">Salvar Classificação</button>
-          </div>
-        </div>
-      </template>
+      <ManualClassificationPanel
+        v-if="isClickedToManual"
+        :data="data"
+        :analysts="analysts"
+        :selectedUser="selectedUser"
+        @update:selectedUser="val => selectedUser = val"
+        @cancel="isClickedToManual = false"
+      />
 
       <!-- Mapa -->
       <div class="flex-grow-1" v-if="data">
-        <MapDetailsGlebe :data="data" :isClickedClassified="isClickedClassified" :glebeAvailable="glebeAvailable" :isClickedClassifiedManual="isClickedClassifiedManual"/>
+        <MapDetailsGlebe :data="data" :isClickedToManual="isClickedToManual" :glebeAvailable="glebeAvailable" :isClickedClassifiedManual="isClickedClassifiedManual"/>
       </div>
 
       <!-- Botões flutuantes -->
-      <template v-if="!isEditing && !isClickedClassified && !isClickedToAssess">
+      <template v-if="!isEditing && !isClickedToManual && !isClickedToAvaliation">
         <div class="divButton">
           <template v-if="data?.properties?.status !== 'Aprovado'">
-            <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
+            <button class="btn btn-primary button" @click="isClickedToManual = true">Classificar</button>
           </template>
           <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado'">
             <button class="btn btn-primary button" @click="handleClickToAssess">Avaliar</button>
