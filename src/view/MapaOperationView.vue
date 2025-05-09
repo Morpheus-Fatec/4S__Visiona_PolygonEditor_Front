@@ -118,7 +118,7 @@ function formatDate(date) {
 function cancelClickToAssess() {
   isClickedToAvaliation.value = false;
   glebeAvailable.value = null;
-  isClickedClassifiedManual.value = false;
+  isClickedClassifiedManual.value = cancelClickToAssessfalse;
 }
 
 async function handleClickToAssess() {

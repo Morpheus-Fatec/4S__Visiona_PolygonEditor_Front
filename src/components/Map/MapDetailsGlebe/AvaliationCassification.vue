@@ -78,10 +78,34 @@
       <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Realizar aprovação</button>
     </div>
   </div>
+
+  <!-- Modal Realizar avaliação -->
+  <div class="modal fade" id="modalSaveToAssess" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-4" id="exampleModalLabel">Como deseja avaliar a classificação?</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
+      </div>
+      <div class="modal-body lh-base">
+        A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ getConsultantName(selectedUserConsultant) }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
+        você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-dark fw-bold border" @click="handleSaveAnalisct('REJECTED')">Recusar</button>
+        <button type="button" class="btn btn-success fw-bold" @click="handleSaveAnalisct('APPROVED')">Aprovar</button>
+      </div>
+    </div>
+  </div>
+</div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed } from 'vue';
+import { usePolygonStore } from '../../../store/PolygonStore';
+import api from "@/components/util/API.js";
+
+
 
 const props = defineProps({
   data: Object,
@@ -89,17 +113,220 @@ const props = defineProps({
   selectedUser: Number
 });
 
-// Props ou valores reativos compartilhados
+const polygonStore = usePolygonStore();
+const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
 const isClickedToAvaliation = ref(false)
 const selectedUserConsultant = ref('')
+const data = ref(props.data)
+const beginTime = ref("");
 
 const consultants = ref([])
 
 // Mock temporário para analista
-const currentAnalyst = computed(() => props.analysts.value.find(u => u.id) || {})
+const currentAnalyst = computed(() => props.analysts.value.find(u => u.name) || {})
+
+const getConsultantName = (selectedUserConsultantId) => {
+  const consultant = consultants.value.find(user => user.id === selectedUserConsultantId);
+  return consultant ? consultant.name : 'Consultor desconhecido';
+};
+
+handleClickToAssess();
+
+function showModalMessage(title, body, type = 'success') {
+  const openModals = document.querySelectorAll('.modal.show');
+  openModals.forEach(modal => {
+    const modalInstance = bootstrap.Modal.getInstance(modal);
+    if (modalInstance) {
+      modalInstance.hide();
+    }
+  });
+
+  modalMessageTitle.value = title;
+  modalMessageBody.value = body;
+  modalMessageType.value = type;
+
+  const modalEl = document.getElementById('modalMessage');
+  const modalInstance = new bootstrap.Modal(modalEl);
+  modalInstance.show();
+}
 
 function cancelClickToAssess() {
-  isClickedToAvaliation.value = false
-  selectedUserConsultant.value = ''
+  isClickedToAvaliation.value = false;
+  glebeAvailable.value = null;
+  isClickedClassifiedManual.value = cancelClickToAssessfalse;
 }
+
+async function handleClickToAssess() {
+  if (!data.value || !data.value.properties.status) {
+    showModalMessage(
+      'Erro',
+      'Não foi possível identificar o status do talhão.',
+      'error'
+    );
+    return;
+  }
+
+  beginTime.value = formatDate(new Date());
+  const status = data.value.properties.status;
+
+  switch (status) {
+    case 'PENDING':
+    case 'Pendente':
+    case 'Pending':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão está com o status "Pendente". Por favor, aguarde a análise inicial.',
+        'error'
+      );
+      break;
+
+    case 'APPROVED':
+    case 'Aprovado':
+    case 'Approved':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão já foi aprovado. Não é possível realizar uma nova avaliação.',
+        'error'
+      );
+      break;
+
+    case 'REJECTED':
+    case 'Reprovado':
+    case 'Rejected':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão foi reprovado. Não é possível realizar uma nova análise.',
+        'error'
+      );
+      break;
+
+    case 'NO_SOLUTION':
+    case 'Sem Solução':
+    case 'No Solution':
+      showModalMessage(
+        'Ação não permitida',
+        'O talhão está marcado como "Sem Solução". Não é possível realizar uma avaliação.',
+        'error'
+      );
+      break;
+
+    case 'UNDER_ANALYSIS':
+    case 'Em Análise':
+    case 'Under Analysis':
+      // Permite a avaliação
+      isClickedToAvaliation.value = true;
+      break;
+
+    default:
+      showModalMessage(
+        'Erro',
+        'Status desconhecido. Não é possível realizar a avaliação.',
+        'error'
+      );
+  }
+
+  isClickedClassifiedManual.value = true;
+}
+
+function buildSaveAvailablePayload(status) {
+  endTime.value = formatDate(new Date());
+
+  if (!Array.isArray(users.value)) {
+    console.error("users não é um array válido");
+    return;
+  }
+
+  const userResponsable = users.value.find(user => user.id === selectedUserConsultant.value);
+
+  if (!userResponsable) {
+    console.error("Usuário não encontrado");
+    return;
+  }
+
+  const featuresGeometry = polygonsAnalisct.value.features.map(feature => {
+    const updatedFeature = {
+      ...feature,
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: JSON.stringify(
+          feature.geometry.type === "Polygon"
+            ? [feature.geometry.coordinates]
+            : feature.geometry.coordinates
+        )
+      }
+    };
+    return updatedFeature;
+  });
+
+  const payload = {
+    idField: data.value.properties.id,
+    userResponsable: userResponsable.id,
+    status: status,
+    begin: beginTime.value,
+    end: endTime.value,
+    features: featuresGeometry,
+  };
+
+  return payload;
+}
+
+function canSaveAnalisct() {
+  return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features) && polygonsAnalisct.value.features.length > 0;
+}
+
+async function handleSaveAnalisct(status) {
+  const modalSaveEl = document.getElementById('modalSaveClassified');
+  const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
+  if (modalSaveInstance) {
+    modalSaveInstance.hide();
+  }
+
+  if (!canSaveAnalisct()) {
+    showModalMessage(
+      'Dados Incompletos',
+      'Por favor, selecione um usuário e adicione um polígono.',
+      'error'
+    );
+    return;
+  }
+
+  const payload = buildSaveAvailablePayload(status);  // Passando o status para a função
+
+  try {
+    const response = await api.post('/classification/revisonClassification', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    console.log('JSON:', payload);
+
+    if (response && response.data) {
+      console.log('Resposta da API:', response.data);
+      showModalMessage(
+        'Classificação Salva',
+        'Sua classificação foi registrada corretamente no sistema!',
+        'success'
+      );
+      isClickedToAvaliation.value = false;
+      selectedUserConsultant.value = "";
+      loadData();
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'data'");
+      showModalMessage(
+        'Erro',
+        'Ocorreu um erro ao salvar a classificação. Tente novamente.',
+        'error'
+      );
+    }
+  } catch (error) {
+    console.error("Erro ao salvar classificação:", error);
+    showModalMessage(
+      'Erro',
+      'Ocorreu um erro ao salvar a classificação. Tente novamente.',
+      'error'
+    );
+  }
+}
+
 </script>
