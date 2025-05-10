@@ -6,7 +6,7 @@ import ManualClassificationPanel from '../components/Map/MapDetailsGlebe/ManualC
 import RevisionClassificationPanel from '../components/Map/MapDetailsGlebe/RevisionClassificationPane.vue'
 import { useRoute } from 'vue-router';
 import api from "@/components/util/API.js";
-import { getFeatureCollection, getManualCollection, getRevisionCollection } from "@/components/Map/MapDetailsGlebe/util/LoadClassification.js";
+import { getFeatureCollection, getManualCollection } from "@/components/Map/MapDetailsGlebe/util/LoadClassification.js";
 
 
 const route = useRoute();
@@ -26,15 +26,11 @@ const users = ref([]);
 const selectedUser = ref('');
 const analysts = computed(() => users.value.filter(user => user.isAnalyst));
 const consultants = computed(() => users.value.filter(user => user.isConsultant));
+const glebeAvailable = ref([]);
 
 const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
-
-const glebeAvailable = ref([]);
-
-const revisionAvailable = ref([]);
-
 
 onMounted(async () => {
   try {
@@ -51,19 +47,9 @@ onMounted(async () => {
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
-
-    const responseManualCollection = await getRevisionCollection(areaId);
-    if (responseManualCollection) {
-      revisionAvailable.value = responseManualCollection;
-    } else {
-      console.error("Resposta da API inválida ou sem a propriedade 'features'");
-    }
-
   } catch (error) {
-    console.error("Erro ao carregar dados da API:", error);
+    console.error("Erro ao carregar dados:", error);
   }
-
-
 });
 
 
@@ -352,7 +338,7 @@ watchEffect(() => {
 
       <!-- Mapa -->
       <div class="flex-grow-1" v-if="data">
-        <MapDetailsGlebe :data="data" :isClickedToManual="isClickedToManual" :glebeAvailable="glebeAvailable" :isClickedToRevision="isClickedToRevision" :revisionAvailable="revisionAvailable" />
+        <MapDetailsGlebe :data="data" :isClickedToManual="isClickedToManual" :glebeAvailable="glebeAvailable" :isClickedToRevision="isClickedToRevision" />
       </div>
 
       <!-- Botões flutuantes -->
