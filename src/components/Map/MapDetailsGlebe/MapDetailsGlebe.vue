@@ -11,10 +11,14 @@ const polygonStore = usePolygonStore();
 
 const props = defineProps({
   data: Object,
-  isClickedClassified: Boolean,
-  isClickedClassifiedManual: Boolean,
-  glebeAvailable: Object
+  isClickedToManual: Boolean,
+  isClickedToRevision: Boolean,
+  glebeAvailable: Object,
+  revisionAvailable: Object,
 });
+
+console.log('props', props);
+console.log('revisionAvailable', props.revisionAvailable);
 
 const tileProviders = ref([
   {
@@ -31,6 +35,8 @@ const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const glebeAvailableLayerGroup = ref(L.layerGroup());
+const manualLayerGroup = ref(L.layerGroup());
+const revisionLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
 const drawnItemsLayer = ref(new L.FeatureGroup());
@@ -61,20 +67,12 @@ const onMapReady = async (map) => {
 
   const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
   const automaticClassification = props.data.automatic.features;
+  const revisionClassification = props.revisionAvailable?.features || [];
+  const manualClassification = props.manualAvailable?.features || [];
 
   const multiPolygons = props.data.geometry.coordinates.map(polygon =>
     polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
   );
-
-  const classificationMultiPolygons = automaticClassification.map(item => {
-
-   const rawCoords = item.geometry.coordinates;
-   const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-    return parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    );
-  });
 
   let bounds = L.latLngBounds();
 
@@ -87,16 +85,96 @@ const onMapReady = async (map) => {
     bounds = bounds.extend(glebaPolygon.getBounds());
   });
 
-  classificationMultiPolygons.forEach(item => {
+  loadRevisionClassification(revisionClassification);
+  loadManualClassification(manualClassification);
+  loadAutomaticClassification(automaticClassification);
+
+  function loadRevisionClassification(revisionClassification){
+    console.log('revisaooo', revisionClassification);
+    if(revisionClassification == null || revisionClassification.size == 0){
+      return;
+    }
+    const revisionMultiPolygons = revisionClassification.map(item => {
+      const rawCoords = item.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return {
+        description: item.properties.description,
+        polygons: parsedCoords.map(polygon =>
+          polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+        )
+      };
+    });
+
+    revisionMultiPolygons.forEach(item => {
+      item.polygons.forEach(polygonCoords => {
+        const revisionPolygon = L.polygon(polygonCoords, {
+          weight: 4,
+          color: 'yellow',
+          fillOpacity: 0
+        });
+
+        revisionPolygon.bindTooltip(item.description, {
+          permanent: true,
+          direction: 'center',
+          className: 'polygon-label'
+        });
+
+        revisionLayerGroup.value.addLayer(revisionPolygon);
+      });
+    });
+  }
+
+
+  function loadManualClassification(manualClassification){
+    if(manualClassification == null || manualClassification.size == 0){
+      console.log('caiu');
+      return;
+    }
+    const manualMultiPolygons = manualClassification.map(item => {
+
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+    return parsedCoords.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+    );
+    });
+
+    manualMultiPolygons.forEach(item => {
     item.forEach(polygonCoords => {
-      const classificationPolygon = L.polygon(polygonCoords, {
+      const revisionPolygon = L.polygon(polygonCoords, {
         weight: 4,
-        color: 'red',
+        color: 'blue',
         fillOpacity: 0
       });
-      classificationLayerGroup.value.addLayer(classificationPolygon);
+      manualLayerGroup.value.addLayer(revisionPolygon);
     });
-  });
+    });
+  }
+
+  function loadAutomaticClassification(automaticClassification){
+    const classificationMultiPolygons = automaticClassification.map(item => {
+
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return parsedCoords.map(polygon =>
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      );
+    });
+
+    classificationMultiPolygons.forEach(item => {
+      item.forEach(polygonCoords => {
+        const classificationPolygon = L.polygon(polygonCoords, {
+          weight: 4,
+          color: 'red',
+          fillOpacity: 0
+        });
+        classificationLayerGroup.value.addLayer(classificationPolygon);
+      });
+    });
+  }
 
   glebaLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
@@ -104,11 +182,21 @@ const onMapReady = async (map) => {
   const overlays = {
   'Gleba Polígono': glebaLayerGroup.value,
   'Classificação Automática': classificationLayerGroup.value,
-  'Classificação Manual': glebeAvailableLayerGroup.value
   };
 
+  if (manualLayerGroup.value.getLayers().length > 0) {
+  overlays['Classificação Manual'] = manualLayerGroup.value;
+  }
+  console.log('revisionLayerGroup', revisionLayerGroup.value);
+  if (revisionLayerGroup.value.getLayers().length > 0) {
+    overlays['Revisão Manual'] = revisionLayerGroup.value;
+  }
+
   mapRef.value.createPane('manualClassificationPane');
-  mapRef.value.getPane('manualClassificationPane').style.zIndex = 99999;
+  mapRef.value.getPane('manualClassificationPane').style.zIndex = 650;
+
+  mapRef.value.createPane('revisionClassificationPane');
+  mapRef.value.getPane('revisionClassificationPane').style.zIndex = 600;
 
   props.data.images.forEach((image, index) => {
     const layerGroup = L.layerGroup();
@@ -121,16 +209,28 @@ const onMapReady = async (map) => {
   map.fitBounds(bounds);
 
   watch(
+    () => props.revisionAvailable,
+    (newVal, oldVal) => {
+      if (newVal && newVal.features) {
+        loadRevisionClassification(newVal.features);
+      }
+    },
+    { immediate: true }
+  );
+
+  watch(
     () => props.glebeAvailable,
     (newGlebeAvailable) => {
       if (!mapRef.value) return;
       glebeAvailableLayerGroup.value.clearLayers();
+
 
       if (newGlebeAvailable && newGlebeAvailable.features && newGlebeAvailable.features.length > 0) {
         loadGlebeAvailableLayer(newGlebeAvailable.features);
 
         if (!layerControl._layers || !Object.values(layerControl._layers).some(l => l.name === 'Classificação Manual')) {
           layerControl.addOverlay(glebeAvailableLayerGroup.value, 'Classificação Manual');
+
         }
       } else {
         if (layerControl._layers) {
@@ -162,6 +262,25 @@ const onMapReady = async (map) => {
     });
   }
 
+  function loadRevisionLayer(features) {
+    console.log('revision: ', features);
+    features.forEach(feature => {
+      const rawCoords = feature.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      parsedCoords.forEach(polygonCoords => {
+        const latlngs = polygonCoords.map(ring => ring.map(coord => [coord[1], coord[0]]));
+        const polygon = L.polygon(latlngs, {
+          weight: 2,
+          color: 'blue', // Você pode mudar a cor se quiser
+          fillOpacity: 0.3,
+          pane: 'revisionClassificationPane'
+        });
+        revisionLayerGroup.value.addLayer(polygon);
+      });
+    });
+  }
+
   map.on('click', (event) => {
     if (editingLayer.value && !editingLayer.value.getBounds().contains(event.latlng)) {
       editingLayer.value.editing.disable();
@@ -186,7 +305,7 @@ let drawControl = null;
 watchEffect(() => {
   if (!mapRef.value) return;
 
-  if (props.isClickedClassified && !drawControl) {
+  if (props.isClickedToManual && !drawControl) {
     drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -301,7 +420,7 @@ watchEffect(() => {
     }
   }
 
-  if (!props.isClickedClassified && drawControl) {
+  if (!props.isClickedToManual && drawControl) {
     mapRef.value.removeControl(drawControl);
     drawnItemsLayer.value.clearLayers();
     drawControl = null;
@@ -315,7 +434,7 @@ let manualDrawControl = null;
 watchEffect(() => {
   if (!mapRef.value) return;
 
-  if (props.isClickedClassifiedManual && !manualDrawControl) {
+  if (props.isClickedToRevision && !manualDrawControl) {
     manualDrawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -388,7 +507,7 @@ watchEffect(() => {
     });
   }
 
-  if (!props.isClickedClassifiedManual && manualDrawControl) {
+  if (!props.isClickedToRevision && manualDrawControl) {
     mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
     drawnItemsLayerAvailable.value.clearLayers();
@@ -480,7 +599,7 @@ watch(
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="isClickedClassified === true ? 24 : 18"
+      :max-zoom="isClickedToManual === true ? 24 : 18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />

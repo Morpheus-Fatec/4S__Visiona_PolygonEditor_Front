@@ -128,7 +128,6 @@ const props = defineProps({
   analysts: Array,
   selectedUser: Number
 });
-
 const emit = defineEmits(['update:selectedUser', 'cancel']);
 console.log("DATA: ", props.data);
 const polygonStore = usePolygonStore();
@@ -277,6 +276,6 @@ async function handleSaveClassification() {
   }
 }
 async function loadData() {
-  window.location.reload()
+  window.location.reload();
 }
 </script>

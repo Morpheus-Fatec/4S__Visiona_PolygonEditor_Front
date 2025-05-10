@@ -1,6 +1,6 @@
 <!-- AvaliationPanel.vue -->
 <template>
-  <div v-if="isClickedToAvaliation && data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
+  <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
     <!-- Card de instruções -->
     <div class="card border-info bg-info bg-gradient">
       <div class="d-flex align-items-center px-3 pt-3">
@@ -42,7 +42,7 @@
 
         <div>
           <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-          <input class="form-control" disabled :value="currentAnalyst?.name || ''" />
+          <input class="form-control" disabled :value="selectedUser || ''" />
         </div>
 
         <div>
@@ -74,30 +74,108 @@
 
     <!-- Ações -->
     <div class="w-100 mt-auto d-flex flex-column gap-2">
-      <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClickToAssess">Cancelar Avaliação</button>
+      <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClickToAvaliation">Cancelar Avaliação</button>
       <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Realizar aprovação</button>
     </div>
   </div>
 
   <!-- Modal Realizar avaliação -->
   <div class="modal fade" id="modalSaveToAssess" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h1 class="modal-title fs-4" id="exampleModalLabel">Como deseja avaliar a classificação?</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
-      </div>
-      <div class="modal-body lh-base">
-        A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ getConsultantName(selectedUserConsultant) }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
-        você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-dark fw-bold border" @click="handleSaveAnalisct('REJECTED')">Recusar</button>
-        <button type="button" class="btn btn-success fw-bold" @click="handleSaveAnalisct('APPROVED')">Aprovar</button>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-4" id="exampleModalLabel">Como deseja avaliar a classificação?</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
+        </div>
+        <div class="modal-body lh-base">
+          A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ getConsultantName(selectedUserConsultant) }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
+          você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-dark fw-bold border" @click="handleSaveAnalisct('REJECTED')">Recusar</button>
+          <button type="button" class="btn btn-success fw-bold" @click="handleSaveAnalisct('APPROVED')">Aprovar</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  <!-- Modal modalSaveClassified -->
+  <div class="modal fade" id="modalSaveClassified" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-4 " id="exampleModalLabel">Deseja salvar a classificação?</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body lh-base">
+          Ao clicar em <span class="fw-bold">Salvar Classificação</span>, os dados inseridos na classificação manual serão registrados no sistema e
+          armazenados no banco de dados. Em seguida, essa classificação será encaminhada automaticamente para o processo
+          de análise.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-dark fw-bold border" data-bs-dismiss="modal">Revisar</button>
+          <button type="button" class="btn btn-success fw-bold" @click="handleSaveClassification">Salvar Classificação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+        <!-- Modal modalApprovalSuccess -->
+        <div class="modal fade" id="modalApprovalSuccess" tabindex="-1" aria-labelledby="modalApprovalSuccessLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-success">
+        <div class="modal-header bg-success text-white">
+          <h1 class="modal-title fs-4" id="modalApprovalSuccessLabel">Aprovação realizada com sucesso!</h1>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          A classificação foi aprovada e registrada com sucesso no sistema.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success fw-bold" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Recusa com Sucesso -->
+  <div class="modal fade" id="modalRejectionSuccess" tabindex="-1" aria-labelledby="modalRejectionSuccessLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+          <div class="modal-header bg-danger text-white">
+            <h1 class="modal-title fs-4" id="modalRejectionSuccessLabel">Classificação recusada com sucesso!</h1>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            A classificação foi recusada e o motivo foi registrado no sistema.
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-danger fw-bold" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+        <!-- Modal Generico -->
+      <div class="modal fade" id="modalMessage" tabindex="-1" aria-labelledby="modalMessageLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" :class="modalMessageType === 'success' ? 'bg-success text-white' : 'bg-danger text-white'">
+            <h1 class="modal-title fs-4" id="modalMessageLabel">{{ modalMessageTitle }}</h1>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {{ modalMessageBody }}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn fw-bold"
+                    :class="modalMessageType === 'success' ? 'btn-success' : 'btn-danger'"
+                    data-bs-dismiss="modal">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 </template>
 
 <script setup>
@@ -109,26 +187,42 @@ import api from "@/components/util/API.js";
 
 const props = defineProps({
   data: Object,
-  analysts: Array,
-  selectedUser: Number
+  consultants: Array,
 });
 
+const data = ref(props.data)
+const selectedUser = 1;
+console.log('selectedUser', selectedUser);
+const emit = defineEmits(['cancel']);
 const polygonStore = usePolygonStore();
 const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
-const isClickedToAvaliation = ref(false)
+const isClickedToRevision = ref(false)
 const selectedUserConsultant = ref('')
-const data = ref(props.data)
 const beginTime = ref("");
-
-const consultants = ref([])
-
-// Mock temporário para analista
-const currentAnalyst = computed(() => props.analysts.value.find(u => u.name) || {})
+const endTime = ref("");
+const selectedConsultantId = ref('')
+const modalMessageTitle = ref('');
+const modalMessageBody = ref('');
+const modalMessageType = ref('success');
 
 const getConsultantName = (selectedUserConsultantId) => {
-  const consultant = consultants.value.find(user => user.id === selectedUserConsultantId);
+  selectedConsultantId.value = selectedUserConsultantId;
+  const consultant = props.consultants.find(user => user.id === selectedUserConsultantId);
   return consultant ? consultant.name : 'Consultor desconhecido';
 };
+
+function formatDate(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 
 handleClickToAssess();
 
@@ -150,11 +244,9 @@ function showModalMessage(title, body, type = 'success') {
   modalInstance.show();
 }
 
-function cancelClickToAssess() {
-  isClickedToAvaliation.value = false;
-  glebeAvailable.value = null;
-  isClickedClassifiedManual.value = cancelClickToAssessfalse;
-}
+const cancelClickToAvaliation = () => {
+  emit('cancel');
+};
 
 async function handleClickToAssess() {
   if (!data.value || !data.value.properties.status) {
@@ -214,7 +306,7 @@ async function handleClickToAssess() {
     case 'Em Análise':
     case 'Under Analysis':
       // Permite a avaliação
-      isClickedToAvaliation.value = true;
+      isClickedToRevision.value = true;
       break;
 
     default:
@@ -225,18 +317,13 @@ async function handleClickToAssess() {
       );
   }
 
-  isClickedClassifiedManual.value = true;
+  isClickedToRevision.value = true;
 }
 
 function buildSaveAvailablePayload(status) {
   endTime.value = formatDate(new Date());
 
-  if (!Array.isArray(users.value)) {
-    console.error("users não é um array válido");
-    return;
-  }
-
-  const userResponsable = users.value.find(user => user.id === selectedUserConsultant.value);
+  const userResponsable = selectedConsultantId.value;
 
   if (!userResponsable) {
     console.error("Usuário não encontrado");
@@ -270,6 +357,7 @@ function buildSaveAvailablePayload(status) {
   return payload;
 }
 
+
 function canSaveAnalisct() {
   return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features) && polygonsAnalisct.value.features.length > 0;
 }
@@ -302,13 +390,12 @@ async function handleSaveAnalisct(status) {
     console.log('JSON:', payload);
 
     if (response && response.data) {
-      console.log('Resposta da API:', response.data);
       showModalMessage(
         'Classificação Salva',
         'Sua classificação foi registrada corretamente no sistema!',
         'success'
       );
-      isClickedToAvaliation.value = false;
+      isClickedToRevision.value = false;
       selectedUserConsultant.value = "";
       loadData();
     } else {
@@ -326,6 +413,10 @@ async function handleSaveAnalisct(status) {
       'Ocorreu um erro ao salvar a classificação. Tente novamente.',
       'error'
     );
+  }
+
+  async function loadData() {
+    window.location.reload();
   }
 }
 
