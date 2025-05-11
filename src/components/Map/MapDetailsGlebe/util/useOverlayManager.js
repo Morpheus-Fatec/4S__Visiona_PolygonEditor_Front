@@ -1,4 +1,4 @@
-import { getRevisionCollection } from "./LoadClassification.js";
+import { getRevisionCollection, getManualCollection } from "./LoadClassification.js";
 
 function loadFieldCoordinates(coordinates, layerGroup) {
   const normalizedCoords = normalizeCoordinates(coordinates);
@@ -29,18 +29,16 @@ async function loadRevisionClassification(fieldId, revisionLayerGroup) {
     if (revisionClassification == null || revisionClassification.size == 0) {
       return;
     }
-    const revisionMultiPolygons = revisionClassification.features.map(item => {
+      const revisionMultiPolygons = revisionClassification.features.map(item => {
       const rawCoords = item.geometry.coordinates;
       const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
       return {
         description: item.properties.description,
         polygons: parsedCoords.map(polygon =>
-          polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
         )
       };
     });
-
     revisionMultiPolygons.forEach(item => {
       item.polygons.forEach(polygonCoords => {
         const revisionPolygon = L.polygon(polygonCoords, {
@@ -63,11 +61,14 @@ async function loadRevisionClassification(fieldId, revisionLayerGroup) {
 }
 
 
-function loadManualClassification(manualClassification, manualLayerGroup) {
-  if (manualClassification == null || manualClassification.size == 0) {
-    return;
+async function loadManualClassification(fieldId, manualLayerGroup) {
+
+  const manualClassification = await getManualCollection(fieldId);
+
+  if (manualClassification == null || manualClassification.features.length == 0) {
+    return false;
   }
-  const manualMultiPolygons = manualClassification.map(item => {
+  const manualMultiPolygons = manualClassification.features.map(item => {
     const rawCoords = item.geometry.coordinates;
     const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
 
@@ -83,7 +84,33 @@ function loadManualClassification(manualClassification, manualLayerGroup) {
         color: 'blue',
         fillOpacity: 0.2
       });
-      manualLayerGroup.value.addLayer(revisionPolygon);
+      manualLayerGroup.addLayer(revisionPolygon);
+    });
+  });
+  return true;
+}
+
+function createNewManualClassification(automaticClassification, manualLayerGroup) {
+  if (automaticClassification == null || automaticClassification.size== 0) {
+    return;
+  }
+  const manualMultiPolygons = automaticClassification.map(item => {
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+    return parsedCoords.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+    );
+  });
+
+  manualMultiPolygons.forEach(item => {
+    item.forEach(polygonCoords => {
+      const revisionPolygon = L.polygon(polygonCoords, {
+        weight: 4,
+        color: 'blue',
+        fillOpacity: 0.2
+      });
+      manualLayerGroup.addLayer(revisionPolygon);
     });
   });
 }
@@ -105,10 +132,39 @@ function loadAutomaticClassification(automaticClassification, classificationLaye
         color: 'red',
         fillOpacity: 0
       });
-      classificationLayerGroup.value.addLayer(classificationPolygon);
+      classificationLayerGroup.addLayer(classificationPolygon);
     });
   });
 }
+
+
+async function loadOverlay(
+  fieldId,
+  glebaLayerGroup,
+  automaticClassification,
+  classificationLayerGroup,
+  manualLayerGroup,
+) {
+  const overlays = {
+    'Gleba Polígono': glebaLayerGroup,
+    'Classificação Automática': classificationLayerGroup,
+  };
+  loadAutomaticClassification(automaticClassification, classificationLayerGroup);
+
+  const existManual = await loadManualClassification(fieldId, manualLayerGroup, automaticClassification);
+
+  if (existManual) {
+    overlays['Classificação Manual'] = manualLayerGroup;
+  }
+  if (!existManual) {
+    createNewManualClassification(automaticClassification, manualLayerGroup);
+    overlays['Classificação Manual'] = manualLayerGroup;
+  }
+
+  return overlays;
+}
+
+
 
 function loadImages(images, tifLayersLoaded, overlays, tifLayerGroups){
     images.forEach((image) => {
@@ -126,10 +182,12 @@ function normalizeCoordinates(coordinates) {
   );
 }
 
+
 export {
   loadFieldCoordinates,
   loadRevisionClassification,
   loadManualClassification,
   loadAutomaticClassification,
   loadImages,
+  loadOverlay,
 };

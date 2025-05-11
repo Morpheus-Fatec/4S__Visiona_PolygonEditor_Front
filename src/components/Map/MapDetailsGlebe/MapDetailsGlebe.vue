@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps, watchEffect, watch } from 'vue';
+import { ref, defineProps, watchEffect, watch, computed } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LControlScale } from '@vue-leaflet/vue-leaflet';
@@ -7,9 +7,8 @@ import { useGeoTiffLoader } from './util/useGeotiffLoader.js';
 import {
   loadFieldCoordinates,
   loadRevisionClassification,
-  loadManualClassification,
-  loadAutomaticClassification,
-  loadImages
+  loadImages,
+  loadOverlay
 } from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
@@ -20,7 +19,6 @@ const props = defineProps({
   data: Object,
   isClickedToManual: Boolean,
   isClickedToRevision: Boolean,
-  glebeAvailable: Object,
 });
 
 const tileProviders = ref([
@@ -34,10 +32,13 @@ const tileProviders = ref([
 
 const zoom = ref(14);
 const mapRef = ref(null);
+const isClickedToManualRef = computed(() => props.isClickedToManual);
+const isClickedToRevisionRef = computed(() => props.isClickedToRevision);
 const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const manualLayerGroup = ref(L.layerGroup());
+const layerControlRef = ref(null);
 const revisionLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
@@ -46,6 +47,7 @@ const drawnItemsLayerAvailable = ref(new L.FeatureGroup());
 const editingLayer = ref(null);
 const fieldId = props.data.properties.id;
 const fieldCoordinates = props.data.geometry.coordinates;
+const fieldStatus = props.data.properties.status;
 
 const getEmptyPolygonsDraw = () => ({
   features: []
@@ -74,20 +76,16 @@ const onMapReady = async (map) => {
     glebaLayerGroup
   );
 
-  loadRevisionClassification(fieldId, revisionLayerGroup);
-  loadManualClassification(props.glebeAvailable?.features, manualLayerGroup);
-  loadAutomaticClassification(props.data.automatic.features, classificationLayerGroup);
-
   glebaLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
 
-
-  const overlays = {
-    'Gleba Polígono': glebaLayerGroup.value,
-    'Classificação Automática': classificationLayerGroup.value,
-    'Classificação Manual': manualLayerGroup.value,
-    'Revisão Manual': revisionLayerGroup.value,
-  };
+  const overlays = await loadOverlay(
+    fieldId,
+    glebaLayerGroup.value,
+    props.data.automatic.features,
+    classificationLayerGroup.value,
+    manualLayerGroup.value,
+  );
 
   loadImages(props.data.images, tifLayersLoaded, overlays, tifLayerGroups)
 
@@ -98,8 +96,42 @@ const onMapReady = async (map) => {
   mapRef.value.getPane('revisionClassificationPane').style.zIndex = 600;
 
 
-  const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
+  layerControlRef.value = L.control.layers(baseLayers, overlays).addTo(map);
   map.fitBounds(bounds);
+
+  watch(
+  [() => isClickedToManualRef.value, () => isClickedToRevisionRef.value],
+  ([newManual, newRevision]) => {
+    console.log("isClickedToManual:", newManual);
+    console.log("isClickedToRevision:", newRevision);
+    updateOverlays(newManual, newRevision, overlays);
+  },
+  { immediate: false }
+);
+
+
+function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
+
+  // Retira camada de revisao
+  if(!(isClickedToRevision || isClickedToManual)){
+    mapRef.value.removeLayer(revisionLayerGroup.value);
+    layerControlRef.value.removeLayer(revisionLayerGroup.value);
+    delete currentOverlays['Revisão Manual'];
+    return;
+  }
+
+  // Atualiza a camada de revisão
+  if (isClickedToRevision || isClickedToManual) {
+    if (!currentOverlays['Revisão Manual']) {
+      loadRevisionClassification(fieldId, revisionLayerGroup);
+      revisionLayerGroup.value.addTo(mapRef.value);
+      currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
+      mapRef.value.removeLayer(revisionLayerGroup.value);
+      layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+    }
+  }
+}
+
 
   // watch(
   //   () => props.glebeAvailable,
@@ -144,7 +176,7 @@ let drawControl = null;
 watchEffect(() => {
   if (!mapRef.value) return;
 
-  if (props.isClickedToManual && !drawControl) {
+  if (isClickedToManualRef.value && !drawControl) {
     drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -259,7 +291,7 @@ watchEffect(() => {
     }
   }
 
-  if (!props.isClickedToManual && drawControl) {
+  if (!isClickedToManualRef.value && drawControl) {
     mapRef.value.removeControl(drawControl);
     drawnItemsLayer.value.clearLayers();
     drawControl = null;
@@ -273,7 +305,7 @@ let manualDrawControl = null;
 watchEffect(() => {
   if (!mapRef.value) return;
 
-  if (props.isClickedToRevision && !manualDrawControl) {
+  if (isClickedToRevisionRef.value && !manualDrawControl) {
     manualDrawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -346,7 +378,7 @@ watchEffect(() => {
     });
   }
 
-  if (!props.isClickedToRevision && manualDrawControl) {
+  if (!isClickedToRevisionRef.value && manualDrawControl) {
     mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
     drawnItemsLayerAvailable.value.clearLayers();
