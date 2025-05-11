@@ -336,10 +336,10 @@ watchEffect(() => {
       <!-- Botões flutuantes -->
       <template v-if="!isEditing && !isClickedToManual && !isClickedToRevision">
         <div class="divButton">
-          <template v-if="data?.properties?.status !== 'Aprovado'">
+          <template v-if="data?.properties?.status === 'Pendente' || data?.properties?.status === 'Reprovado'">
             <button class="btn btn-primary button" @click="isClickedToManual = true">Classificar</button>
           </template>
-          <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado'">
+          <template v-if="data?.properties?.status === 'Em Análise'">
             <button class="btn btn-primary button" @click="isClickedToRevision = true">Avaliar</button>
           </template>
         </div>
