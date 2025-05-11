@@ -1,10 +1,15 @@
 <script setup>
-import { ref, defineProps, watchEffect, watch } from 'vue';
+import { ref, defineProps, watchEffect, watch, computed } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LControlScale } from '@vue-leaflet/vue-leaflet';
-import GeoRasterLayer from 'georaster-layer-for-leaflet';
-import georaster from 'georaster';
+import { useGeoTiffLoader } from './util/useGeotiffLoader.js';
+import {
+  loadFieldCoordinates,
+  loadRevisionClassification,
+  loadImages,
+  loadOverlay
+} from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
 
@@ -12,9 +17,8 @@ const polygonStore = usePolygonStore();
 
 const props = defineProps({
   data: Object,
-  isClickedClassified: Boolean,
-  isClickedClassifiedManual: Boolean,
-  glebeAvailable: Object
+  isClickedToManual: Boolean,
+  isClickedToRevision: Boolean,
 });
 
 const tileProviders = ref([
@@ -28,15 +32,22 @@ const tileProviders = ref([
 
 const zoom = ref(14);
 const mapRef = ref(null);
+const isClickedToManualRef = computed(() => props.isClickedToManual);
+const isClickedToRevisionRef = computed(() => props.isClickedToRevision);
 const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
-const glebeAvailableLayerGroup = ref(L.layerGroup());
+const manualLayerGroup = ref(L.layerGroup());
+const layerControlRef = ref(null);
+const revisionLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
 const drawnItemsLayer = ref(new L.FeatureGroup());
 const drawnItemsLayerAvailable = ref(new L.FeatureGroup());
 const editingLayer = ref(null);
+const fieldId = props.data.properties.id;
+const fieldCoordinates = props.data.geometry.coordinates;
+const fieldStatus = props.data.properties.status;
 
 const getEmptyPolygonsDraw = () => ({
   features: []
@@ -60,108 +71,93 @@ const onMapReady = async (map) => {
 
   glebaLayerGroup.value = L.layerGroup();
 
-  const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
-  const automaticClassification = props.data.automatic.features;
-
-  const multiPolygons = props.data.geometry.coordinates.map(polygon =>
-    polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+  const bounds = loadFieldCoordinates(
+    fieldCoordinates,
+    glebaLayerGroup
   );
-
-  const classificationMultiPolygons = automaticClassification.map(item => {
-
-   const rawCoords = item.geometry.coordinates;
-   const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-    return parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    );
-  });
-
-  let bounds = L.latLngBounds();
-
-  multiPolygons.forEach(polygonCoords => {
-    const glebaPolygon = L.polygon(polygonCoords, {
-      weight: 3,
-      fillOpacity: 0
-    });
-    glebaLayerGroup.value.addLayer(glebaPolygon);
-    bounds = bounds.extend(glebaPolygon.getBounds());
-  });
-
-  classificationMultiPolygons.forEach(item => {
-    item.forEach(polygonCoords => {
-      const classificationPolygon = L.polygon(polygonCoords, {
-        weight: 4,
-        color: 'red',
-        fillOpacity: 0
-      });
-      classificationLayerGroup.value.addLayer(classificationPolygon);
-    });
-  });
 
   glebaLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
 
-  const overlays = {
-  'Gleba Polígono': glebaLayerGroup.value,
-  'Classificação Automática': classificationLayerGroup.value,
-  'Classificação Manual': glebeAvailableLayerGroup.value
-  };
+  const overlays = await loadOverlay(
+    fieldId,
+    glebaLayerGroup.value,
+    props.data.automatic.features,
+    classificationLayerGroup.value,
+    manualLayerGroup.value,
+  );
+
+  loadImages(props.data.images, tifLayersLoaded, overlays, tifLayerGroups)
 
   mapRef.value.createPane('manualClassificationPane');
-  mapRef.value.getPane('manualClassificationPane').style.zIndex = 99999;
+  mapRef.value.getPane('manualClassificationPane').style.zIndex = 650;
 
-  props.data.images.forEach((image, index) => {
-    const layerGroup = L.layerGroup();
-    tifLayerGroups.value.push(layerGroup);
-    overlays[image.name] = layerGroup;
-    tifLayersLoaded.value.push(false);
-  });
+  mapRef.value.createPane('revisionClassificationPane');
+  mapRef.value.getPane('revisionClassificationPane').style.zIndex = 600;
 
-  const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
+
+  layerControlRef.value = L.control.layers(baseLayers, overlays).addTo(map);
   map.fitBounds(bounds);
 
   watch(
-    () => props.glebeAvailable,
-    (newGlebeAvailable) => {
-      if (!mapRef.value) return;
-      glebeAvailableLayerGroup.value.clearLayers();
+  [() => isClickedToManualRef.value, () => isClickedToRevisionRef.value],
+  ([newManual, newRevision]) => {
+    console.log("isClickedToManual:", newManual);
+    console.log("isClickedToRevision:", newRevision);
+    updateOverlays(newManual, newRevision, overlays);
+  },
+  { immediate: false }
+);
 
-      if (newGlebeAvailable && newGlebeAvailable.features && newGlebeAvailable.features.length > 0) {
-        loadGlebeAvailableLayer(newGlebeAvailable.features);
 
-        if (!layerControl._layers || !Object.values(layerControl._layers).some(l => l.name === 'Classificação Manual')) {
-          layerControl.addOverlay(glebeAvailableLayerGroup.value, 'Classificação Manual');
-        }
-      } else {
-        if (layerControl._layers) {
-          const layerInfo = Object.entries(layerControl._layers).find(([key, l]) => l.name === 'Classificação Manual');
-          if (layerInfo) {
-            layerControl.removeLayer(glebeAvailableLayerGroup.value);
-          }
-        }
-      }
-    },
-    { immediate: true }
-  );
+function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
 
-  function loadGlebeAvailableLayer(features) {
-    features.forEach(feature => {
-      const rawCoords = feature.geometry.coordinates;
-      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-      parsedCoords.forEach(polygonCoords => {
-        const latlngs = polygonCoords.map(ring => ring.map(coord => [coord[1], coord[0]]));
-        const polygon = L.polygon(latlngs, {
-          weight: 2,
-          color: 'green',
-          fillOpacity: 0.3,
-          pane: 'manualClassificationPane'
-        });
-        glebeAvailableLayerGroup.value.addLayer(polygon);
-      });
-    });
+  // Retira camada de revisao
+  if(!(isClickedToRevision || isClickedToManual)){
+    mapRef.value.removeLayer(revisionLayerGroup.value);
+    layerControlRef.value.removeLayer(revisionLayerGroup.value);
+    delete currentOverlays['Revisão Manual'];
+    return;
   }
+
+  // Atualiza a camada de revisão
+  if (isClickedToRevision || isClickedToManual) {
+    if (!currentOverlays['Revisão Manual']) {
+      loadRevisionClassification(fieldId, revisionLayerGroup);
+      revisionLayerGroup.value.addTo(mapRef.value);
+      currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
+      mapRef.value.removeLayer(revisionLayerGroup.value);
+      layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+    }
+  }
+}
+
+
+  // watch(
+  //   () => props.glebeAvailable,
+  //   (newGlebeAvailable) => {
+  //     if (!mapRef.value) return;
+  //     glebeAvailableLayerGroup.value.clearLayers();
+
+
+  //     if (newGlebeAvailable && newGlebeAvailable.features && newGlebeAvailable.features.length > 0) {
+  //       loadGlebeAvailableLayer(newGlebeAvailable.features);
+
+  //       if (!layerControl._layers || !Object.values(layerControl._layers).some(l => l.name === 'Classificação Manual')) {
+  //         layerControl.addOverlay(glebeAvailableLayerGroup.value, 'Classificação Manual');
+
+  //       }
+  //     } else {
+  //       if (layerControl._layers) {
+  //         const layerInfo = Object.entries(layerControl._layers).find(([key, l]) => l.name === 'Classificação Manual');
+  //         if (layerInfo) {
+  //           layerControl.removeLayer(glebeAvailableLayerGroup.value);
+  //         }
+  //       }
+  //     }
+  //   },
+  //   { immediate: true }
+  // );
 
   map.on('click', (event) => {
     if (editingLayer.value && !editingLayer.value.getBounds().contains(event.latlng)) {
@@ -171,69 +167,16 @@ const onMapReady = async (map) => {
     }
   });
 
-  map.on('overlayadd', async (event) => {
-    const layerIndex = props.data.images.findIndex(img => img.name === event.name);
-    if (layerIndex !== -1 && !tifLayersLoaded.value[layerIndex]) {
-      await loadTif(props.data.images[layerIndex].link, layerIndex, coordinates);
-      tifLayersLoaded.value[layerIndex] = true;
-    }
-  });
+  useGeoTiffLoader(map, tifLayerGroups, props.data, fieldCoordinates, tifLayersLoaded);
 };
 
-async function loadTif(url, layerIndex, coordinates) {
-  console.log('Carregando GeoTIFF:', url);
-  try {
-    const clipArea = createClipAreaFromCoordinates(coordinates);
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Erro ao carregar GeoTIFF: " + url);
-
-    const arrayBuffer = await response.arrayBuffer();
-    const raster = await georaster(arrayBuffer);
-
-    const layer = new GeoRasterLayer({
-      georaster: raster,
-      opacity: 1,
-      resolution: 512,
-      mask: clipArea,
-      mask_strategy: "outside"
-    });
-
-    tifLayerGroups.value[layerIndex].addLayer(layer);
-  } catch (error) {
-    console.error("Erro ao carregar o GeoTIFF:", error);
-  }
-}
-
-function createClipAreaFromCoordinates(coordinates) {
-  return {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "properties": {},
-        "geometry": {
-          "type": "MultiPolygon",
-          "coordinates": coordinates
-        }
-      }
-    ]
-  };
-}
-
-function normalizeCoordinates(coordinates) {
-  const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
-  return coords.map(polygon =>
-    polygon.map(ring => ring)
-  );
-}
 
 let drawControl = null;
 
 watchEffect(() => {
   if (!mapRef.value) return;
 
-  if (props.isClickedClassified && !drawControl) {
+  if (isClickedToManualRef.value && !drawControl) {
     drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -348,7 +291,7 @@ watchEffect(() => {
     }
   }
 
-  if (!props.isClickedClassified && drawControl) {
+  if (!isClickedToManualRef.value && drawControl) {
     mapRef.value.removeControl(drawControl);
     drawnItemsLayer.value.clearLayers();
     drawControl = null;
@@ -362,13 +305,13 @@ let manualDrawControl = null;
 watchEffect(() => {
   if (!mapRef.value) return;
 
-  if (props.isClickedClassifiedManual && !manualDrawControl) {
+  if (isClickedToRevisionRef.value && !manualDrawControl) {
     manualDrawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
         polygon: true,
         polyline: false,
-        rectangle: false, 
+        rectangle: false,
         circle: false,
         marker: false,
         circlemarker: false,
@@ -435,7 +378,7 @@ watchEffect(() => {
     });
   }
 
-  if (!props.isClickedClassifiedManual && manualDrawControl) {
+  if (!isClickedToRevisionRef.value && manualDrawControl) {
     mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
     drawnItemsLayerAvailable.value.clearLayers();
@@ -500,6 +443,9 @@ watch(
   { deep: true }
 );
 
+
+
+//Store
 watch(
   polygonsDraw,
   (newVal) => {
@@ -524,7 +470,7 @@ watch(
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="isClickedClassified === true ? 24 : 18"
+      :max-zoom="isClickedToManual === true ? 24 : 18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
