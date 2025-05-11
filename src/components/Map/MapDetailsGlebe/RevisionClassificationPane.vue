@@ -75,7 +75,7 @@
     <!-- Ações -->
     <div class="w-100 mt-auto d-flex flex-column gap-2">
       <button class="btn btn-outline-white w-100 fw-bold border text-success" @click="cancelClickToAvaliation">Cancelar Avaliação</button>
-      <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Realizar aprovação</button>
+      <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSaveToAssess">Concluir Avaliação</button>
     </div>
   </div>
 

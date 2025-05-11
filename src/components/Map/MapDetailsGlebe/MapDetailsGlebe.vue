@@ -7,8 +7,10 @@ import { useGeoTiffLoader } from './util/useGeotiffLoader.js';
 import {
   loadFieldCoordinates,
   loadRevisionClassification,
+  loadManualClassification,
   loadImages,
-  loadOverlay
+  loadOverlay,
+  createNewManualClassification
 } from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
@@ -85,6 +87,7 @@ const onMapReady = async (map) => {
     props.data.automatic.features,
     classificationLayerGroup.value,
     manualLayerGroup.value,
+    fieldStatus
   );
 
   loadImages(props.data.images, tifLayersLoaded, overlays, tifLayerGroups)
@@ -110,10 +113,11 @@ const onMapReady = async (map) => {
 );
 
 
-function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
+async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
 
   // Retira camada de revisao
   if(!(isClickedToRevision || isClickedToManual)){
+    console.log("Removendo camada de revisão");
     mapRef.value.removeLayer(revisionLayerGroup.value);
     layerControlRef.value.removeLayer(revisionLayerGroup.value);
     delete currentOverlays['Revisão Manual'];
@@ -123,11 +127,32 @@ function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays)
   // Atualiza a camada de revisão
   if (isClickedToRevision || isClickedToManual) {
     if (!currentOverlays['Revisão Manual']) {
-      loadRevisionClassification(fieldId, revisionLayerGroup);
-      revisionLayerGroup.value.addTo(mapRef.value);
-      currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
-      mapRef.value.removeLayer(revisionLayerGroup.value);
-      layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+      const existRevision = await loadRevisionClassification(fieldId, revisionLayerGroup);
+      console.log("existRevision", existRevision);
+      if (existRevision) {
+        revisionLayerGroup.value.addTo(mapRef.value);
+        currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
+        mapRef.value.removeLayer(revisionLayerGroup.value);
+        layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+      }
+    }
+  }
+
+  if (isClickedToManual) {
+    if (!currentOverlays['Classificação Manual']) {
+      const existManual = await loadManualClassification(fieldId, manualLayerGroup.value);
+      if (existManual) {
+        manualLayerGroup.value.addTo(mapRef.value);
+        currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+        mapRef.value.removeLayer(manualLayerGroup.value);
+        layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
+      } else {
+        createNewManualClassification(props.data.automatic.features, manualLayerGroup.value)
+        manualLayerGroup.value.addTo(mapRef.value);
+        currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+        mapRef.value.removeLayer(manualLayerGroup.value);
+        layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
+      }
     }
   }
 }

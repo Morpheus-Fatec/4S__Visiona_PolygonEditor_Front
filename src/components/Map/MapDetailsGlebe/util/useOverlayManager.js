@@ -26,8 +26,8 @@ async function loadRevisionClassification(fieldId, revisionLayerGroup) {
   try {
     const revisionClassification = await getRevisionCollection(fieldId);
 
-    if (revisionClassification == null || revisionClassification.size == 0) {
-      return;
+    if (revisionClassification == null || revisionClassification.features.length == 0) {
+      return false;
     }
       const revisionMultiPolygons = revisionClassification.features.map(item => {
       const rawCoords = item.geometry.coordinates;
@@ -55,6 +55,7 @@ async function loadRevisionClassification(fieldId, revisionLayerGroup) {
         revisionLayerGroup.value.addLayer(revisionPolygon);
       });
     });
+    return true;
   } catch (error) {
     console.error('Erro ao carregar classificação de revisão:', error);
   }
@@ -144,6 +145,7 @@ async function loadOverlay(
   automaticClassification,
   classificationLayerGroup,
   manualLayerGroup,
+  fieldStatus
 ) {
   const overlays = {
     'Gleba Polígono': glebaLayerGroup,
@@ -151,15 +153,18 @@ async function loadOverlay(
   };
   loadAutomaticClassification(automaticClassification, classificationLayerGroup);
 
-  const existManual = await loadManualClassification(fieldId, manualLayerGroup, automaticClassification);
+  if (!(fieldStatus === 'Pendente')) {
+    const existManual = await loadManualClassification(fieldId, manualLayerGroup, automaticClassification);
+    console.log('existManual', existManual);
+    if (existManual) {
+      overlays['Classificação Manual'] = manualLayerGroup;
+    }
+    if (!existManual) {
+      createNewManualClassification(automaticClassification, manualLayerGroup);
+      overlays['Classificação Manual'] = manualLayerGroup;
+    }
+  }
 
-  if (existManual) {
-    overlays['Classificação Manual'] = manualLayerGroup;
-  }
-  if (!existManual) {
-    createNewManualClassification(automaticClassification, manualLayerGroup);
-    overlays['Classificação Manual'] = manualLayerGroup;
-  }
 
   return overlays;
 }
@@ -190,4 +195,5 @@ export {
   loadAutomaticClassification,
   loadImages,
   loadOverlay,
+  createNewManualClassification,
 };
