@@ -10,7 +10,8 @@ import {
   loadManualClassification,
   loadImages,
   loadOverlay,
-  createNewManualClassification
+  createNewManualClassification,
+  getManualToEdit
 } from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
@@ -39,7 +40,7 @@ const isClickedToRevisionRef = computed(() => props.isClickedToRevision);
 const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
-const manualLayerGroup = ref(L.layerGroup());
+const manualLayerGroup = ref(new L.FeatureGroup());
 const layerControlRef = ref(null);
 const revisionLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
@@ -55,7 +56,7 @@ const getEmptyPolygonsDraw = () => ({
   features: []
 });
 
-const polygonsDraw = ref(getEmptyPolygonsDraw());
+const polygonsDraw = ref();
 const polygonsDrawAnalisct = ref(getEmptyPolygonsDraw());
 
 const onMapReady = async (map) => {
@@ -154,6 +155,7 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
         layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
       }
     }
+    await getManualToEdit(manualLayerGroup.value, props.data.automatic.features, polygonsDraw);
   }
 }
 
@@ -201,7 +203,9 @@ let drawControl = null;
 watchEffect(() => {
   if (!mapRef.value) return;
 
+  // Ativar modo de edição manual
   if (isClickedToManualRef.value && !drawControl) {
+    // Inicializa controle de desenho
     drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
@@ -216,20 +220,18 @@ watchEffect(() => {
       edit: {
         edit: false,
         remove: false,
-        featureGroup: drawnItemsLayer.value
+        featureGroup: manualLayerGroup.value
       },
     });
 
     mapRef.value.addControl(drawControl);
-    drawnItemsLayer.value.addTo(mapRef.value);
+    manualLayerGroup.value.addTo(mapRef.value);
 
+    // Evento de criação de novo polígono
     mapRef.value.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geojson = layer.toGeoJSON();
-      const coords = geojson.geometry.coordinates;
-
       const newId = Date.now();
-
       const areaInSquareMeters = turf.area(geojson);
       const area = (areaInSquareMeters / 10000).toFixed(4);
 
@@ -240,88 +242,102 @@ watchEffect(() => {
       };
       layer.feature = geojson;
 
-      layer.on('click', (event) => {
-        event.originalEvent.stopPropagation();
-        startEditPolygon(layer);
-      });
-
-      let pressTimer = null;
-
-      layer.on('mousedown', (event) => {
-        event.originalEvent.stopPropagation();
-        pressTimer = setTimeout(() => {
-          deletePolygon(layer);
-        }, 400);
-      });
-
-      layer.on('mouseup', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.on('mouseout', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.setStyle({
-        color: 'orange',
-        fillColor: 'orange',
-        weight: 2
-      });
+      setupLayerEvents(layer, 'orange'); // cor diferente para novos
 
       const exists = polygonsDraw.value.features.find(f => f.properties.id === newId);
       if (!exists) {
         polygonsDraw.value.features.push(layer.toGeoJSON());
       }
 
-      drawnItemsLayer.value.addLayer(layer);
+      manualLayerGroup.value.addLayer(layer);
     });
 
-    function startEditPolygon(layer) {
-      drawnItemsLayer.value.eachLayer(l => {
-        if (l.editing && l.editing.enabled() && l !== layer) {
-          l.editing.disable();
+    // Carrega polígonos existentes do banco
+    polygonsDraw.value.features.forEach((feature) => {
+      const geoLayer = L.geoJSON(feature, {
+        onEachFeature: (featureData, layerInstance) => {
+          layerInstance.feature = featureData;
+          setupLayerEvents(layerInstance, 'blue'); // cor dos existentes
+          manualLayerGroup.value.addLayer(layerInstance);
         }
       });
-
-      if (layer.editing) {
-        layer.editing.enable();
-        editingLayer.value = layer;
-
-        layer.on('edit', () => {
-          const geojson = layer.toGeoJSON();
-          const id = layer.feature?.properties?.id;
-
-          const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
-          if (index !== -1) {
-            polygonsDraw.value.features[index].geometry = {
-              type: "MultiPolygon",
-              coordinates: [[[geojson.geometry.coordinates[0]]]]
-            };
-            console.log("Polígono editado individualmente:", polygonsDraw.value.features[index]);
-          }
-        });
-      }
-    }
-
-    function deletePolygon(layer) {
-      const id = layer.feature?.properties?.id;
-      if (id != null) {
-        const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
-        if (index !== -1) {
-          polygonsDraw.value.features.splice(index, 1);
-          drawnItemsLayer.value.removeLayer(layer);
-          console.log("Polígono deletado:", id);
-        }
-      }
-    }
+    });
   }
 
+  // Desativar modo manual
   if (!isClickedToManualRef.value && drawControl) {
     mapRef.value.removeControl(drawControl);
-    drawnItemsLayer.value.clearLayers();
+    manualLayerGroup.value.clearLayers();
     drawControl = null;
     polygonsDraw.value = getEmptyPolygonsDraw();
     editingLayer.value = null;
+  }
+
+  // === Funções auxiliares ===
+
+  function setupLayerEvents(layer, color) {
+    // Estilo de destaque
+    layer.setStyle({
+      color: color,
+      fillColor: color,
+      weight: 2
+    });
+
+    // Habilita edição ao clicar
+    layer.on('click', (event) => {
+      event.originalEvent.stopPropagation();
+      startEditPolygon(layer);
+    });
+
+    // Pressionar para deletar
+    let pressTimer = null;
+    layer.on('mousedown', (event) => {
+      event.originalEvent.stopPropagation();
+      pressTimer = setTimeout(() => {
+        deletePolygon(layer);
+      }, 400);
+    });
+    layer.on('mouseup', () => clearTimeout(pressTimer));
+    layer.on('mouseout', () => clearTimeout(pressTimer));
+  }
+
+  function startEditPolygon(layer) {
+    manualLayerGroup.value.eachLayer(l => {
+      if (l.editing && l.editing.enabled() && l !== layer) {
+        l.editing.disable();
+      }
+    });
+
+    if (layer.editing) {
+      layer.editing.enable();
+      editingLayer.value = layer;
+
+      layer.on('edit', () => {
+        const geojson = layer.toGeoJSON();
+        const id = layer.feature?.properties?.id;
+
+        const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
+        if (index !== -1) {
+          polygonsDraw.value.features[index].geometry = {
+            type: "MultiPolygon",
+            coordinates: [[[geojson.geometry.coordinates[0]]]]
+          };
+          console.log("Polígono editado individualmente:", polygonsDraw.value.features[index]);
+        }
+      });
+    }
+  }
+
+  function deletePolygon(layer) {
+    const id = layer.feature?.properties?.id;
+    if (id != null) {
+      const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
+      if (index !== -1) {
+        polygonsDraw.value.features.splice(index, 1);
+        manualLayerGroup.value.removeLayer(layer);
+        console.log("Polígono deletado:", id);
+      }
+    }
   }
 });
 

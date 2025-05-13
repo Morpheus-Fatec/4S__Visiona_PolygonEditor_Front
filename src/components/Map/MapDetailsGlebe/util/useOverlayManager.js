@@ -62,7 +62,7 @@ async function loadRevisionClassification(fieldId, revisionLayerGroup) {
 }
 
 
-async function loadManualClassification(fieldId, manualLayerGroup) {
+async function loadManualClassification(fieldId, manualLayerGroup ) {
 
   const manualClassification = await getManualCollection(fieldId);
 
@@ -90,6 +90,65 @@ async function loadManualClassification(fieldId, manualLayerGroup) {
   });
   return true;
 }
+
+async function getManualToEdit(manualLayerGroup, automatic, polygonsDraw) {
+
+  const manualClassification = await getManualCollection(fieldId);
+
+  if (manualClassification == null || manualClassification.features.length == 0) {
+
+    const automaticClassification = automatic;
+    return false;
+  }
+
+  console.log("Polígonos feature req:", manualClassificationReq.features);
+
+  const parsedFeatures = manualClassificationReq.features.map(feature => {
+    let geometry = feature.geometry;
+
+    // Caso geometry seja string, tenta fazer parse
+    if (typeof geometry === 'string') {
+      try {
+        geometry = JSON.parse(geometry);
+      } catch (e) {
+        console.error('Erro ao fazer parse da geometria:', e);
+        return null;
+      }
+    }
+
+    // Caso coordinates ainda sejam string (como parece no seu caso), faz o parse
+    if (typeof geometry.coordinates === 'string') {
+      try {
+        geometry.coordinates = JSON.parse(geometry.coordinates);
+      } catch (e) {
+        console.error('Erro ao fazer parse das coordenadas:', e);
+        return null;
+      }
+    }
+
+    // Se for MultiPolygon, converte para Polygon pegando o primeiro anel
+    if (geometry.type === 'MultiPolygon') {
+      geometry = {
+        type: 'Polygon',
+        coordinates: geometry.coordinates[0] || [] // Pega o primeiro polígono
+      };
+    }
+
+    return {
+      ...feature,
+      geometry
+    };
+  }).filter(f => f !== null);
+
+  polygonsDraw.value = {
+    features: parsedFeatures
+  };
+
+  console.log("Polígonos feature edit:", polygonsDraw.value.features);
+  return true;
+}
+
+
 
 function createNewManualClassification(automaticClassification, manualLayerGroup) {
   if (automaticClassification == null || automaticClassification.size== 0) {
@@ -159,10 +218,10 @@ async function loadOverlay(
     if (existManual) {
       overlays['Classificação Manual'] = manualLayerGroup;
     }
-    if (!existManual) {
-      createNewManualClassification(automaticClassification, manualLayerGroup);
-      overlays['Classificação Manual'] = manualLayerGroup;
-    }
+    // if (!existManual) {
+    //   createNewManualClassification(automaticClassification, manualLayerGroup);
+    //   overlays['Classificação Manual'] = manualLayerGroup;
+    // }
   }
 
 
@@ -196,4 +255,5 @@ export {
   loadImages,
   loadOverlay,
   createNewManualClassification,
+  getManualToEdit,
 };
