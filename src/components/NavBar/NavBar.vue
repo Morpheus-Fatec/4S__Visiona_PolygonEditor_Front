@@ -24,7 +24,10 @@ import {RouterLink} from 'vue-router'
         <li class="nav-item">
             <RouterLink class="nav-link" to="/operacoes">Visualizar Talhões</RouterLink>
         </li>
-        
+        <li class="nav-item">
+            <RouterLink class="nav-link" to="/cadastro">Cadastrar Talhão</RouterLink>
+        </li>
+
         <!-- Dropdown Gerenciar -->
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="gerenciarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

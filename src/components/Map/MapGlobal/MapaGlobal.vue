@@ -150,11 +150,11 @@ const handlePrintId = () => {
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
                   <span class="fw-bold">Cultura:</span>
-                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.culture}}</span>
+                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.culture.nome}}</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
                   <span class="fw-bold">Solo:</span>
-                  <span class="badge bg-secondary text-white">{{geoFilterData.properties.soil}}</span>
+                  <span class="badge bg-secondary text-white">{{ geoFilterData.properties.soil.nome}}</span>
                 </li>
                 <li class="list-group-item d-flex gap-2 pt-3 pb-3 align-items-center">
                   <span class="fw-bold">Status</span>

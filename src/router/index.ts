@@ -56,7 +56,7 @@ const router = createRouter({
       meta: { requiresAuth: true } 
     },
     {
-      path: '/',
+      path: '/cadastro',
       name: 'register',
       component: RegisterView,
       meta: { requiresAuth: true } 

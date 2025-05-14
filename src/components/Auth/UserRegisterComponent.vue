@@ -53,7 +53,7 @@ const buttonRegister = async () => {
 
     try {
         const response = await api.post('/user/cadastrarUsuario', payload);
-        successMessage.value = "Usuário cadastrado com sucesso.";
+        //successMessage.value = "Usuário cadastrado com sucesso.";
         setTimeout(() => {
             successMessage.value = "";
         }, 3000);
@@ -187,7 +187,6 @@ const buttonEdit = async () => {
 
     try {
         const response = await api.put(`/user/${editingUserId.value}`, payload);
-        successMessage.value = "Usuário editado com sucesso.";
         setTimeout(() => {
             successMessage.value = "";
         }, 3000);
@@ -195,7 +194,9 @@ const buttonEdit = async () => {
         toggleEditCollapse();
         if (isPasswordChanged) {
             openModalConfirmationEmail(userFields.email, isPasswordChanged);
-        }
+        }else {
+            successMessage.value = "Usuário editado com sucesso.";
+        }   
     } catch (error) {
         console.error(error);
         errorMessage.value = error.response?.data?.error;
@@ -282,7 +283,7 @@ onMounted(fetchUsers);
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tipo de Usuário:</label>
                         <select v-model="userFields.userType" class="form-select"
-                            :class="{ 'is-invalid': formValidated && !userType }">
+                            :class="{ 'is-invalid': formValidated && !userFields.userType }">
                             <option disabled value="">Selecione</option>
                             <option value="isAdmin">Administrador</option>
                             <option value="isAnalyst">Analista</option>
@@ -304,7 +305,7 @@ onMounted(fetchUsers);
                         <label class="form-label">Confirme o Email:</label>
                         <input v-model="userFields.confirmEmail" type="email" class="form-control"
                             placeholder="name@example.com"
-                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
+                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || userFields.confirmEmail !== userFields.email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
                 </div>
@@ -368,7 +369,7 @@ onMounted(fetchUsers);
                         <label class="form-label">Confirme o Email:</label>
                         <input v-model="userFields.confirmEmail" type="email" class="form-control"
                             placeholder="name@example.com"
-                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || confirmEmail !== email) }" />
+                            :class="{ 'is-invalid': formValidated && (!userFields.confirmEmail.trim() || userFields.confirmEmail !== userFields.email) }" />
                         <div class="invalid-feedback">Emails não coincidem.</div>
                     </div>
                 </div>
@@ -466,14 +467,16 @@ onMounted(fetchUsers);
             <div class="modal-dialog">
                 <div v-if="!isPasswordChangedModal" class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha enviada</h5>
+                        <h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Usuário cadastrado </h5>
+                        <!--<h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha enviada</h5>-->
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p class=" fs-5  mb-4">A senha foi enviada para o email cadastrado: <strong>{{ userFields.email
+                        <p>O usuário <strong style="font-weight: bold;"> {{ userFields.name }}</strong> foi cadastrado com sucesso!</p>
+                        <!--<p class=" fs-5  mb-4">A senha foi enviada para o email cadastrado: <strong>{{ userFields.email
                                 }}</strong></p>
                         <p> </p>
-                        <p class="text-muted mb-2">Verifique a caixa de entrada ou pasta de spam.</p>
+                        <p class="text-muted mb-2">Verifique a caixa de entrada ou pasta de spam.</p>-->
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
@@ -481,15 +484,17 @@ onMounted(fetchUsers);
                 </div>
                 <div v-else class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha enviada</h5>
+                        <h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha alterada</h5>
+                        <!--<h5 class="modal-title  fs-5"><i class="bi bi-check-circle-fill"></i> Senha enviada</h5>-->
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p class=" fs-5  mb-4">A nova senha foi enviada para o email cadastrado: <strong>{{
+                        <p>A senha do usuário <strong style="font-weight: bold;">{{ userFields.name }}</strong> foi alterada com sucesso!</p>
+                        <!--<p class=" fs-5  mb-4">A nova senha foi enviada para o email cadastrado: <strong>{{
                             userFields.email
                                 }}</strong></p>
                         <p> </p>
-                        <p class="text-muted mb-2">Verifique a caixa de entrada ou pasta de spam.</p>
+                        <p class="text-muted mb-2">Verifique a caixa de entrada ou pasta de spam.</p>-->
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
