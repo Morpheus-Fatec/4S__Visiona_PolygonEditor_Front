@@ -116,6 +116,17 @@
           </div>
         </div>
       </div>
+
+      <div class="modal fade" id="modalLoading" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content text-center border-0 bg-transparent shadow-none">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+              <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3 text-white fw-bold">Salvando classificação...</p>
+          </div>
+        </div>
+      </div>
 </template>
 
 <script setup>
@@ -236,8 +247,9 @@ async function handleSaveClassification() {
   }
 
   const payload = buildSaveClassificationPayload();
-  console.log(payload);
-
+  const loadingModal = document.getElementById('modalLoading');
+  const loadingModalInstance = new bootstrap.Modal(loadingModal);
+  loadingModalInstance.show();
   try {
     const response = await api.post('/classification/manualClassification', payload, {
       headers: {
@@ -272,6 +284,8 @@ async function handleSaveClassification() {
       'Ocorreu um erro ao salvar a classificação. Tente novamente.',
       'error'
     );
+  }finally {
+    loadingModalInstance.hide();
   }
 }
 async function loadData() {
