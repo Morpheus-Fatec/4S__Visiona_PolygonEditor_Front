@@ -7,11 +7,9 @@ import { useGeoTiffLoader } from './util/useGeotiffLoader.js';
 import {
   loadFieldCoordinates,
   loadRevisionClassification,
-  loadManualClassification,
   loadImages,
   loadOverlay,
-  createNewManualClassification,
-  getManualToEdit
+  getManualToEdit,
 } from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
@@ -56,7 +54,7 @@ const getEmptyPolygonsDraw = () => ({
   features: []
 });
 
-const polygonsDraw = ref();
+const polygonsDraw = ref(getEmptyPolygonsDraw());
 const polygonsDrawAnalisct = ref(getEmptyPolygonsDraw());
 
 const onMapReady = async (map) => {
@@ -108,13 +106,14 @@ const onMapReady = async (map) => {
   ([newManual, newRevision]) => {
     console.log("isClickedToManual:", newManual);
     console.log("isClickedToRevision:", newRevision);
-    updateOverlays(newManual, newRevision, overlays);
+    updateOverlays(newManual, newRevision, overlays, polygonsDraw);
   },
   { immediate: false }
 );
 
 
-async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
+
+async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays, polygonsDraw) {
 
   // Retira camada de revisao
   if(!(isClickedToRevision || isClickedToManual)){
@@ -140,22 +139,14 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
   }
 
   if (isClickedToManual) {
-    if (!currentOverlays['Classificação Manual']) {
-      const existManual = await loadManualClassification(fieldId, manualLayerGroup.value);
-      if (existManual) {
-        manualLayerGroup.value.addTo(mapRef.value);
-        currentOverlays['Classificação Manual'] = manualLayerGroup.value;
-        mapRef.value.removeLayer(manualLayerGroup.value);
-        layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
-      } else {
-        createNewManualClassification(props.data.automatic.features, manualLayerGroup.value)
-        manualLayerGroup.value.addTo(mapRef.value);
-        currentOverlays['Classificação Manual'] = manualLayerGroup.value;
-        mapRef.value.removeLayer(manualLayerGroup.value);
-        layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
-      }
-    }
-    await getManualToEdit(manualLayerGroup.value, props.data.automatic.features, polygonsDraw);
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    await getManualToEdit(fieldId, manualLayerGroup.value, props.data.automatic.features, polygonsDraw);
+    manualLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
   }
 }
 

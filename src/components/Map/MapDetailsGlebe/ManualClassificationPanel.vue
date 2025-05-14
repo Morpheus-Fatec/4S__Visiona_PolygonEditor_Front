@@ -129,7 +129,6 @@ const props = defineProps({
   selectedUser: Number
 });
 const emit = defineEmits(['update:selectedUser', 'cancel']);
-console.log("DATA: ", props.data);
 const polygonStore = usePolygonStore();
 const polygons = computed(() => polygonStore.polygonsDraw);
 const localSelectedUser = ref(props.selectedUser);

@@ -26,6 +26,7 @@ export async function getManualCollection(fieldId) {
       withCredentials: true,
     });
     const result = response.data;
+
     return result;
   } catch (error) {
     console.error("Erro ao carregar manualCollection:", error);

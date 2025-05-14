@@ -91,19 +91,19 @@ async function loadManualClassification(fieldId, manualLayerGroup ) {
   return true;
 }
 
-async function getManualToEdit(manualLayerGroup, automatic, polygonsDraw) {
+async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDraw) {
 
   const manualClassification = await getManualCollection(fieldId);
 
-  if (manualClassification == null || manualClassification.features.length == 0) {
+  let featuresClassification;
 
-    const automaticClassification = automatic;
-    return false;
+  if (manualClassification == null || manualClassification.features.length == 0) {
+    featuresClassification = automatic;
+  }else{
+    featuresClassification = manualClassification.features;
   }
 
-  console.log("Polígonos feature req:", manualClassificationReq.features);
-
-  const parsedFeatures = manualClassificationReq.features.map(feature => {
+  const parsedFeatures = featuresClassification.map(feature => {
     let geometry = feature.geometry;
 
     // Caso geometry seja string, tenta fazer parse
@@ -125,8 +125,6 @@ async function getManualToEdit(manualLayerGroup, automatic, polygonsDraw) {
         return null;
       }
     }
-
-    // Se for MultiPolygon, converte para Polygon pegando o primeiro anel
     if (geometry.type === 'MultiPolygon') {
       geometry = {
         type: 'Polygon',
@@ -143,37 +141,31 @@ async function getManualToEdit(manualLayerGroup, automatic, polygonsDraw) {
   polygonsDraw.value = {
     features: parsedFeatures
   };
+  createManualLayer(manualLayerGroup, parsedFeatures);
 
-  console.log("Polígonos feature edit:", polygonsDraw.value.features);
   return true;
 }
 
+function createManualLayer(manualLayerGroup, parsedFeatures){
+  parsedFeatures.forEach(feature => {
+    const geometry = feature.geometry;
 
+    if (geometry.type === 'Polygon') {
+      const coords = geometry.coordinates.map(ring =>
+        ring.map(coord => [coord[1], coord[0]]) // Invertemos de [lon, lat] para [lat, lon]
+      );
 
-function createNewManualClassification(automaticClassification, manualLayerGroup) {
-  if (automaticClassification == null || automaticClassification.size== 0) {
-    return;
-  }
-  const manualMultiPolygons = automaticClassification.map(item => {
-    const rawCoords = item.geometry.coordinates;
-    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-    return parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    );
-  });
-
-  manualMultiPolygons.forEach(item => {
-    item.forEach(polygonCoords => {
-      const revisionPolygon = L.polygon(polygonCoords, {
+      const polygon = L.polygon(coords, {
         weight: 4,
         color: 'blue',
         fillOpacity: 0.2
       });
-      manualLayerGroup.addLayer(revisionPolygon);
-    });
+
+      manualLayerGroup.addLayer(polygon);
+    }
   });
 }
+
 
 function loadAutomaticClassification(automaticClassification, classificationLayerGroup) {
   const classificationMultiPolygons = automaticClassification.map(item => {
@@ -218,10 +210,6 @@ async function loadOverlay(
     if (existManual) {
       overlays['Classificação Manual'] = manualLayerGroup;
     }
-    // if (!existManual) {
-    //   createNewManualClassification(automaticClassification, manualLayerGroup);
-    //   overlays['Classificação Manual'] = manualLayerGroup;
-    // }
   }
 
 
@@ -250,10 +238,7 @@ function normalizeCoordinates(coordinates) {
 export {
   loadFieldCoordinates,
   loadRevisionClassification,
-  loadManualClassification,
-  loadAutomaticClassification,
   loadImages,
   loadOverlay,
-  createNewManualClassification,
   getManualToEdit,
 };
