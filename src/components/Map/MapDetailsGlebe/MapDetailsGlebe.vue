@@ -142,7 +142,6 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     mapRef.value.removeLayer(manualLayerGroup.value);
     layerControlRef.value.removeLayer(manualLayerGroup.value);
     delete currentOverlays['Classificação Manual'];
-    await getManualToEdit(fieldId, manualLayerGroup.value, props.data.automatic.features, polygonsDraw);
     manualLayerGroup.value.addTo(mapRef.value);
     currentOverlays['Classificação Manual'] = manualLayerGroup.value;
     mapRef.value.removeLayer(manualLayerGroup.value);
@@ -164,17 +163,14 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
 
 let drawControl = null;
 
-watchEffect(() => {
+watchEffect(async () => {
   if (!mapRef.value) return;
 
   // Ativar modo de edição manual
   if (isClickedToManualRef.value && !drawControl) {
     drawControl = new L.Control.Draw({
       position: 'topright',
-      edit: {
-        featureGroup: manualLayerGroup.value,
-        remove: true
-      },
+      edit: false,
       draw: {
         polygon: true,
         polyline: false,
@@ -186,6 +182,25 @@ watchEffect(() => {
     });
 
     mapRef.value.addControl(drawControl);
+
+    try{
+      await getManualToEdit(fieldId, manualLayerGroup.value, props.data.automatic.features, polygonsDraw);
+    }
+    catch (error) {
+      console.error("Erro ao adicionar controle de desenho:", error);
+    }
+
+    for (const layer of manualLayerGroup.value.getLayers()) {
+      const geojson = layer.toGeoJSON();
+      layer.feature = geojson;
+      layer.setStyle({
+        weight: 4,
+        color: 'purple',
+        fillOpacity: 0.2
+      });
+
+      attachManualLayerEvents(layer);
+    }
 
     // Evento de criação de novo polígono
     mapRef.value.on(L.Draw.Event.CREATED, (event) => {
@@ -205,36 +220,16 @@ watchEffect(() => {
       layer.feature = geojson;
 
       layer.setStyle({
-        color: 'orange',       // Cor da borda
-        weight: 2,             // Espessura da borda
-        opacity: 1,            // Opacidade da borda
-        fillColor: '#orange',  // Cor de preenchimento
-        fillOpacity: 0.4       // Opacidade do preenchimento
+        color: 'orange',
+        weight: 2,
+        opacity: 1,
+        fillColor: '#orange',
+        fillOpacity: 0.4
       });
 
       manualLayerGroup.value.addLayer(layer);
-
-      layer.on('click', (event) => {
-        event.originalEvent.stopPropagation();
-        startEditPolygonManual(layer);
-      });
-
-      let pressTimer = null;
-
-      layer.on('mouseup', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.on('mouseout', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.on('mousedown', (event) => {
-        event.originalEvent.stopPropagation();
-        pressTimer = setTimeout(() => {
-          deletePolygonManual(layer); // Deletar o polígono após o tempo
-        }, 400);
-      });
+      attachManualLayerEvents(layer);
+      polygonsDraw.value.features.push(layer.toGeoJSON());
     });
   }
 
@@ -251,7 +246,7 @@ watchEffect(() => {
   function startEditPolygonManual(layer) {
     if (!editingLayer.value) {
       editingLayer.value = layer;
-      editingLayer.value.editing.enable(); // Ativa o modo de edição
+      editingLayer.value.editing.enable();
       console.log("Edição iniciada no polígono.");
     }
   }
@@ -259,13 +254,36 @@ watchEffect(() => {
   // Função para deletar o polígono
   function deletePolygonManual(layer) {
     if (manualLayerGroup.value.hasLayer(layer)) {
-      manualLayerGroup.value.removeLayer(layer); // Remove o polígono
+      manualLayerGroup.value.removeLayer(layer);
       console.log("Polígono deletado.");
     }
   }
+
+  // Função reutilizável para associar eventos aos polígonos manuais
+  function attachManualLayerEvents(layer) {
+    layer.on('click', (event) => {
+      event.originalEvent.stopPropagation();
+      startEditPolygonManual(layer);
+    });
+
+    let pressTimer = null;
+
+    layer.on('mouseup', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mouseout', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mousedown', (event) => {
+      event.originalEvent.stopPropagation();
+      pressTimer = setTimeout(() => {
+        deletePolygonManual(layer);
+      }, 400);
+    });
+  }
 });
-
-
 
 
 
