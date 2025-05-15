@@ -10,6 +10,7 @@ import {
   loadImages,
   loadOverlay,
   getManualToEdit,
+  getRevisionToEdit,
 } from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
@@ -39,23 +40,18 @@ const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const manualLayerGroup = ref(new L.FeatureGroup());
+const revisionLayerGroup = ref(new L.FeatureGroup());
 const layerControlRef = ref(null);
-const revisionLayerGroup = ref(L.layerGroup());
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
-const drawnItemsLayer = ref(new L.FeatureGroup());
-const drawnItemsLayerAvailable = ref(new L.FeatureGroup());
 const editingLayer = ref(null);
 const fieldId = props.data.properties.id;
 const fieldCoordinates = props.data.geometry.coordinates;
 const fieldStatus = props.data.properties.status;
 
-const getEmptyPolygonsDraw = () => ({
-  features: []
-});
 
-const polygonsDraw = ref(getEmptyPolygonsDraw());
-const polygonsDrawAnalisct = ref(getEmptyPolygonsDraw());
+const polygonsDraw = ref();
+const polygonsDrawAnalisct = ref();
 
 const onMapReady = async (map) => {
   mapRef.value = map;
@@ -106,14 +102,14 @@ const onMapReady = async (map) => {
   ([newManual, newRevision]) => {
     console.log("isClickedToManual:", newManual);
     console.log("isClickedToRevision:", newRevision);
-    updateOverlays(newManual, newRevision, overlays, polygonsDraw);
+    updateOverlays(newManual, newRevision, overlays);
   },
   { immediate: false }
 );
 
 
 
-async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays, polygonsDraw) {
+async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
 
   // Retira camada de revisao
   if(!(isClickedToRevision || isClickedToManual)){
@@ -124,8 +120,14 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     return;
   }
 
-  // Atualiza a camada de revisão
-  if (isClickedToRevision || isClickedToManual) {
+  if (isClickedToManual) {
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    manualLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
     if (!currentOverlays['Revisão Manual']) {
       const existRevision = await loadRevisionClassification(fieldId, revisionLayerGroup);
       console.log("existRevision", existRevision);
@@ -136,17 +138,19 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
         layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
       }
     }
+
   }
 
-  if (isClickedToManual) {
-    mapRef.value.removeLayer(manualLayerGroup.value);
-    layerControlRef.value.removeLayer(manualLayerGroup.value);
-    delete currentOverlays['Classificação Manual'];
-    manualLayerGroup.value.addTo(mapRef.value);
-    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
-    mapRef.value.removeLayer(manualLayerGroup.value);
-    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
+  if (isClickedToRevision) {
+    mapRef.value.removeLayer(revisionLayerGroup.value);
+    layerControlRef.value.removeLayer(revisionLayerGroup.value);
+    delete currentOverlays['Revisão Manual'];
+    revisionLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
+    mapRef.value.removeLayer(revisionLayerGroup.value);
+    layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
   }
+
 }
 
   map.on('click', (event) => {
@@ -236,7 +240,6 @@ watchEffect(async () => {
   // Remover controle de desenho quando o modo manual for desativado
   if (!isClickedToManualRef.value && drawControl) {
     mapRef.value.removeControl(drawControl);
-    drawnItemsLayer.value.clearLayers();
     drawControl = null;
     polygonsDraw.value = getEmptyPolygonsDraw();
     editingLayer.value = null;
@@ -287,9 +290,11 @@ watchEffect(async () => {
 
 
 
+
+
 let manualDrawControl = null;
 
-watchEffect(() => {
+watchEffect( async () => {
   if (!mapRef.value) return;
 
   if (isClickedToRevisionRef.value && !manualDrawControl) {
@@ -304,14 +309,36 @@ watchEffect(() => {
         circlemarker: false,
       },
       edit: {
-        featureGroup: drawnItemsLayerAvailable.value,
+        featureGroup: revisionLayerGroup.value,
         edit: false,
         remove: false,
       },
     });
 
     mapRef.value.addControl(manualDrawControl);
-    drawnItemsLayerAvailable.value.addTo(mapRef.value);
+    try{
+     await getRevisionToEdit(fieldId, revisionLayerGroup.value, polygonsDrawAnalisct);
+    }
+    catch (error) {
+      console.error("Erro ao adicionar controle de desenho:", error);
+    }
+
+    for (const layer of revisionLayerGroup.value.getLayers()) {
+      const geojson = layer.toGeoJSON();
+      layer.feature = geojson;
+
+      layer.setStyle({
+        weight: 4,
+        color: 'yellow',
+        fillOpacity: 0.2
+      });
+      console.log("layer", layer);
+
+      attachManualLayerEvents(layer);
+    }
+
+
+    revisionLayerGroup.value.addTo(mapRef.value);
 
     mapRef.value.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
@@ -324,9 +351,9 @@ watchEffect(() => {
       layer.feature = geojson;
 
       layer.setStyle({
-        color: 'blue',
-        fillColor: 'blue',
-        weight: 2
+        weight: 4,
+        color: 'yellow',
+        fillOpacity: 0.2
       });
 
       layer.on('click', (event) => {
@@ -361,22 +388,45 @@ watchEffect(() => {
         polygonsDrawAnalisct.value.features.push(layer.toGeoJSON());
       }
 
-      drawnItemsLayerAvailable.value.addLayer(layer);
+      revisionLayerGroup.value.addLayer(layer);
     });
   }
 
   if (!isClickedToRevisionRef.value && manualDrawControl) {
     mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
-    drawnItemsLayerAvailable.value.clearLayers();
     manualDrawControl = null;
     polygonsDrawAnalisct.value = getEmptyPolygonsDraw();
     editingLayer.value = null;
   }
-});
 
-function startEditPolygon(layer) {
-  drawnItemsLayerAvailable.value.eachLayer(l => {
+    // Função reutilizável para associar eventos aos polígonos manuais
+  function attachManualLayerEvents(layer) {
+    layer.on('click', (event) => {
+      event.originalEvent.stopPropagation();
+      startEditPolygon(layer);
+    });
+
+    let pressTimer = null;
+
+    layer.on('mouseup', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mouseout', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mousedown', (event) => {
+      event.originalEvent.stopPropagation();
+      pressTimer = setTimeout(() => {
+        deletePolygon(layer);
+      }, 400);
+    });
+  }
+
+  function startEditPolygon(layer) {
+  revisionLayerGroup.value.eachLayer(l => {
     if (l.editing && l.editing.enabled() && l !== layer) {
       l.editing.disable();
     }
@@ -403,16 +453,15 @@ function startEditPolygon(layer) {
 }
 
 function deletePolygon(layer) {
-  const id = layer.feature?.properties?.id;
-  if (id != null) {
-    const index = polygonsDrawAnalisct.value.features.findIndex(f => f.properties.id === id);
-    if (index !== -1) {
-      polygonsDrawAnalisct.value.features.splice(index, 1);
-      drawnItemsLayerAvailable.value.removeLayer(layer);
-      console.log("Polígono deletado:", id);
+  console.log("Deletando polígono:", layer);
+   if (revisionLayerGroup.value.hasLayer(layer)) {
+      revisionLayerGroup.value.removeLayer(layer);
+      console.log("Polígono deletado.");
     }
-  }
 }
+});
+
+
 
 watch(
   () => polygonsDrawAnalisct.value,

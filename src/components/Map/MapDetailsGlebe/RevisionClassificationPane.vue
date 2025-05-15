@@ -387,7 +387,6 @@ async function handleSaveAnalisct(status) {
       },
       withCredentials: true,
     });
-    console.log('JSON:', payload);
 
     if (response && response.data) {
       showModalMessage(

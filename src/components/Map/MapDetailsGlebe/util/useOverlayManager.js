@@ -141,12 +141,70 @@ async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDra
   polygonsDraw.value = {
     features: parsedFeatures
   };
-  createManualLayer(manualLayerGroup, parsedFeatures);
+  createLayer(manualLayerGroup, parsedFeatures);
 
   return true;
 }
 
-function createManualLayer(manualLayerGroup, parsedFeatures){
+async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalisct) {
+  const revisionClassification = await getRevisionCollection(fieldId);
+
+  if (revisionClassification == null || revisionClassification.features.length === 0) {
+    return false;
+  }
+
+  const allParsedFeatures = [];
+
+  const revisionMultiPolygons = revisionClassification.features.map(item => {
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+    const invertedCoords = parsedCoords.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+    );
+
+    allParsedFeatures.push({
+      ...item,
+      geometry: {
+        ...item.geometry,
+        coordinates: parsedCoords // mantém o formato original (não invertido)
+      }
+    });
+
+    return {
+      description: item.properties.description,
+      polygons: invertedCoords
+    };
+  });
+
+  revisionMultiPolygons.forEach(item => {
+    item.polygons.forEach(polygonCoords => {
+      const revisionPolygon = L.polygon(polygonCoords, {
+        weight: 4,
+        color: 'yellow',
+        fillOpacity: 0.2
+      });
+
+      revisionPolygon.bindTooltip(item.description, {
+        permanent: true,
+        direction: 'center',
+        className: 'polygon-label'
+      });
+
+      revisionLayerGroup.addLayer(revisionPolygon);
+    });
+  });
+
+  polygonsDrawAnalisct.value = {
+    features: allParsedFeatures
+  };
+
+  return true;
+}
+
+
+
+function createLayer(layerGruop, parsedFeatures){
   parsedFeatures.forEach(feature => {
     const geometry = feature.geometry;
 
@@ -155,13 +213,13 @@ function createManualLayer(manualLayerGroup, parsedFeatures){
         ring.map(coord => [coord[1], coord[0]]) // Invertemos de [lon, lat] para [lat, lon]
       );
 
-      const polygon = L.polygon(coords, {
+        const polygon = L.polygon(coords, {
         weight: 4,
         color: 'blue',
         fillOpacity: 0.2
       });
 
-      manualLayerGroup.addLayer(polygon);
+      layerGruop.addLayer(polygon);
     }
   });
 }
@@ -241,4 +299,5 @@ export {
   loadImages,
   loadOverlay,
   getManualToEdit,
+  getRevisionToEdit,
 };
