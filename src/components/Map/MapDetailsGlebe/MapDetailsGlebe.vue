@@ -41,13 +41,15 @@ const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
 const manualLayerGroup = ref(new L.FeatureGroup());
 const revisionLayerGroup = ref(new L.FeatureGroup());
+const falsePositiveLayerGroup = ref(L.layerGroup());
+const falseNegativeLayerGroup = ref(L.layerGroup());
 const layerControlRef = ref(null);
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
 const editingLayer = ref(null);
 const fieldId = props.data.properties.id;
 const fieldCoordinates = props.data.geometry.coordinates;
-const fieldStatus = props.data.properties.status;
+const fieldStatus = computed(() => props.data.properties.status);
 
 
 const polygonsDraw = ref();
@@ -82,7 +84,7 @@ const onMapReady = async (map) => {
     props.data.automatic.features,
     classificationLayerGroup.value,
     manualLayerGroup.value,
-    fieldStatus
+    fieldStatus.value
   );
 
   loadImages(props.data.images, tifLayersLoaded, overlays, tifLayerGroups)
@@ -110,6 +112,26 @@ const onMapReady = async (map) => {
 
 
 async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
+
+  if (fieldStatus.value === "Aprovado") {
+    const [hasFalsePositive, hasFalseNegative] = await loadFalsePositiveClassification(
+      fieldId,
+      falsePositiveLayerGroup.value,
+      falseNegativeLayerGroup.value
+    );
+
+    if (hasFalsePositive) {
+      falsePositiveLayerGroup.value.addTo(mapRef.value);
+      currentOverlays['Falsos Positivos'] = falsePositiveLayerGroup.value;
+      layerControlRef.value.addOverlay(falsePositiveLayerGroup.value, 'Falsos Positivos');
+    }
+
+    if (hasFalseNegative) {
+      falseNegativeLayerGroup.value.addTo(mapRef.value);
+      currentOverlays['Falsos Negativos'] = falseNegativeLayerGroup.value;
+      layerControlRef.value.addOverlay(falseNegativeLayerGroup.value, 'Falsos Negativos');
+    }
+  }
 
   // Retira camada de revisao
   if(!(isClickedToRevision || isClickedToManual)){

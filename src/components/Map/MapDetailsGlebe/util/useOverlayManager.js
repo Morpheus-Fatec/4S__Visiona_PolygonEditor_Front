@@ -1,4 +1,5 @@
-import { getRevisionCollection, getManualCollection } from "./LoadClassification.js";
+import { getRevisionCollection, getManualCollection, getFalsePositive, getFalseNegative } from "./LoadClassification.js";
+
 
 function loadFieldCoordinates(coordinates, layerGroup) {
   const normalizedCoords = normalizeCoordinates(coordinates);
@@ -189,7 +190,7 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
       ...item,
       geometry: {
         ...item.geometry,
-        coordinates: parsedCoords 
+        coordinates: parsedCoords
       }
     });
 
@@ -297,6 +298,65 @@ function normalizeCoordinates(coordinates) {
     polygon.map(ring => ring)
   );
 }
+
+async function loadFalsePositiveClassification(fieldId, falsePositiveLayerGroup, falseNegativoLayerGroup) {
+  const falsePositive = await getFalsePositive(fieldId);
+  const falseNegative = await getFalseNegative(fieldId);
+
+  let hasFalsePositive = false;
+  let hasFalseNegative = false;
+
+  if (falsePositive && falsePositive.features?.length > 0) {
+    const multiPolygons = falsePositive.features.map(item => {
+      const rawCoords = item.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return parsedCoords.map(polygon =>
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      );
+    });
+
+    multiPolygons.forEach(item => {
+      item.forEach(polygonCoords => {
+        const polygon = L.polygon(polygonCoords, {
+          weight: 2,
+          color: 'grey',
+          fillOpacity: 0.3
+        });
+        falsePositiveLayerGroup.addLayer(polygon);
+      });
+    });
+
+    hasFalsePositive = true;
+  }
+
+  if (falseNegative && falseNegative.features?.length > 0) {
+    const multiPolygons = falseNegative.features.map(item => {
+      const rawCoords = item.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return parsedCoords.map(polygon =>
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      );
+    });
+
+    multiPolygons.forEach(item => {
+      item.forEach(polygonCoords => {
+        const polygon = L.polygon(polygonCoords, {
+          weight: 2,
+          color: 'orange',
+          fillOpacity: 0.3
+        });
+        falseNegativoLayerGroup.addLayer(polygon);
+      });
+    });
+
+    hasFalseNegative = true;
+  }
+
+  return [hasFalsePositive, hasFalseNegative];
+}
+
 
 
 export {
