@@ -366,4 +366,5 @@ export {
   loadOverlay,
   getManualToEdit,
   getRevisionToEdit,
+  loadFalsePositiveClassification
 };

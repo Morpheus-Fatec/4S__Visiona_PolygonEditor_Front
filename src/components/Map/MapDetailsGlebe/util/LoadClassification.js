@@ -39,9 +39,9 @@ export async function getFalsePositive(fieldId) {
   }
 }
 
-export async function getFalseNegativo(fieldId) {
+export async function getFalseNegative(fieldId) {
   try {
-    const response = await api.get(`/field/falseNegativo/${fieldId}`, {
+    const response = await api.get(`/field/falseNegative/${fieldId}`, {
       withCredentials: true
     });
 
