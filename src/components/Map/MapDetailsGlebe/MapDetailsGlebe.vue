@@ -254,13 +254,22 @@ watchEffect(async () => {
     }
   }
 
-  // Função para deletar o polígono
   function deletePolygonManual(layer) {
-    if (manualLayerGroup.value.hasLayer(layer)) {
-      manualLayerGroup.value.removeLayer(layer);
-      console.log("Polígono deletado.");
+      if (manualLayerGroup.value.hasLayer(layer)) {
+        manualLayerGroup.value.removeLayer(layer);
+        console.log("Polígono deletado.");
+      }
+      const deletedId = layer.options.customId ??
+        layer.feature?.properties?.id ??
+        null;
+      if (deletedId) {
+        polygonsDraw.value.features = polygonsDraw.value.features.filter(
+          f => f.properties.id !== deletedId
+        );
+      }
+
     }
-  }
+
 
   // Função reutilizável para associar eventos aos polígonos manuais
   function attachManualLayerEvents(layer) {
@@ -300,6 +309,7 @@ watchEffect( async () => {
   if (isClickedToRevisionRef.value && !manualDrawControl) {
     manualDrawControl = new L.Control.Draw({
       position: 'topright',
+      edit: false, // mesma ordem da primeira
       draw: {
         polygon: true,
         polyline: false,
@@ -307,88 +317,62 @@ watchEffect( async () => {
         circle: false,
         marker: false,
         circlemarker: false,
-      },
-      edit: {
-        featureGroup: revisionLayerGroup.value,
-        edit: false,
-        remove: false,
-      },
+      }
     });
 
     mapRef.value.addControl(manualDrawControl);
-    try{
-     await getRevisionToEdit(fieldId, revisionLayerGroup.value, polygonsDrawAnalisct);
-    }
-    catch (error) {
+
+    try {
+      await getRevisionToEdit(fieldId, revisionLayerGroup.value, polygonsDrawAnalisct);
+    } catch (error) {
       console.error("Erro ao adicionar controle de desenho:", error);
     }
 
     for (const layer of revisionLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();
       layer.feature = geojson;
-
       layer.setStyle({
         weight: 4,
         color: 'yellow',
         fillOpacity: 0.2
       });
-      console.log("layer", layer);
 
-      attachManualLayerEvents(layer);
+      attachLayerEvents(layer);
     }
 
-
-    revisionLayerGroup.value.addTo(mapRef.value);
-
+    // Evento de criação de novo polígono
     mapRef.value.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geojson = layer.toGeoJSON();
       const newId = Date.now();
 
-      geojson.properties = {
-        id: newId,
-      };
-      layer.feature = geojson;
-
-      layer.setStyle({
-        weight: 4,
-        color: 'yellow',
-        fillOpacity: 0.2
-      });
-
-      layer.on('click', (event) => {
-        event.originalEvent.stopPropagation();
-        startEditPolygon(layer);
-      });
-
-      let pressTimer = null;
-
-      layer.on('mousedown', (event) => {
-        event.originalEvent.stopPropagation();
-        pressTimer = setTimeout(() => {
-          deletePolygon(layer);
-        }, 400);
-      });
-
-      layer.on('mouseup', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.on('mouseout', () => {
-        clearTimeout(pressTimer);
-      });
-
       const exists = polygonsDrawAnalisct.value.features.find(f => f.properties.id === newId);
       if (!exists) {
         const description = prompt("Polígono adicionado com sucesso! Digite uma descrição:");
-        layer.feature.properties = {
-          ...layer.feature.properties,
+
+        geojson.properties = {
+          id: newId,
           description: description || ''
         };
-        polygonsDrawAnalisct.value.features.push(layer.toGeoJSON());
-      }
 
-      revisionLayerGroup.value.addLayer(layer);
+        layer.feature = geojson;
+
+        layer.setStyle({
+          weight: 4,
+          color: 'yellow',
+          fillOpacity: 0.2
+        });
+
+        layer.bindTooltip(description || '', {
+          permanent: true,
+          direction: 'center',
+          className: 'polygon-label'
+        });
+
+        polygonsDrawAnalisct.value.features.push(layer.toGeoJSON());
+        attachLayerEvents(layer);
+        revisionLayerGroup.value.addLayer(layer);
+      }
     });
   }
 
@@ -396,12 +380,11 @@ watchEffect( async () => {
     mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
     manualDrawControl = null;
-    polygonsDrawAnalisct.value = getEmptyPolygonsDraw();
     editingLayer.value = null;
   }
 
     // Função reutilizável para associar eventos aos polígonos manuais
-  function attachManualLayerEvents(layer) {
+  function attachLayerEvents(layer) {
     layer.on('click', (event) => {
       event.originalEvent.stopPropagation();
       startEditPolygon(layer);
@@ -420,7 +403,7 @@ watchEffect( async () => {
     layer.on('mousedown', (event) => {
       event.originalEvent.stopPropagation();
       pressTimer = setTimeout(() => {
-        deletePolygon(layer);
+        deleteRevisionPolygon(layer);
       }, 400);
     });
   }
@@ -452,34 +435,24 @@ watchEffect( async () => {
   }
 }
 
-function deletePolygon(layer) {
+  function deleteRevisionPolygon(layer) {
   console.log("Deletando polígono:", layer);
    if (revisionLayerGroup.value.hasLayer(layer)) {
       revisionLayerGroup.value.removeLayer(layer);
-      console.log("Polígono deletado.");
+         console.log("Removendo polígono da camada de revisão");
     }
-}
+    const deletedId =
+      layer.options.customId ??
+      layer.feature?.properties?.id ??
+      false;
+      console.log(deletedId)
+    if (deletedId) {
+      polygonsDrawAnalisct.value.features = polygonsDrawAnalisct.value.features.filter(
+        f => f.properties.id !== deletedId
+      );
+    }
+  }
 });
-
-
-
-watch(
-  () => polygonsDrawAnalisct.value,
-  (newVal) => {
-    console.log("Dados dos polígonos da avaliação:", JSON.stringify(newVal, null, 2));
-  },
-  { deep: true }
-);
-
-watch(
-  polygonsDraw,
-  (newVal) => {
-    console.log("polygonsDraw atualizado:", JSON.stringify(newVal, null, 2));
-  },
-  { deep: true }
-);
-
-
 
 //Store
 watch(
@@ -506,7 +479,7 @@ watch(
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="isClickedToManual === true ? 24 : 18"
+      :max-zoom="isClickedToManual || isClickedToRevision ? 24 : 18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />

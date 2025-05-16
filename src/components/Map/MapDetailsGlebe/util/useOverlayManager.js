@@ -146,10 +146,32 @@ async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDra
   return true;
 }
 
+function createLayer(layerGroup, parsedFeatures) {
+
+  parsedFeatures.forEach(feature => {
+    const geometry = feature.geometry;
+
+    if (geometry.type === 'Polygon') {
+      const coords = geometry.coordinates.map(ring =>
+        ring.map(coord => [coord[1], coord[0]]) // [lon, lat] → [lat, lon]
+      );
+
+      const polygon = L.polygon(coords, {
+        weight: 4,
+        color: 'blue',
+        fillOpacity: 0.2
+      });
+      polygon.options.customId = feature.properties.id;
+
+      layerGroup.addLayer(polygon);
+    }
+  });
+}
+
 async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalisct) {
   const revisionClassification = await getRevisionCollection(fieldId);
 
-  if (revisionClassification == null || revisionClassification.features.length === 0) {
+  if (!revisionClassification || revisionClassification.features.length === 0) {
     return false;
   }
 
@@ -160,19 +182,21 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
     const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
 
     const invertedCoords = parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]])) // inverte [lon, lat] → [lat, lon]
     );
 
     allParsedFeatures.push({
       ...item,
       geometry: {
         ...item.geometry,
-        coordinates: parsedCoords // mantém o formato original (não invertido)
+        coordinates: parsedCoords 
       }
     });
 
     return {
+      id: item.properties.id,
       description: item.properties.description,
+      properties: item.properties,
       polygons: invertedCoords
     };
   });
@@ -184,6 +208,9 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
         color: 'yellow',
         fillOpacity: 0.2
       });
+
+      revisionPolygon.options.customId = item.id;
+
 
       revisionPolygon.bindTooltip(item.description, {
         permanent: true,
@@ -202,27 +229,6 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
   return true;
 }
 
-
-
-function createLayer(layerGruop, parsedFeatures){
-  parsedFeatures.forEach(feature => {
-    const geometry = feature.geometry;
-
-    if (geometry.type === 'Polygon') {
-      const coords = geometry.coordinates.map(ring =>
-        ring.map(coord => [coord[1], coord[0]]) // Invertemos de [lon, lat] para [lat, lon]
-      );
-
-        const polygon = L.polygon(coords, {
-        weight: 4,
-        color: 'blue',
-        fillOpacity: 0.2
-      });
-
-      layerGruop.addLayer(polygon);
-    }
-  });
-}
 
 
 function loadAutomaticClassification(automaticClassification, classificationLayerGroup) {
