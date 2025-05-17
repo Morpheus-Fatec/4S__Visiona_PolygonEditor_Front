@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Dashboard from '../view/DashboardView.vue';
+import Dashboard from '../view/AnalystDashboardView.vue';
 import Configuracao from '../view/ConfiguracaoView.vue';
 import Login from '../view/LoginView.vue';
 import NotFound from '../view/NotFoundView.vue';
@@ -10,6 +10,9 @@ import Cultura from '@/view/Cultura.vue';
 import Solo from '@/view/Solo.vue';
 import Fazenda from '@/view/Fazenda.vue';
 import UserRegisterView from '@/view/UserRegisterView.vue';
+import AnalystDashboardView from '@/view/AnalystDashboardView.vue';
+import ConsultantDashboardView from '@/view/ConsultantDashboardView.vue';
+import TalhaoDashboardView from '@/view/TalhaoDashboardView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -22,7 +25,7 @@ const router = createRouter({
     {
       path: '/mapa-global',
       name: 'mapa-global',
-      component: () => import ('../view/MapaGlobalView.vue'),
+      component: () => import('../view/MapaGlobalView.vue'),
     },
     {
       path: '/operacao/:id',
@@ -57,23 +60,38 @@ const router = createRouter({
     },
     {
       path: '/cultura',
-      name:'cultura',
+      name: 'cultura',
       component: Cultura
     },
     {
       path: '/solo',
-      name:'solo',
+      name: 'solo',
       component: Solo
     },
     {
       path: '/fazenda',
-      name:'fazenda',
+      name: 'fazenda',
       component: Fazenda
     },
     {
       path: '/usuario',
       name: 'usuario',
       component: UserRegisterView,
+    },
+    {
+      path: '/analistas',
+      name: 'analistas',
+      component: AnalystDashboardView,
+    },
+    {
+      path: '/consultores',
+      name: 'consultores',
+      component: ConsultantDashboardView,
+    },
+    {
+      path: '/talhao',
+      name: 'talhao',
+      component: TalhaoDashboardView,
     }
   ]
 })

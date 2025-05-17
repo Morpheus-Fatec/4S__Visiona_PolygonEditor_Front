@@ -1,0 +1,14 @@
+{
+ "analista":
+  {
+     "ideal": 10,
+     "aceitavel": 4,
+     "plena": 2
+  },
+ "analistas":
+  {
+     "ideal": 30,
+     "aceitavel": 30,
+     "plena": 30
+  }
+}
