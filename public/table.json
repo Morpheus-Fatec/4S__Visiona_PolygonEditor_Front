@@ -1,0 +1,38 @@
+[
+  {
+    "talhao": "Talhão 01",
+    "situacao": "Aprovado",
+    "data_entrada": "2025-05-01",
+    "data_aprovacao": "2025-05-05",
+    "tempo_ciclo": "4 dias",
+    "analista": "João Silva",
+    "tempo_analise": "2 dias",
+    "quantidade_analises": 3,
+    "consultor": "Ana Costa",
+    "tempo_revisao": "1 dia"
+  },
+  {
+    "talhao": "Talhão 02",
+    "situacao": "Pendente",
+    "data_entrada": "2025-05-03",
+    "data_aprovacao": "",
+    "tempo_ciclo": "",
+    "analista": "Maria Oliveira",
+    "tempo_analise": "—",
+    "quantidade_analises": 0,
+    "consultor": "Carlos Souza",
+    "tempo_revisao": "—"
+  },
+  {
+    "talhao": "Talhão 03",
+    "situacao": "Em Análise",
+    "data_entrada": "2025-05-04",
+    "data_aprovacao": "2025-05-04",
+    "tempo_ciclo": "2025-05-04",
+    "analista": "Paulo Mendes",
+    "tempo_analise": "1 dia",
+    "quantidade_analises": 1,
+    "consultor": "Beatriz Lima",
+    "tempo_revisao": "—"
+  }
+]

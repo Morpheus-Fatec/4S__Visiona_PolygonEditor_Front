@@ -13,6 +13,7 @@ import UserRegisterView from '@/view/UserRegisterView.vue';
 import AnalystDashboardView from '@/view/AnalystDashboardView.vue';
 import ConsultantDashboardView from '@/view/ConsultantDashboardView.vue';
 import TalhaoDashboardView from '@/view/TalhaoDashboardView.vue';
+import ControlPanelView from '@/view/ControlPanelView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +93,11 @@ const router = createRouter({
       path: '/talhao',
       name: 'talhao',
       component: TalhaoDashboardView,
+    },
+        {
+      path: '/painel',
+      name: 'painel',
+      component: ControlPanelView,
     }
   ]
 })

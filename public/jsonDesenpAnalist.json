@@ -1,0 +1,26 @@
+[
+  {
+    "nome": "Ana Silva",
+    "area_reprovada": 25.5,
+    "area_pendente": 14.5,
+    "area_aprovada": 50
+  },
+  {
+    "nome": "Carlos Souza",
+    "area_reprovada": 25,
+    "area_pendente": 15,
+    "area_aprovada": 60
+  },
+  {
+    "nome": "Fernanda Lima",
+    "area_reprovada": 20,
+    "area_pendente": 30,
+    "area_aprovada": 50
+  },
+  {
+    "nome": "João Pedro",
+    "area_reprovada": 25,
+    "area_pendente": 35,
+    "area_aprovada": 40
+  }
+]

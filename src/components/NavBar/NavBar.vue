@@ -56,6 +56,9 @@ export default {
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="gerenciarDropdown">
                             <li>
+                                <RouterLink class="dropdown-item" to="/painel">Painel de Controle</RouterLink>
+                            </li>
+                            <li>
                                 <RouterLink class="dropdown-item" to="/analistas">Analistas</RouterLink>
                             </li>
                             <li>
