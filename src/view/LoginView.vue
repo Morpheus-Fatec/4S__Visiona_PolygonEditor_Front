@@ -14,19 +14,17 @@ const realizarLogin = async () => {
   errorMessage.value = '';  
 
   try {
-    console.log(email.value);
-    console.log(senha.value);
     const response = await api.post('/auth/login', {
       email: email.value,
       password: senha.value,
-    }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-      }
     });
-    console.log(response);
-
-    localStorage.setItem('token', response.data.token);
+    const usuario = {
+      token: response.data.token,
+      nome: response.data.userName,
+      email: response.data.email,
+      role: response.data.role,
+    };
+    localStorage.setItem('usuario', JSON.stringify(usuario));;
 
     router.push('/mapa-global');
   } catch (error) {
@@ -65,8 +63,8 @@ const realizarLogin = async () => {
             </div>
 
             <div class="text-center pt-1 mb-5 pb-1">
-              <button class="btn btn-primary mb-3 w-100" type="submit" :disabled="loading.valueOf">
-                <span v-if="loading.valueOf()" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <button class="btn btn-primary mb-3 w-100" type="submit" :disabled="loading.value">
+                <span v-if="loading.value" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                 Entrar
               </button>
             </div>
