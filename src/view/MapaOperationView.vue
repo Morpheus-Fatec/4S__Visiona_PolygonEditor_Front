@@ -18,6 +18,7 @@ const originalInfoList = ref([]);
 const isClickedClassified = ref(false);
 const isClickedToAssess = ref(false);
 const isEditing = ref(false);
+const usuario = JSON.parse(localStorage.getItem('usuario'));
 
 const showRejectionInput = ref(false);
 const showApprovalInput = ref(false);
@@ -637,7 +638,7 @@ watchEffect(() => {
               <button class="btn btn-success w-100 fw-bold" @click="saveEdit">Salvar Edição</button>
             </div>
           </template>
-          <template v-else>
+          <template v-else-if="usuario.role === 'Administrador' || usuario.role === 'Consultor'">
             <div class="w-100 mt-auto d-flex flex-column gap-2">
               <button class="btn btn-success w-100 fw-bold" @click="handleEdit">Editar</button>
               <template v-if="infoList.find(item => item.title === 'Status')?.value === 'Aprovado'">
@@ -689,7 +690,7 @@ watchEffect(() => {
                 <input
                   class="form-control"
                   disabled
-                  :value="(analysts.find(u => u.id) || {}).name || ''"
+                  :value="usuario.name"
                 />
               </div>
               <div>
@@ -818,10 +819,10 @@ watchEffect(() => {
       <!-- Botões flutuantes -->
       <template v-if="!isEditing && !isClickedClassified && !isClickedToAssess">
         <div class="divButton">
-          <template v-if="data?.properties?.status !== 'Aprovado'">
+          <template v-if="data?.properties?.status !== 'Aprovado' && (usuario.role === 'Administrador' || usuario.role === 'Analista')">
             <button class="btn btn-primary button" @click="handleClickClassified">Classificar</button>
           </template>
-          <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado'">
+          <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado' && (usuario.role === 'Administrador' || usuario.role === 'Consultor')">
             <button class="btn btn-primary button" @click="handleClickToAssess">Avaliar</button>
           </template>
         </div>
