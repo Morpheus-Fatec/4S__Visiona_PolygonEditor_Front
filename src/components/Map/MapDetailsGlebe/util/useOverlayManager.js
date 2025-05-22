@@ -93,7 +93,7 @@ async function loadManualClassification(fieldId, manualLayerGroup ) {
 }
 
 async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDraw) {
-
+  manualLayerGroup.clearLayers();
   const manualClassification = await getManualCollection(fieldId);
 
   let featuresClassification;
