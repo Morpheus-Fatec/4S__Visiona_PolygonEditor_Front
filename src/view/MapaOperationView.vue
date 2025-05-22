@@ -6,7 +6,7 @@ import ManualClassificationPanel from '../components/Map/MapDetailsGlebe/ManualC
 import RevisionClassificationPanel from '../components/Map/MapDetailsGlebe/RevisionClassificationPane.vue'
 import { useRoute } from 'vue-router';
 import api from "@/components/util/API.js";
-import { getFeatureCollection, getManualCollection } from "@/components/Map/MapDetailsGlebe/util/LoadClassification.js";
+import { getFeatureCollection } from "@/components/Map/MapDetailsGlebe/util/LoadClassification.js";
 
 
 const route = useRoute();
@@ -26,7 +26,6 @@ const users = ref([]);
 const selectedUser = ref('');
 const analysts = computed(() => users.value.filter(user => user.isAnalyst));
 const consultants = computed(() => users.value.filter(user => user.isConsultant));
-const glebeAvailable = ref([]);
 
 const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
@@ -37,13 +36,6 @@ onMounted(async () => {
     const responseFeatureCollection = await getFeatureCollection(areaId);
     if (responseFeatureCollection) {
       data.value = responseFeatureCollection;
-    } else {
-      console.error("Resposta da API inválida ou sem a propriedade 'features'");
-    }
-
-    const manualResponse = await getManualCollection(areaId);
-    if (manualResponse) {
-      glebeAvailable.value = manualResponse;
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'features'");
     }
@@ -338,16 +330,16 @@ watchEffect(() => {
 
       <!-- Mapa -->
       <div class="flex-grow-1" v-if="data">
-        <MapDetailsGlebe :data="data" :isClickedToManual="isClickedToManual" :glebeAvailable="glebeAvailable" :isClickedToRevision="isClickedToRevision" />
+        <MapDetailsGlebe :data="data" :isClickedToManual="isClickedToManual" :isClickedToRevision="isClickedToRevision" />
       </div>
 
       <!-- Botões flutuantes -->
       <template v-if="!isEditing && !isClickedToManual && !isClickedToRevision">
         <div class="divButton">
-          <template v-if="data?.properties?.status !== 'Aprovado'">
+          <template v-if="data?.properties?.status === 'Pendente' || data?.properties?.status === 'Reprovado'">
             <button class="btn btn-primary button" @click="isClickedToManual = true">Classificar</button>
           </template>
-          <template v-if="data?.properties?.status !== 'Aprovado' && data?.properties?.status !== 'Reprovado'">
+          <template v-if="data?.properties?.status === 'Em Análise'">
             <button class="btn btn-primary button" @click="isClickedToRevision = true">Avaliar</button>
           </template>
         </div>
