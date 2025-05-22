@@ -235,7 +235,6 @@ async function handleSaveClassification() {
   }
 
   console.log("user id: ", localSelectedUser.value)
-  console.log(polygons.value);
 
   if (!canSave()) {
     showModalMessage(
@@ -260,7 +259,6 @@ async function handleSaveClassification() {
     console.log('JSON:', payload);
 
     if (response && response.data) {
-      console.log('Resposta da API:', response.data);
       showModalMessage(
         'Classificação Salva',
         'Sua classificação foi registrada corretamente no sistema!',

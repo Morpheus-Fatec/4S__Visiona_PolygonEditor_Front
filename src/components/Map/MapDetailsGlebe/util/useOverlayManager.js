@@ -92,6 +92,7 @@ async function loadManualClassification(fieldId, manualLayerGroup ) {
 }
 
 async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDraw) {
+  manualLayerGroup.clearLayers();
 
   const manualClassification = await getManualCollection(fieldId);
 
@@ -141,18 +142,19 @@ async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDra
   polygonsDraw.value = {
     features: parsedFeatures
   };
-  createManualLayer(manualLayerGroup, parsedFeatures);
+  createLayer(manualLayerGroup, parsedFeatures);
 
   return true;
 }
 
-function createManualLayer(manualLayerGroup, parsedFeatures){
+function createLayer(layerGroup, parsedFeatures) {
+
   parsedFeatures.forEach(feature => {
     const geometry = feature.geometry;
 
     if (geometry.type === 'Polygon') {
       const coords = geometry.coordinates.map(ring =>
-        ring.map(coord => [coord[1], coord[0]]) // Invertemos de [lon, lat] para [lat, lon]
+        ring.map(coord => [coord[1], coord[0]]) // [lon, lat] → [lat, lon]
       );
 
       const polygon = L.polygon(coords, {
@@ -160,11 +162,74 @@ function createManualLayer(manualLayerGroup, parsedFeatures){
         color: 'blue',
         fillOpacity: 0.2
       });
+      polygon.options.customId = feature.properties.id;
 
-      manualLayerGroup.addLayer(polygon);
+      layerGroup.addLayer(polygon);
     }
   });
 }
+
+async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalisct) {
+  const revisionClassification = await getRevisionCollection(fieldId);
+
+  if (!revisionClassification || revisionClassification.features.length === 0) {
+    return false;
+  }
+
+  const allParsedFeatures = [];
+
+  const revisionMultiPolygons = revisionClassification.features.map(item => {
+    const rawCoords = item.geometry.coordinates;
+    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+    const invertedCoords = parsedCoords.map(polygon =>
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]])) // inverte [lon, lat] → [lat, lon]
+    );
+
+    allParsedFeatures.push({
+      ...item,
+      geometry: {
+        ...item.geometry,
+        coordinates: parsedCoords
+      }
+    });
+
+    return {
+      id: item.properties.id,
+      description: item.properties.description,
+      properties: item.properties,
+      polygons: invertedCoords
+    };
+  });
+
+  revisionMultiPolygons.forEach(item => {
+    item.polygons.forEach(polygonCoords => {
+      const revisionPolygon = L.polygon(polygonCoords, {
+        weight: 4,
+        color: 'yellow',
+        fillOpacity: 0.2
+      });
+
+      revisionPolygon.options.customId = item.id;
+
+
+      revisionPolygon.bindTooltip(item.description, {
+        permanent: true,
+        direction: 'center',
+        className: 'polygon-label'
+      });
+
+      revisionLayerGroup.addLayer(revisionPolygon);
+    });
+  });
+
+  polygonsDrawAnalisct.value = {
+    features: allParsedFeatures
+  };
+
+  return true;
+}
+
 
 
 function loadAutomaticClassification(automaticClassification, classificationLayerGroup) {
@@ -241,4 +306,5 @@ export {
   loadImages,
   loadOverlay,
   getManualToEdit,
+  getRevisionToEdit,
 };

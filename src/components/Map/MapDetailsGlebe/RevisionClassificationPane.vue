@@ -359,7 +359,7 @@ function buildSaveAvailablePayload(status) {
 
 
 function canSaveAnalisct() {
-  return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features) && polygonsAnalisct.value.features.length > 0;
+  return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features);
 }
 
 async function handleSaveAnalisct(status) {
@@ -387,7 +387,6 @@ async function handleSaveAnalisct(status) {
       },
       withCredentials: true,
     });
-    console.log('JSON:', payload);
 
     if (response && response.data) {
       showModalMessage(
