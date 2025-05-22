@@ -162,6 +162,7 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
   });
 
   useGeoTiffLoader(map, tifLayerGroups, props.data, fieldCoordinates, tifLayersLoaded);
+
 };
 
 
@@ -193,7 +194,7 @@ watchEffect(async () => {
     catch (error) {
       console.error("Erro ao adicionar controle de desenho:", error);
     }
-
+    console.log(manualLayerGroup.value.getLayers());
     for (const layer of manualLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();
       layer.feature = geojson;
@@ -222,6 +223,7 @@ watchEffect(async () => {
       };
 
       layer.feature = geojson;
+      layer.options.customId = newId;
 
       layer.setStyle({
         color: 'orange',
@@ -246,13 +248,36 @@ watchEffect(async () => {
   }
 
   // Função para editar o polígono ao clicar
-  function startEditPolygonManual(layer) {
-    if (!editingLayer.value) {
-      editingLayer.value = layer;
-      editingLayer.value.editing.enable();
-      console.log("Edição iniciada no polígono.");
+function startEditPolygonManual(layer) {
+  console.log("polygonsDraw antes:", polygonsDraw.value.features);
+  manualLayerGroup.value.eachLayer(l => {
+    if (l.editing && l.editing.enabled() && l !== layer) {
+      l.editing.disable();
+      console.log("Desabilitando edição de outro polígono.");
     }
+  });
+
+  // Habilita edição no polígono clicado
+  if (layer.editing) {
+    layer.editing.enable();
+    editingLayer.value = layer;
+    // Atualiza GeoJSON no array de polígonos quando a edição ocorrer
+    layer.on('edit', () => {
+      const geojson = layer.toGeoJSON();
+      const id = layer.options?.customId;
+      console.log("id", id);
+      const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
+      if (index !== -1) {
+        polygonsDraw.value.features[index].geometry = {
+          type: "MultiPolygon",
+          coordinates: [geojson.geometry.coordinates]
+        };
+        console.log("Polígono editado manualmente:", polygonsDraw.value.features[index]);
+      }
+    });
   }
+}
+
 
   function deletePolygonManual(layer) {
       if (manualLayerGroup.value.hasLayer(layer)) {
@@ -356,7 +381,7 @@ watchEffect( async () => {
         };
 
         layer.feature = geojson;
-
+        layer.options.customId = newId;
         layer.setStyle({
           weight: 4,
           color: 'yellow',
@@ -409,6 +434,7 @@ watchEffect( async () => {
   }
 
   function startEditPolygon(layer) {
+  console.log("layer:", layer);
   revisionLayerGroup.value.eachLayer(l => {
     if (l.editing && l.editing.enabled() && l !== layer) {
       l.editing.disable();
@@ -421,13 +447,13 @@ watchEffect( async () => {
 
     layer.on('edit', () => {
       const geojson = layer.toGeoJSON();
-      const id = layer.feature?.properties?.id;
-
+      const id = layer.options?.customId;
+      console.log("id", id);
       const index = polygonsDrawAnalisct.value.features.findIndex(f => f.properties.id === id);
       if (index !== -1) {
         polygonsDrawAnalisct.value.features[index].geometry = {
           type: "MultiPolygon",
-          coordinates: [[[geojson.geometry.coordinates[0]]]]
+          coordinates: [geojson.geometry.coordinates]
         };
         console.log("Polígono editado individualmente:", polygonsDrawAnalisct.value.features[index]);
       }

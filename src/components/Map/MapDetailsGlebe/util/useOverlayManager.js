@@ -92,6 +92,7 @@ async function loadManualClassification(fieldId, manualLayerGroup ) {
 }
 
 async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDraw) {
+  manualLayerGroup.clearLayers();
 
   const manualClassification = await getManualCollection(fieldId);
 
@@ -189,7 +190,7 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
       ...item,
       geometry: {
         ...item.geometry,
-        coordinates: parsedCoords 
+        coordinates: parsedCoords
       }
     });
 
