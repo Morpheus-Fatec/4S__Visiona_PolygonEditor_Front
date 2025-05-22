@@ -62,7 +62,7 @@ async function loadRevisionClassification(fieldId, revisionLayerGroup) {
 }
 
 
-async function loadManualClassification(fieldId, manualLayerGroup) {
+async function loadManualClassification(fieldId, manualLayerGroup ) {
 
   const manualClassification = await getManualCollection(fieldId);
 
@@ -91,30 +91,81 @@ async function loadManualClassification(fieldId, manualLayerGroup) {
   return true;
 }
 
-function createNewManualClassification(automaticClassification, manualLayerGroup) {
-  if (automaticClassification == null || automaticClassification.size== 0) {
-    return;
+async function getManualToEdit(fieldId, manualLayerGroup, automatic, polygonsDraw) {
+
+  const manualClassification = await getManualCollection(fieldId);
+
+  let featuresClassification;
+
+  if (manualClassification == null || manualClassification.features.length == 0) {
+    featuresClassification = automatic;
+  }else{
+    featuresClassification = manualClassification.features;
   }
-  const manualMultiPolygons = automaticClassification.map(item => {
-    const rawCoords = item.geometry.coordinates;
-    const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
 
-    return parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    );
-  });
+  const parsedFeatures = featuresClassification.map(feature => {
+    let geometry = feature.geometry;
 
-  manualMultiPolygons.forEach(item => {
-    item.forEach(polygonCoords => {
-      const revisionPolygon = L.polygon(polygonCoords, {
+    // Caso geometry seja string, tenta fazer parse
+    if (typeof geometry === 'string') {
+      try {
+        geometry = JSON.parse(geometry);
+      } catch (e) {
+        console.error('Erro ao fazer parse da geometria:', e);
+        return null;
+      }
+    }
+
+    // Caso coordinates ainda sejam string (como parece no seu caso), faz o parse
+    if (typeof geometry.coordinates === 'string') {
+      try {
+        geometry.coordinates = JSON.parse(geometry.coordinates);
+      } catch (e) {
+        console.error('Erro ao fazer parse das coordenadas:', e);
+        return null;
+      }
+    }
+    if (geometry.type === 'MultiPolygon') {
+      geometry = {
+        type: 'Polygon',
+        coordinates: geometry.coordinates[0] || [] // Pega o primeiro polígono
+      };
+    }
+
+    return {
+      ...feature,
+      geometry
+    };
+  }).filter(f => f !== null);
+
+  polygonsDraw.value = {
+    features: parsedFeatures
+  };
+  createManualLayer(manualLayerGroup, parsedFeatures);
+
+  return true;
+}
+
+function createManualLayer(manualLayerGroup, parsedFeatures){
+  parsedFeatures.forEach(feature => {
+    const geometry = feature.geometry;
+
+    if (geometry.type === 'Polygon') {
+      const coords = geometry.coordinates.map(ring =>
+        ring.map(coord => [coord[1], coord[0]]) // Invertemos de [lon, lat] para [lat, lon]
+      );
+
+      const polygon = L.polygon(coords, {
         weight: 4,
         color: 'blue',
         fillOpacity: 0.2
       });
-      manualLayerGroup.addLayer(revisionPolygon);
-    });
+
+      manualLayerGroup.addLayer(polygon);
+    }
   });
 }
+
 
 function loadAutomaticClassification(automaticClassification, classificationLayerGroup) {
   const classificationMultiPolygons = automaticClassification.map(item => {
@@ -159,10 +210,6 @@ async function loadOverlay(
     if (existManual) {
       overlays['Classificação Manual'] = manualLayerGroup;
     }
-    if (!existManual) {
-      createNewManualClassification(automaticClassification, manualLayerGroup);
-      overlays['Classificação Manual'] = manualLayerGroup;
-    }
   }
 
 
@@ -191,9 +238,7 @@ function normalizeCoordinates(coordinates) {
 export {
   loadFieldCoordinates,
   loadRevisionClassification,
-  loadManualClassification,
-  loadAutomaticClassification,
   loadImages,
   loadOverlay,
-  createNewManualClassification,
+  getManualToEdit,
 };
