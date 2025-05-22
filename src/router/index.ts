@@ -12,9 +12,28 @@ import Fazenda from '@/view/Fazenda.vue';
 import UserRegisterView from '@/view/UserRegisterView.vue';
 
 function isAuthenticated() {
-  const token = localStorage.getItem("token");
-  return token !== null; 
-};
+  const usuarioJson = localStorage.getItem("usuario");
+
+  if (!usuarioJson) return false;
+
+  try {
+    const usuario = JSON.parse(usuarioJson);
+    return !!usuario.token;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getUser() {
+  const usuarioJson = localStorage.getItem("usuario");
+  if (!usuarioJson) return null;
+  try {
+    return JSON.parse(usuarioJson);
+  } catch (e) {
+    return null;
+  }
+}
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,13 +60,19 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: Dashboard,
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador']
+       } 
     },
     {
       path: '/configuracao',
       name: 'configuracao',
       component: Configuracao,
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador']
+       } 
     },
     {
       path: '/operacoes',
@@ -59,7 +84,10 @@ const router = createRouter({
       path: '/cadastro',
       name: 'register',
       component: RegisterView,
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador','Consultor']
+       } 
     },
     {
       path: '/:pathMatch(.*)*',
@@ -71,35 +99,70 @@ const router = createRouter({
       path: '/cultura',
       name:'cultura',
       component: Cultura,
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador','Consultor']
+       } 
     },
     {
       path: '/solo',
       name:'solo',
       component: Solo,
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador','Consultor']
+       }  
     },
     {
       path: '/fazenda',
       name:'fazenda',
       component: Fazenda,
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador','Consultor']
+       } 
     },
     {
       path: '/usuario',
       name: 'usuario',
       component: UserRegisterView,       
-      meta: { requiresAuth: true } 
+      meta: { 
+        requiresAuth: true, 
+        roles: ['Administrador']
+       }  
     }
   ]
 });
 
 router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !isAuthenticated()) {
-    next('/'); 
+  const user = getUser();
+  const requiresAuth = to.meta.requiresAuth;
+  const allowedRoles = to.meta.roles;
+
+  if (!requiresAuth) {
+    next();
+    return;
+  }
+
+  if (!isAuthenticated()) {
+    if (to.name !== 'login') {
+      next({ name: 'login' });
+    } else {
+      next();
+    }
+    return;
+  }
+
+  if (allowedRoles && Array.isArray(allowedRoles)) {
+    if (user && allowedRoles.includes(user.role)) {
+      next();
+    } else {
+      next('/mapa-global');
+    }
   } else {
     next();
   }
 });
+
 
 export default router;
