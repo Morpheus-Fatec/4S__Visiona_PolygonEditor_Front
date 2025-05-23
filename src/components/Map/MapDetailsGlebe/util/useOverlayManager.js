@@ -320,8 +320,8 @@ async function loadFalsePositiveClassification(fieldId, falsePositiveLayerGroup,
     multiPolygons.forEach(item => {
       item.forEach(polygonCoords => {
         const polygon = L.polygon(polygonCoords, {
-          weight: 2,
-          color: 'grey',
+          weight: 3,
+          color: 'white',
           fillOpacity: 0.3
         });
         falsePositiveLayerGroup.addLayer(polygon);
@@ -345,7 +345,7 @@ async function loadFalsePositiveClassification(fieldId, falsePositiveLayerGroup,
       item.forEach(polygonCoords => {
         const polygon = L.polygon(polygonCoords, {
           weight: 2,
-          color: 'orange',
+          color: '#FFA500',
           fillOpacity: 0.3
         });
         falseNegativoLayerGroup.addLayer(polygon);

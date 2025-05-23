@@ -130,14 +130,17 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     if (hasFalsePositive) {
       falsePositiveLayerGroup.value.addTo(mapRef.value);
       currentOverlays['Falsos Positivos'] = falsePositiveLayerGroup.value;
-      layerControlRef.value.addOverlay(falsePositiveLayerGroup.value, 'Falsos Positivos');
+      layerControlRef.value.addOverlay(falsePositiveLayerGroup.value, 'Falsos Positivos(Retirado manualmente)');
+       mapRef.value.removeLayer(falsePositiveLayerGroup.value);
     }
 
     if (hasFalseNegative) {
       falseNegativeLayerGroup.value.addTo(mapRef.value);
       currentOverlays['Falsos Negativos'] = falseNegativeLayerGroup.value;
-      layerControlRef.value.addOverlay(falseNegativeLayerGroup.value, 'Falsos Negativos');
+      layerControlRef.value.addOverlay(falseNegativeLayerGroup.value, 'Falsos Negativos(Não detectado pela IA)');
+      mapRef.value.removeLayer(falseNegativeLayerGroup.value);
     }
+
     mapRef.value.removeLayer(manualLayerGroup.value);
     layerControlRef.value.removeLayer(manualLayerGroup.value);
     delete currentOverlays['Classificação Manual'];
