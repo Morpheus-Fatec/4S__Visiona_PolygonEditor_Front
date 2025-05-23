@@ -84,7 +84,10 @@ async function loadManualClassification(fieldId, manualLayerGroup ) {
       const revisionPolygon = L.polygon(polygonCoords, {
         weight: 4,
         color: 'blue',
-        fillOpacity: 0.2
+        weight: 2,
+        opacity: 1,
+        fillColor: '#green',
+        fillOpacity: 0.8
       });
       manualLayerGroup.addLayer(revisionPolygon);
     });
@@ -344,9 +347,11 @@ async function loadFalsePositiveClassification(fieldId, falsePositiveLayerGroup,
     multiPolygons.forEach(item => {
       item.forEach(polygonCoords => {
         const polygon = L.polygon(polygonCoords, {
+          color: 'orange',
           weight: 2,
-          color: '#FFA500',
-          fillOpacity: 0.3
+          opacity: 1,
+          fillColor: '#orange',
+          fillOpacity: 0.4
         });
         falseNegativoLayerGroup.addLayer(polygon);
       });

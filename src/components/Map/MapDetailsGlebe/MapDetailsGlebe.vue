@@ -144,9 +144,8 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     mapRef.value.removeLayer(manualLayerGroup.value);
     layerControlRef.value.removeLayer(manualLayerGroup.value);
     delete currentOverlays['Classificação Manual'];
-    manualLayerGroup.value.addTo(mapRef.value);
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
     currentOverlays['Classificação Manual'] = manualLayerGroup.value;
-    mapRef.value.removeLayer(manualLayerGroup.value);
   }
 
   // Retira camada de revisao
@@ -249,7 +248,10 @@ watchEffect(async () => {
       layer.setStyle({
         weight: 4,
         color: 'purple',
-        fillOpacity: 0.2
+        weight: 2,
+        opacity: 1,
+        fillColor: '#orange',
+        fillOpacity: 0.4
       });
 
       attachManualLayerEvents(layer);
