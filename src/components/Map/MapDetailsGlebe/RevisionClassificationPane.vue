@@ -47,10 +47,7 @@
 
         <div>
           <p class="mb-2 text-muted fw-semibold">Consultor responsável</p>
-          <select class="form-select text-muted" v-model="selectedUserConsultant">
-            <option disabled value="">Escolha o consultor</option>
-            <option v-for="user in consultants" :key="user.id" :value="user.id">{{ user.name }}</option>
-          </select>
+          <input class="form-control" disabled :value="usuario.nome" />
         </div>
 
         <div>
@@ -204,6 +201,7 @@ const selectedConsultantId = ref('')
 const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
+const usuario = JSON.parse(localStorage.getItem('usuario'));
 
 const getConsultantName = (selectedUserConsultantId) => {
   selectedConsultantId.value = selectedUserConsultantId;
@@ -347,7 +345,7 @@ function buildSaveAvailablePayload(status) {
 
   const payload = {
     idField: data.value.properties.id,
-    userResponsable: userResponsable.id,
+    userResponsable: usuario.id,
     status: status,
     begin: beginTime.value,
     end: endTime.value,
