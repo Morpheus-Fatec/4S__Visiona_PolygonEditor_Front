@@ -22,7 +22,7 @@ export async function getFeatureCollection(fieldId) {
 
 export async function getFalsePositive(fieldId) {
   try {
-    const response = await api.get(`/field/falsePositive/${fieldId}`, {
+    const response = await api.get(`/classification/falsePositive/${fieldId}`, {
       withCredentials: true
     });
 
@@ -41,7 +41,7 @@ export async function getFalsePositive(fieldId) {
 
 export async function getFalseNegative(fieldId) {
   try {
-    const response = await api.get(`/field/falseNegative/${fieldId}`, {
+    const response = await api.get(`/classification/falseNegative/${fieldId}`, {
       withCredentials: true
     });
 

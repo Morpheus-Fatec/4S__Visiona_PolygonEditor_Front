@@ -171,19 +171,22 @@ function createLayer(layerGroup, parsedFeatures) {
 
 async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalisct) {
   const revisionClassification = await getRevisionCollection(fieldId);
+  console.log('revisionClassification', revisionClassification.features);
+  const allParsedFeatures = [];
 
   if (!revisionClassification || revisionClassification.features.length === 0) {
+      polygonsDrawAnalisct.value = {
+      features: allParsedFeatures
+    };
     return false;
   }
-
-  const allParsedFeatures = [];
 
   const revisionMultiPolygons = revisionClassification.features.map(item => {
     const rawCoords = item.geometry.coordinates;
     const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
 
     const invertedCoords = parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]])) // inverte [lon, lat] → [lat, lon]
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
     );
 
     allParsedFeatures.push({
@@ -210,7 +213,7 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
         fillOpacity: 0.2
       });
 
-      revisionPolygon.options.customId = item.id;
+      revisionPolygon.options.customId = item.properties.id;
 
 
       revisionPolygon.bindTooltip(item.description, {
@@ -276,8 +279,6 @@ async function loadOverlay(
       overlays['Classificação Manual'] = manualLayerGroup;
     }
   }
-
-
   return overlays;
 }
 

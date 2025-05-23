@@ -224,7 +224,7 @@ function buildSaveClassificationPayload() {
 }
 
 function canSave() {
-  return localSelectedUser.value !== "" && polygons.value && Array.isArray(polygons.value.features) && polygons.value.features.length > 0;
+  return localSelectedUser.value !== "";
 }
 
 async function handleSaveClassification() {

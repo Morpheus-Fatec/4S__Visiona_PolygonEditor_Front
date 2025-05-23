@@ -85,7 +85,7 @@ const onMapReady = async (map) => {
     props.data.automatic.features,
     classificationLayerGroup.value,
     manualLayerGroup.value,
-    fieldStatus.value
+    fieldStatus.value,
   );
 
   loadImages(props.data.images, tifLayersLoaded, overlays, tifLayerGroups)
@@ -99,6 +99,12 @@ const onMapReady = async (map) => {
 
   layerControlRef.value = L.control.layers(baseLayers, overlays).addTo(map);
   map.fitBounds(bounds);
+
+  updateOverlays(
+    isClickedToManualRef.value,
+    isClickedToRevisionRef.value,
+    overlays
+  );
 
   watch(
   [() => isClickedToManualRef.value, () => isClickedToRevisionRef.value],
@@ -132,14 +138,23 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
       currentOverlays['Falsos Negativos'] = falseNegativeLayerGroup.value;
       layerControlRef.value.addOverlay(falseNegativeLayerGroup.value, 'Falsos Negativos');
     }
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    manualLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+    mapRef.value.removeLayer(manualLayerGroup.value);
   }
 
   // Retira camada de revisao
-  if(!(isClickedToRevision || isClickedToManual)){
+  if(!(isClickedToRevision || isClickedToManual) && fieldStatus.value !== "Aprovado"){
     console.log("Removendo camada de revisão");
     mapRef.value.removeLayer(revisionLayerGroup.value);
     layerControlRef.value.removeLayer(revisionLayerGroup.value);
     delete currentOverlays['Revisão Manual'];
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
     return;
   }
 
@@ -165,6 +180,7 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
   }
 
   if (isClickedToRevision) {
+    console.log("Adicionando camada de revisão");
     mapRef.value.removeLayer(revisionLayerGroup.value);
     layerControlRef.value.removeLayer(revisionLayerGroup.value);
     delete currentOverlays['Revisão Manual'];
@@ -172,6 +188,14 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
     mapRef.value.removeLayer(revisionLayerGroup.value);
     layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+
+     mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    manualLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
   }
 
 }
@@ -257,6 +281,18 @@ watchEffect(async () => {
       manualLayerGroup.value.addLayer(layer);
       attachManualLayerEvents(layer);
       polygonsDraw.value.features.push(layer.toGeoJSON());
+
+      const layerGeometry = JSON.stringify(layer.toGeoJSON().geometry);
+
+      const exists = polygonsDraw.value.features.some(feature =>
+        JSON.stringify(feature.geometry) === layerGeometry
+      );
+
+      if (exists) {
+        console.log("✅ Layer já está em polygonsDraw");
+      } else {
+        console.log("🆕 Layer ainda não está em polygonsDraw");
+      }
     });
   }
 
@@ -313,8 +349,7 @@ function startEditPolygonManual(layer) {
           f => f.properties.id !== deletedId
         );
       }
-
-    }
+  }
 
 
   // Função reutilizável para associar eventos aos polígonos manuais
@@ -373,6 +408,8 @@ watchEffect( async () => {
     } catch (error) {
       console.error("Erro ao adicionar controle de desenho:", error);
     }
+
+    console.log("polygonsDrawAnalisct.value.features", polygonsDrawAnalisct.value.features);
 
     for (const layer of revisionLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();
@@ -484,8 +521,8 @@ watchEffect( async () => {
   console.log("Deletando polígono:", layer);
    if (revisionLayerGroup.value.hasLayer(layer)) {
       revisionLayerGroup.value.removeLayer(layer);
-         console.log("Removendo polígono da camada de revisão");
     }
+    console.log(" polygonsDrawAnalisct.value.features:",  polygonsDrawAnalisct.value.features);
     const deletedId =
       layer.options.customId ??
       layer.feature?.properties?.id ??
@@ -516,6 +553,12 @@ watch(
   { deep: true }
 );
 
+
+
+watch(polygonsDrawAnalisct, (newVal) => {
+  console.log('🔍 polygonsDrawAnalisct mudou:', polygonsDrawAnalisct.value);
+  console.log(newVal);
+}, { deep: true });
 
 </script>
 
