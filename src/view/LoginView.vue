@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api from "@/components/util/API.js";
 
@@ -19,6 +19,7 @@ const realizarLogin = async () => {
       password: senha.value,
     });
     const usuario = {
+      id: response.data.id,
       token: response.data.token,
       nome: response.data.userName,
       email: response.data.email,
@@ -33,6 +34,13 @@ const realizarLogin = async () => {
     errorMessage.value = 'Erro ao realizar login. Verifique suas credenciais ou tente novamente mais tarde.';
   }
 };
+
+onMounted(() => {
+  const usuario = localStorage.getItem("usuario")
+  if (usuario != null){
+    router.push('/mapa-global');
+  }
+});
 </script>
 
 <template>
