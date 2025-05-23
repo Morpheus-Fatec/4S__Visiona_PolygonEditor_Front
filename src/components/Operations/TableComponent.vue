@@ -130,7 +130,7 @@ const updateTable = async (filters) => {
     </div>
 
     <!-- Container da tabela + paginação -->
-    <div class="h-100 d-flex flex-column flex-grow-1">
+    <div class="h-100 d-flex flex-column flex-grow-1 gap-3">
       <!-- Tabela ocupa o espaço restante -->
       <div class="overflow-auto rounded shadow flex-grow-1">
         <table class="table table-striped table-bordered mb-0">
