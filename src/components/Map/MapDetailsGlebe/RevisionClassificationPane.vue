@@ -1,6 +1,6 @@
 <!-- AvaliationPanel.vue -->
 <template>
-  <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
+  <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2 w-25">
     <!-- Card de instruções -->
     <div class="card border-info bg-info bg-gradient">
       <div class="d-flex align-items-center px-3 pt-3">
@@ -357,7 +357,7 @@ function buildSaveAvailablePayload(status) {
 
 
 function canSaveAnalisct() {
-  return selectedUserConsultant.value !== "" && polygonsAnalisct.value && Array.isArray(polygonsAnalisct.value.features);
+  return selectedUserConsultant.value !== "";
 }
 
 async function handleSaveAnalisct(status) {

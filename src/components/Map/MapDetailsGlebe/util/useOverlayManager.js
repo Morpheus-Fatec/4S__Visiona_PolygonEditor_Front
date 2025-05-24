@@ -1,4 +1,5 @@
-import { getRevisionCollection, getManualCollection } from "./LoadClassification.js";
+import { getRevisionCollection, getManualCollection, getFalsePositive, getFalseNegative } from "./LoadClassification.js";
+
 
 function loadFieldCoordinates(coordinates, layerGroup) {
   const normalizedCoords = normalizeCoordinates(coordinates);
@@ -83,7 +84,10 @@ async function loadManualClassification(fieldId, manualLayerGroup ) {
       const revisionPolygon = L.polygon(polygonCoords, {
         weight: 4,
         color: 'blue',
-        fillOpacity: 0.2
+        weight: 2,
+        opacity: 1,
+        fillColor: '#green',
+        fillOpacity: 0.8
       });
       manualLayerGroup.addLayer(revisionPolygon);
     });
@@ -171,19 +175,22 @@ function createLayer(layerGroup, parsedFeatures) {
 
 async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalisct) {
   const revisionClassification = await getRevisionCollection(fieldId);
+  console.log('revisionClassification', revisionClassification.features);
+  const allParsedFeatures = [];
 
   if (!revisionClassification || revisionClassification.features.length === 0) {
+      polygonsDrawAnalisct.value = {
+      features: allParsedFeatures
+    };
     return false;
   }
-
-  const allParsedFeatures = [];
 
   const revisionMultiPolygons = revisionClassification.features.map(item => {
     const rawCoords = item.geometry.coordinates;
     const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
 
     const invertedCoords = parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]])) // inverte [lon, lat] → [lat, lon]
+      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
     );
 
     allParsedFeatures.push({
@@ -210,7 +217,7 @@ async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalis
         fillOpacity: 0.2
       });
 
-      revisionPolygon.options.customId = item.id;
+      revisionPolygon.options.customId = item.properties.id;
 
 
       revisionPolygon.bindTooltip(item.description, {
@@ -276,8 +283,6 @@ async function loadOverlay(
       overlays['Classificação Manual'] = manualLayerGroup;
     }
   }
-
-
   return overlays;
 }
 
@@ -299,6 +304,67 @@ function normalizeCoordinates(coordinates) {
   );
 }
 
+async function loadFalsePositiveClassification(fieldId, falsePositiveLayerGroup, falseNegativoLayerGroup) {
+  const falsePositive = await getFalsePositive(fieldId);
+  const falseNegative = await getFalseNegative(fieldId);
+
+  let hasFalsePositive = false;
+  let hasFalseNegative = false;
+
+  if (falsePositive && falsePositive.features?.length > 0) {
+    const multiPolygons = falsePositive.features.map(item => {
+      const rawCoords = item.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return parsedCoords.map(polygon =>
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      );
+    });
+
+    multiPolygons.forEach(item => {
+      item.forEach(polygonCoords => {
+        const polygon = L.polygon(polygonCoords, {
+          weight: 3,
+          color: 'white',
+          fillOpacity: 0.3
+        });
+        falsePositiveLayerGroup.addLayer(polygon);
+      });
+    });
+
+    hasFalsePositive = true;
+  }
+
+  if (falseNegative && falseNegative.features?.length > 0) {
+    const multiPolygons = falseNegative.features.map(item => {
+      const rawCoords = item.geometry.coordinates;
+      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+
+      return parsedCoords.map(polygon =>
+        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+      );
+    });
+
+    multiPolygons.forEach(item => {
+      item.forEach(polygonCoords => {
+        const polygon = L.polygon(polygonCoords, {
+          color: 'orange',
+          weight: 2,
+          opacity: 1,
+          fillColor: '#orange',
+          fillOpacity: 0.4
+        });
+        falseNegativoLayerGroup.addLayer(polygon);
+      });
+    });
+
+    hasFalseNegative = true;
+  }
+
+  return [hasFalsePositive, hasFalseNegative];
+}
+
+
 
 export {
   loadFieldCoordinates,
@@ -307,4 +373,5 @@ export {
   loadOverlay,
   getManualToEdit,
   getRevisionToEdit,
+  loadFalsePositiveClassification
 };

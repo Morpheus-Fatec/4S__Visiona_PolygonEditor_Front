@@ -1,5 +1,5 @@
 <template>
-  <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2">
+  <div v-if="data" class="sidebar d-flex flex-column p-3 h-100 gap-2 w-25">
     <!-- Ajuda para classificar -->
     <div class="card border-info bg-info bg-gradient">
       <div class="d-flex align-items-center px-3 pt-3">
@@ -114,11 +114,13 @@
 
       <div class="modal fade" id="modalLoading" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-center border-0 bg-transparent shadow-none">
-            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-              <span class="visually-hidden">Carregando...</span>
+          <div class="modal-content text-center border-0 bg-transparent shadow-none align-items-center d-flex justify-content-center">
+            <div class="d-flex align-items-center gap-3 bg-transparent rounded p-3">
+              <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
+                <span class="visually-hidden">Carregando...</span>
+              </div>
+              <p class="mb-0 text-white fw-bold">Salvando classificação...</p>
             </div>
-            <p class="mt-3 text-white fw-bold">Salvando classificação...</p>
           </div>
         </div>
       </div>
@@ -218,7 +220,7 @@ function buildSaveClassificationPayload() {
 }
 
 function canSave() {
-  return localSelectedUser.value !== "" && polygons.value && Array.isArray(polygons.value.features) && polygons.value.features.length > 0;
+  return localSelectedUser.value !== "";
 }
 
 async function handleSaveClassification() {
