@@ -252,7 +252,7 @@ watchEffect(() => {
 
       <!-- Detalhes da Área -->
       <template v-if="isClickedToManual === false && isClickedToRevision === false">
-        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
+        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100 w-25">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes do Talhão</h5>
           <div class="w-100 overflow-auto">
             <div v-for="(item, index) in infoList" :key="index" class="mb-3">
