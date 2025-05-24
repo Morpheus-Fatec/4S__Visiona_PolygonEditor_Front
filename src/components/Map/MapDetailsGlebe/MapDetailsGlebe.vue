@@ -122,9 +122,10 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
 
   if (fieldStatus.value === "Aprovado") {
     const [hasFalsePositive, hasFalseNegative] = await loadFalsePositiveClassification(
-      fieldId,
       falsePositiveLayerGroup.value,
-      falseNegativeLayerGroup.value
+      falseNegativeLayerGroup.value,
+      manualLayerGroup.value,
+      classificationLayerGroup.value
     );
 
     if (hasFalsePositive) {
@@ -188,7 +189,6 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     delete currentOverlays['Revisão Manual'];
     revisionLayerGroup.value.addTo(mapRef.value);
     currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
-    mapRef.value.removeLayer(revisionLayerGroup.value);
     layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
 
      mapRef.value.removeLayer(manualLayerGroup.value);

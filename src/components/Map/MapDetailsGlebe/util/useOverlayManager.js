@@ -1,4 +1,4 @@
-import { getRevisionCollection, getManualCollection, getFalsePositive, getFalseNegative } from "./LoadClassification.js";
+import { getRevisionCollection, getManualCollection } from "./LoadClassification.js";
 
 
 function loadFieldCoordinates(coordinates, layerGroup) {
@@ -304,62 +304,65 @@ function normalizeCoordinates(coordinates) {
   );
 }
 
-async function loadFalsePositiveClassification(fieldId, falsePositiveLayerGroup, falseNegativoLayerGroup) {
-  const falsePositive = await getFalsePositive(fieldId);
-  const falseNegative = await getFalseNegative(fieldId);
+function loadFalsePositiveClassification(
+  falsePositiveLayerGroup,
+  falseNegativeLayerGroup,
+  manualLayerGroup,
+  automaticLayerGroup
+) {
+  function getLayerPolygons(layerGroup) {
+    const polygons = [];
+    layerGroup.eachLayer(layer => {
+      if (layer.getLatLngs) {
+        const latlngs = layer.getLatLngs();
+        const flat = flattenLatLngs(latlngs);
+        const key = JSON.stringify(flat);
+        polygons.push({ coords: flat, key });
+      }
+    });
+    return polygons;
+  }
+
+  function flattenLatLngs(latlngs) {
+    return latlngs.flat(Infinity).map(ll => [ll.lat, ll.lng]);
+  }
+
+  const manualPolygons = getLayerPolygons(manualLayerGroup);
+  const automaticPolygons = getLayerPolygons(automaticLayerGroup);
+
+  const manualKeys = new Set(manualPolygons.map(p => p.key));
+  const automaticKeys = new Set(automaticPolygons.map(p => p.key));
 
   let hasFalsePositive = false;
   let hasFalseNegative = false;
 
-  if (falsePositive && falsePositive.features?.length > 0) {
-    const multiPolygons = falsePositive.features.map(item => {
-      const rawCoords = item.geometry.coordinates;
-      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-      return parsedCoords.map(polygon =>
-        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-      );
-    });
-
-    multiPolygons.forEach(item => {
-      item.forEach(polygonCoords => {
-        const polygon = L.polygon(polygonCoords, {
-          weight: 3,
-          color: 'white',
-          fillOpacity: 0.3
-        });
-        falsePositiveLayerGroup.addLayer(polygon);
+  // False Positives
+  automaticPolygons.forEach(p => {
+    if (!manualKeys.has(p.key)) {
+      const polygon = L.polygon(p.coords, {
+        weight: 3,
+        color: 'white',
+        fillOpacity: 0.3
       });
-    });
+      falsePositiveLayerGroup.addLayer(polygon);
+      hasFalsePositive = true;
+    }
+  });
 
-    hasFalsePositive = true;
-  }
-
-  if (falseNegative && falseNegative.features?.length > 0) {
-    const multiPolygons = falseNegative.features.map(item => {
-      const rawCoords = item.geometry.coordinates;
-      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-      return parsedCoords.map(polygon =>
-        polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-      );
-    });
-
-    multiPolygons.forEach(item => {
-      item.forEach(polygonCoords => {
-        const polygon = L.polygon(polygonCoords, {
-          color: 'orange',
-          weight: 2,
-          opacity: 1,
-          fillColor: '#orange',
-          fillOpacity: 0.4
-        });
-        falseNegativoLayerGroup.addLayer(polygon);
+  // False Negatives
+  manualPolygons.forEach(p => {
+    if (!automaticKeys.has(p.key)) {
+      const polygon = L.polygon(p.coords, {
+        color: 'orange',
+        weight: 2,
+        opacity: 1,
+        fillColor: 'orange',
+        fillOpacity: 0.4
       });
-    });
-
-    hasFalseNegative = true;
-  }
+      falseNegativeLayerGroup.addLayer(polygon);
+      hasFalseNegative = true;
+    }
+  });
 
   return [hasFalsePositive, hasFalseNegative];
 }
