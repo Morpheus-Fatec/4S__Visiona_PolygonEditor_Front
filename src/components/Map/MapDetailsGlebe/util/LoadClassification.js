@@ -20,6 +20,44 @@ export async function getFeatureCollection(fieldId) {
   }
 }
 
+export async function getFalsePositive(fieldId) {
+  try {
+    const response = await api.get(`/classification/falsePositive/${fieldId}`, {
+      withCredentials: true
+    });
+
+    if (response && response.data && response.data.features) {
+      const result = response.data;
+      return result;
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao carregar featureCollection:", error);
+    return null;
+  }
+}
+
+export async function getFalseNegative(fieldId) {
+  try {
+    const response = await api.get(`/classification/falseNegative/${fieldId}`, {
+      withCredentials: true
+    });
+
+    if (response && response.data && response.data.features) {
+      const result = response.data;
+      return result;
+    } else {
+      console.error("Resposta da API inválida ou sem a propriedade 'features'");
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao carregar featureCollection:", error);
+    return null;
+  }
+}
+
 export async function getManualCollection(fieldId) {
   try {
     const response = await api.get(`/field/manualCollection/${fieldId}`, {
@@ -77,4 +115,5 @@ function parseCoordinatesString(coordinatesString) {
     console.error("Erro ao analisar a string de coordenadas:", error);
     return null;
   }
+
 }

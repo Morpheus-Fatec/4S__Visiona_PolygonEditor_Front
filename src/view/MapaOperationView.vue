@@ -125,7 +125,7 @@ function mapInfoListToDataStructure() {
       id: selectedSoil?.id || null,
       name: soilName
     },
-    productivity: parseFloat(getValueByTitle('Produtividade')) || null,
+    productivity: getValueByTitle('Produtividade') || null,
     farm: {
       id: selectedFarm?.id || null,
       farmName: farmName,
@@ -142,7 +142,7 @@ function getValueByTitle(title) {
 
 async function saveEdit() {
   const editedData = mapInfoListToDataStructure();
-
+  console.log("Dados editados:", editedData);
   try {
     await api.put(`/field/${areaId}/update`, editedData, {
       withCredentials: true
@@ -229,7 +229,6 @@ onMounted(() => {
 
 watchEffect(() => {
   if (!data.value) return;
-
   infoList.value = [
     { title: 'ID', value: data.value.properties.id },
     { title: 'Nome', value: data.value.properties.name },
@@ -253,7 +252,7 @@ watchEffect(() => {
 
       <!-- Detalhes da Área -->
       <template v-if="isClickedToManual === false && isClickedToRevision === false">
-        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100">
+        <div v-if="data" class="sidebar d-flex flex-column align-items-center p-3 h-100 w-25">
           <h5 class="fw-bold border-bottom border-2 py-3 mb-3 h3 w-100">Detalhes do Talhão</h5>
           <div class="w-100 overflow-auto">
             <div v-for="(item, index) in infoList" :key="index" class="mb-3">
