@@ -211,6 +211,7 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
   });
 
   useGeoTiffLoader(map, tifLayerGroups, props.data, fieldCoordinates, tifLayersLoaded);
+
 };
 
 
@@ -242,6 +243,7 @@ watchEffect(async () => {
     catch (error) {
       console.error("Erro ao adicionar controle de desenho:", error);
     }
+
     for (const layer of manualLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();
       layer.feature = geojson;
@@ -497,6 +499,7 @@ watchEffect( async () => {
   }
 
   function startEditPolygon(layer) {
+  console.log("layer:", layer);
   revisionLayerGroup.value.eachLayer(l => {
     if (l.editing && l.editing.enabled() && l !== layer) {
       l.editing.disable();
@@ -510,6 +513,7 @@ watchEffect( async () => {
     layer.on('edit', () => {
       const geojson = layer.toGeoJSON();
       const id = layer.options?.customId;
+      console.log("id", id);
       const index = polygonsDrawAnalisct.value.features.findIndex(f => f.properties.id === id);
       if (index !== -1) {
         polygonsDrawAnalisct.value.features[index].geometry = {
