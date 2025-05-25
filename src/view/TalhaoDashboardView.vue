@@ -10,15 +10,15 @@ const chartData = ref<ChartData<'line'>>({
   labels: [],
   datasets: []
 })
+const chartTitle = ref('Saúde da análise automática')
+const metricNoEditing = ref<number | null>(null)
 
-const metricData = ref<number | null>(null)
-
-const loadMetricTalhao = async () => {
+const noEditing = async () => {
   try {
-    const response = await axios.get('/jsonQualiTalhao.json')
-    metricData.value = response.data.qualidadeAnalise
+    const response = await api.get('/analise/talhoes-nao-revisados')
+    metricNoEditing.value = response.data.uneditedField
   } catch (error) {
-    // Erro silencioso
+    console.error('Erro ao carregar dados', error)
   }
 }
 
@@ -49,11 +49,11 @@ onMounted(async () => {
       ]
     }
   } catch (error) {
-    // Erro silencioso
+    console.error('Erro ao carregar dados', error)
   }
 })
 
-loadMetricTalhao()
+noEditing()
 </script>
 
 <template>
@@ -67,25 +67,19 @@ loadMetricTalhao()
               <LineChart2
                 v-if="chartData.labels?.length"
                 :chartData="chartData"
+                  :chartTitle="chartTitle"
+
               />
             </div>
           </div>
         </div>
 
         <div class="col-12 col-lg-4 d-flex flex-column gap-3">
-          <div class="card shadow-sm text-center flex-fill">
-            <div class="card-body d-flex flex-column justify-content-center">
-              <h5 class="card-title mb-2">Qualidade da Classificação</h5>
-              <p class="card-text text-muted mb-3">Automática</p>
-              <p class="card-text text-muted display-6 fw-bold">{{ metricData }}%</p>
-            </div>
-          </div>
-
-          <div class="card shadow-sm text-center flex-fill">
-            <div class="card-body d-flex flex-column justify-content-center">
-              <h5 class="card-title mb-2">Sem edição</h5>
-              <p class="card-text text-muted mb-3">Resultado bruto</p>
-              <p class="card-text text-muted display-6 fw-bold">—</p>
+          <div class="card shadow-sm text-center">
+            <div class="card-body py-3 px-2">
+              <h6 class="card-title mb-1 fw-semibold">Talhões Aprovados</h6>
+              <small class="text-muted mb-2 d-block">Sem edição</small>
+              <div class="fw-bold fs-3">{{ metricNoEditing }}</div>
             </div>
           </div>
         </div>
@@ -93,3 +87,4 @@ loadMetricTalhao()
     </div>
   </Layout>
 </template>
+
