@@ -50,110 +50,126 @@ const router = createRouter({
     {
       path: '/mapa-global',
       name: 'mapa-global',
-      component: () => import ('../view/MapaGlobalView.vue'),
-      meta: { requiresAuth: true } 
+      component: () => import('../view/MapaGlobalView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/operacao/:id',
       name: 'operacaoMapDetails',
       props: true,
       component: MapaOperationView,
-      meta: { requiresAuth: true } 
+      meta: { requiresAuth: true }
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: Dashboard,
-      meta: { 
-        requiresAuth: true, 
+      meta: {
+        requiresAuth: true,
         roles: ['Administrador']
-       } 
+      }
     },
     {
       path: '/configuracao',
       name: 'configuracao',
       component: Configuracao,
-      meta: { 
-        requiresAuth: true, 
+      meta: {
+        requiresAuth: true,
         roles: ['Administrador']
-       } 
+      }
     },
     {
       path: '/operacoes',
       name: 'operacoes',
       component: Operacoes,
-      meta: { requiresAuth: true } 
+      meta: { requiresAuth: true }
     },
     {
       path: '/cadastro',
       name: 'register',
       component: RegisterView,
-      meta: { 
-        requiresAuth: true, 
-        roles: ['Administrador','Consultor']
-       } 
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador', 'Consultor']
+      }
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: NotFound,
-      meta: { requiresAuth: true } 
+      meta: { requiresAuth: true }
     },
     {
       path: '/cultura',
-      name:'cultura',
+      name: 'cultura',
       component: Cultura,
-      meta: { 
-        requiresAuth: true, 
-        roles: ['Administrador','Consultor']
-       } 
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador', 'Consultor']
+      }
     },
     {
       path: '/solo',
-      name:'solo',
+      name: 'solo',
       component: Solo,
-      meta: { 
-        requiresAuth: true, 
-        roles: ['Administrador','Consultor']
-       }  
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador', 'Consultor']
+      }
     },
     {
       path: '/fazenda',
-      name:'fazenda',
+      name: 'fazenda',
       component: Fazenda,
-      meta: { 
-        requiresAuth: true, 
-        roles: ['Administrador','Consultor']
-       } 
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador', 'Consultor']
+      }
     },
     {
       path: '/usuario',
       name: 'usuario',
-      component: UserRegisterView,       
-      meta: { 
-        requiresAuth: true, 
+      component: UserRegisterView,
+      meta: {
+        requiresAuth: true,
         roles: ['Administrador']
-       }  
+      }
     },
     {
       path: '/analistas',
       name: 'analistas',
       component: AnalystDashboardView,
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador']
+      }
     },
     {
       path: '/consultores',
       name: 'consultores',
       component: ConsultantDashboardView,
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador']
+      }
     },
     {
       path: '/talhao',
       name: 'talhao',
       component: TalhaoDashboardView,
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador']
+      }
     },
-        {
+    {
       path: '/painel',
       name: 'painel',
       component: ControlPanelView,
+      meta: {
+        requiresAuth: true,
+        roles: ['Administrador']
+      }
     }
   ]
 });
