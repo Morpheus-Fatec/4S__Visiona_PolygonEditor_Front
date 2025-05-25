@@ -313,7 +313,6 @@ watchEffect(async () => {
 
   // Função para editar o polígono ao clicar
 function startEditPolygonManual(layer) {
-  console.log("polygonsDraw antes:", polygonsDraw.value.features);
   manualLayerGroup.value.eachLayer(l => {
     if (l.editing && l.editing.enabled() && l !== layer) {
       l.editing.disable();
@@ -416,7 +415,6 @@ watchEffect( async () => {
       console.error("Erro ao adicionar controle de desenho:", error);
     }
 
-    console.log("polygonsDrawAnalisct.value.features", polygonsDrawAnalisct.value.features);
 
     for (const layer of revisionLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();

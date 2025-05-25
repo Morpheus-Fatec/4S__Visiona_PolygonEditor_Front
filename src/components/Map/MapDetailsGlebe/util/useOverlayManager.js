@@ -175,7 +175,6 @@ function createLayer(layerGroup, parsedFeatures) {
 
 async function getRevisionToEdit(fieldId, revisionLayerGroup, polygonsDrawAnalisct) {
   const revisionClassification = await getRevisionCollection(fieldId);
-  console.log('revisionClassification', revisionClassification.features);
   const allParsedFeatures = [];
 
   if (!revisionClassification || revisionClassification.features.length === 0) {

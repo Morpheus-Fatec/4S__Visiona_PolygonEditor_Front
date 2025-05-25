@@ -220,7 +220,7 @@ function buildSaveClassificationPayload() {
 }
 
 function canSave() {
-  return localSelectedUser.value !== "";
+  return usuario.id !== "";
 }
 
 async function handleSaveClassification() {
@@ -230,7 +230,6 @@ async function handleSaveClassification() {
     modalSaveInstance.hide();
   }
 
-  console.log("user id: ", localSelectedUser.value)
 
   if (!canSave()) {
     showModalMessage(

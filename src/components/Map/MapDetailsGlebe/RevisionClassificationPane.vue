@@ -42,7 +42,7 @@
 
         <div>
           <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-          <input class="form-control" disabled :value="selectedUser || ''" />
+          <input class="form-control" disabled :value="analistName || ''" />
         </div>
 
         <div>
@@ -85,7 +85,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
         </div>
         <div class="modal-body lh-base">
-          A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ getConsultantName(selectedUserConsultant) }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
+          A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ analistName }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
           você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
         </div>
         <div class="modal-footer">
@@ -186,10 +186,7 @@ const props = defineProps({
   data: Object,
   consultants: Array,
 });
-
 const data = ref(props.data)
-const selectedUser = 1;
-console.log('selectedUser', selectedUser);
 const emit = defineEmits(['cancel']);
 const polygonStore = usePolygonStore();
 const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
@@ -202,12 +199,26 @@ const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
 const usuario = JSON.parse(localStorage.getItem('usuario'));
+const analistName = ref(null);
 
-const getConsultantName = (selectedUserConsultantId) => {
-  selectedConsultantId.value = selectedUserConsultantId;
-  const consultant = props.consultants.find(user => user.id === selectedUserConsultantId);
-  return consultant ? consultant.name : 'Consultor desconhecido';
-};
+async function getAnalistName(fieldId) {
+  try {
+    const response = await api.get(`/user/analistName/${fieldId}`, {
+      withCredentials: true
+    });
+    if (response && response.data) {
+      analistName.value = response.data;
+    } else {
+      console.error("Resposta da API inválida");
+      return 'Erro ao buscar consultor';
+    }
+  } catch (error) {
+    console.error("Erro ao buscar consultor:", error);
+    return 'Erro ao buscar consultor';
+  }
+}
+
+
 
 function formatDate(date) {
   const d = new Date(date);
@@ -256,6 +267,7 @@ async function handleClickToAssess() {
     return;
   }
 
+  getAnalistName(data.value.properties.id);
   beginTime.value = formatDate(new Date());
   const status = data.value.properties.status;
 

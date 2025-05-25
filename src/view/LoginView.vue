@@ -6,12 +6,12 @@ import api from "@/components/util/API.js";
 const email = ref('');
 const senha = ref('');
 const router = useRouter();
-const loading = ref(false); 
-const errorMessage = ref(''); 
+const loading = ref(false);
+const errorMessage = ref('');
 
 const realizarLogin = async () => {
-  loading.value = true;  
-  errorMessage.value = '';  
+  loading.value = true;
+  errorMessage.value = '';
 
   try {
     const response = await api.post('/auth/login', {
@@ -19,7 +19,7 @@ const realizarLogin = async () => {
       password: senha.value,
     });
     const usuario = {
-      id: response.data.id,
+      id: response.data.userId,
       token: response.data.token,
       nome: response.data.userName,
       email: response.data.email,
@@ -29,7 +29,7 @@ const realizarLogin = async () => {
 
     router.push('/mapa-global');
   } catch (error) {
-    loading.value = false;  
+    loading.value = false;
 
     errorMessage.value = 'Erro ao realizar login. Verifique suas credenciais ou tente novamente mais tarde.';
   }
@@ -62,7 +62,7 @@ onMounted(() => {
 
             <div class="form-outline mb-4">
               <label class="form-label" for="form2Example22">Senha</label>
-              <input v-model="senha" type="password" id="form2Example22" class="form-control" 
+              <input v-model="senha" type="password" id="form2Example22" class="form-control"
                 placeholder="***************" required />
             </div>
 
