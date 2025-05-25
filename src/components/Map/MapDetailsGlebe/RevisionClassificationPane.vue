@@ -191,10 +191,8 @@ const emit = defineEmits(['cancel']);
 const polygonStore = usePolygonStore();
 const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
 const isClickedToRevision = ref(false)
-const selectedUserConsultant = ref('')
 const beginTime = ref("");
 const endTime = ref("");
-const selectedConsultantId = ref('')
 const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
@@ -333,13 +331,6 @@ async function handleClickToAssess() {
 function buildSaveAvailablePayload(status) {
   endTime.value = formatDate(new Date());
 
-  const userResponsable = selectedConsultantId.value;
-
-  if (!userResponsable) {
-    console.error("Usuário não encontrado");
-    return;
-  }
-
   const featuresGeometry = polygonsAnalisct.value.features.map(feature => {
     const updatedFeature = {
       ...feature,
@@ -354,7 +345,7 @@ function buildSaveAvailablePayload(status) {
     };
     return updatedFeature;
   });
-
+  console.log(" usuario.id", usuario.id);
   const payload = {
     idField: data.value.properties.id,
     userResponsable: usuario.id,
@@ -368,10 +359,6 @@ function buildSaveAvailablePayload(status) {
 }
 
 
-function canSaveAnalisct() {
-  return selectedUserConsultant.value !== "";
-}
-
 async function handleSaveAnalisct(status) {
   const modalSaveEl = document.getElementById('modalSaveClassified');
   const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
@@ -379,14 +366,6 @@ async function handleSaveAnalisct(status) {
     modalSaveInstance.hide();
   }
 
-  if (!canSaveAnalisct()) {
-    showModalMessage(
-      'Dados Incompletos',
-      'Por favor, selecione um usuário e adicione um polígono.',
-      'error'
-    );
-    return;
-  }
 
   const payload = buildSaveAvailablePayload(status);  // Passando o status para a função
 
@@ -405,7 +384,6 @@ async function handleSaveAnalisct(status) {
         'success'
       );
       isClickedToRevision.value = false;
-      selectedUserConsultant.value = "";
       loadData();
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'data'");
