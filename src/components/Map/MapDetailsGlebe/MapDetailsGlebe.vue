@@ -1,10 +1,18 @@
 <script setup>
-import { ref, defineProps, watchEffect, watch } from 'vue';
+import { ref, defineProps, watchEffect, watch, computed } from 'vue';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { LMap, LControlScale } from '@vue-leaflet/vue-leaflet';
-import GeoRasterLayer from 'georaster-layer-for-leaflet';
-import georaster from 'georaster';
+import { useGeoTiffLoader } from './util/useGeotiffLoader.js';
+import {
+  loadFieldCoordinates,
+  loadRevisionClassification,
+  loadImages,
+  loadOverlay,
+  getManualToEdit,
+  getRevisionToEdit,
+  loadFalsePositiveClassification,
+} from './util/useOverlayManager.js';
 import { usePolygonStore } from '../../../store/PolygonStore';
 import * as turf from '@turf/turf';
 
@@ -12,9 +20,8 @@ const polygonStore = usePolygonStore();
 
 const props = defineProps({
   data: Object,
-  isClickedClassified: Boolean,
-  isClickedClassifiedManual: Boolean,
-  glebeAvailable: Object
+  isClickedToManual: Boolean,
+  isClickedToRevision: Boolean,
 });
 
 const tileProviders = ref([
@@ -28,22 +35,26 @@ const tileProviders = ref([
 
 const zoom = ref(14);
 const mapRef = ref(null);
+const isClickedToManualRef = computed(() => props.isClickedToManual);
+const isClickedToRevisionRef = computed(() => props.isClickedToRevision);
 const glebaLayerGroup = ref(null);
 const tifLayerGroups = ref([]);
 const classificationLayerGroup = ref(L.layerGroup());
-const glebeAvailableLayerGroup = ref(L.layerGroup());
+const manualLayerGroup = ref(new L.FeatureGroup());
+const revisionLayerGroup = ref(new L.FeatureGroup());
+const falsePositiveLayerGroup = ref(L.layerGroup());
+const falseNegativeLayerGroup = ref(L.layerGroup());
+const layerControlRef = ref(null);
 const baseLayerRef = ref(null);
 const tifLayersLoaded = ref([]);
-const drawnItemsLayer = ref(new L.FeatureGroup());
-const drawnItemsLayerAvailable = ref(new L.FeatureGroup());
 const editingLayer = ref(null);
+const fieldId = props.data.properties.id;
+const fieldCoordinates = props.data.geometry.coordinates;
+const fieldStatus = computed(() => props.data.properties.status);
 
-const getEmptyPolygonsDraw = () => ({
-  features: []
-});
 
-const polygonsDraw = ref(getEmptyPolygonsDraw());
-const polygonsDrawAnalisct = ref(getEmptyPolygonsDraw());
+const polygonsDraw = ref();
+const polygonsDrawAnalisct = ref();
 
 const onMapReady = async (map) => {
   mapRef.value = map;
@@ -60,108 +71,136 @@ const onMapReady = async (map) => {
 
   glebaLayerGroup.value = L.layerGroup();
 
-  const coordinates = normalizeCoordinates(props.data.geometry.coordinates);
-  const automaticClassification = props.data.automatic.features;
-
-  const multiPolygons = props.data.geometry.coordinates.map(polygon =>
-    polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
+  const bounds = loadFieldCoordinates(
+    fieldCoordinates,
+    glebaLayerGroup
   );
-
-  const classificationMultiPolygons = automaticClassification.map(item => {
-
-   const rawCoords = item.geometry.coordinates;
-   const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
-
-    return parsedCoords.map(polygon =>
-      polygon.map(ring => ring.map(coord => [coord[1], coord[0]]))
-    );
-  });
-
-  let bounds = L.latLngBounds();
-
-  multiPolygons.forEach(polygonCoords => {
-    const glebaPolygon = L.polygon(polygonCoords, {
-      weight: 3,
-      fillOpacity: 0
-    });
-    glebaLayerGroup.value.addLayer(glebaPolygon);
-    bounds = bounds.extend(glebaPolygon.getBounds());
-  });
-
-  classificationMultiPolygons.forEach(item => {
-    item.forEach(polygonCoords => {
-      const classificationPolygon = L.polygon(polygonCoords, {
-        weight: 4,
-        color: 'red',
-        fillOpacity: 0
-      });
-      classificationLayerGroup.value.addLayer(classificationPolygon);
-    });
-  });
 
   glebaLayerGroup.value.addTo(map);
   map.setMaxBounds(bounds);
 
-  const overlays = {
-  'Gleba Polígono': glebaLayerGroup.value,
-  'Classificação Automática': classificationLayerGroup.value,
-  'Classificação Manual': glebeAvailableLayerGroup.value
-  };
-
-  mapRef.value.createPane('manualClassificationPane');
-  mapRef.value.getPane('manualClassificationPane').style.zIndex = 99999;
-
-  props.data.images.forEach((image, index) => {
-    const layerGroup = L.layerGroup();
-    tifLayerGroups.value.push(layerGroup);
-    overlays[image.name] = layerGroup;
-    tifLayersLoaded.value.push(false);
-  });
-
-  const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
-  map.fitBounds(bounds);
-
-  watch(
-    () => props.glebeAvailable,
-    (newGlebeAvailable) => {
-      if (!mapRef.value) return;
-      glebeAvailableLayerGroup.value.clearLayers();
-
-      if (newGlebeAvailable && newGlebeAvailable.features && newGlebeAvailable.features.length > 0) {
-        loadGlebeAvailableLayer(newGlebeAvailable.features);
-
-        if (!layerControl._layers || !Object.values(layerControl._layers).some(l => l.name === 'Classificação Manual')) {
-          layerControl.addOverlay(glebeAvailableLayerGroup.value, 'Classificação Manual');
-        }
-      } else {
-        if (layerControl._layers) {
-          const layerInfo = Object.entries(layerControl._layers).find(([key, l]) => l.name === 'Classificação Manual');
-          if (layerInfo) {
-            layerControl.removeLayer(glebeAvailableLayerGroup.value);
-          }
-        }
-      }
-    },
-    { immediate: true }
+  const overlays = await loadOverlay(
+    fieldId,
+    glebaLayerGroup.value,
+    props.data.automatic.features,
+    classificationLayerGroup.value,
+    manualLayerGroup.value,
+    fieldStatus.value,
   );
 
-  function loadGlebeAvailableLayer(features) {
-    features.forEach(feature => {
-      const rawCoords = feature.geometry.coordinates;
-      const parsedCoords = typeof rawCoords === "string" ? JSON.parse(rawCoords) : rawCoords;
+  loadImages(props.data.images, tifLayersLoaded, overlays, tifLayerGroups)
 
-      parsedCoords.forEach(polygonCoords => {
-        const latlngs = polygonCoords.map(ring => ring.map(coord => [coord[1], coord[0]]));
-        const polygon = L.polygon(latlngs, {
-          weight: 2,
-          color: 'green',
-          fillOpacity: 0.3,
-          pane: 'manualClassificationPane'
-        });
-        glebeAvailableLayerGroup.value.addLayer(polygon);
-      });
-    });
+  mapRef.value.createPane('manualClassificationPane');
+  mapRef.value.getPane('manualClassificationPane').style.zIndex = 650;
+
+  mapRef.value.createPane('revisionClassificationPane');
+  mapRef.value.getPane('revisionClassificationPane').style.zIndex = 600;
+
+
+  layerControlRef.value = L.control.layers(baseLayers, overlays).addTo(map);
+  map.fitBounds(bounds);
+
+  updateOverlays(
+    isClickedToManualRef.value,
+    isClickedToRevisionRef.value,
+    overlays
+  );
+
+  watch(
+  [() => isClickedToManualRef.value, () => isClickedToRevisionRef.value],
+  ([newManual, newRevision]) => {
+    console.log("isClickedToManual:", newManual);
+    console.log("isClickedToRevision:", newRevision);
+    updateOverlays(newManual, newRevision, overlays);
+  },
+  { immediate: false }
+);
+
+
+
+async function updateOverlays(isClickedToManual, isClickedToRevision, currentOverlays) {
+
+  if (fieldStatus.value === "Aprovado") {
+    const [hasFalsePositive, hasFalseNegative] = await loadFalsePositiveClassification(
+      falsePositiveLayerGroup.value,
+      falseNegativeLayerGroup.value,
+      manualLayerGroup.value,
+      classificationLayerGroup.value
+    );
+
+    if (hasFalsePositive) {
+      falsePositiveLayerGroup.value.addTo(mapRef.value);
+      currentOverlays['Falsos Positivos'] = falsePositiveLayerGroup.value;
+      layerControlRef.value.addOverlay(falsePositiveLayerGroup.value, 'Falsos Positivos(Retirado manualmente)');
+       mapRef.value.removeLayer(falsePositiveLayerGroup.value);
+    }
+
+    if (hasFalseNegative) {
+      falseNegativeLayerGroup.value.addTo(mapRef.value);
+      currentOverlays['Falsos Negativos'] = falseNegativeLayerGroup.value;
+      layerControlRef.value.addOverlay(falseNegativeLayerGroup.value, 'Falsos Negativos(Não detectado pela IA)');
+      mapRef.value.removeLayer(falseNegativeLayerGroup.value);
+    }
+
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
   }
+
+  // Retira camada de revisao
+  if(!(isClickedToRevision || isClickedToManual) && fieldStatus.value !== "Aprovado"){
+    console.log("Removendo camada de revisão");
+    mapRef.value.removeLayer(revisionLayerGroup.value);
+    layerControlRef.value.removeLayer(revisionLayerGroup.value);
+    delete currentOverlays['Revisão Manual'];
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    return;
+  }
+
+  if (isClickedToManual) {
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    manualLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
+    if (!currentOverlays['Revisão Manual']) {
+      const existRevision = await loadRevisionClassification(fieldId, revisionLayerGroup);
+      console.log("existRevision", existRevision);
+      if (existRevision) {
+        revisionLayerGroup.value.addTo(mapRef.value);
+        currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
+        mapRef.value.removeLayer(revisionLayerGroup.value);
+        layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+      }
+    }
+
+  }
+
+  if (isClickedToRevision) {
+    console.log("Adicionando camada de revisão");
+    mapRef.value.removeLayer(revisionLayerGroup.value);
+    layerControlRef.value.removeLayer(revisionLayerGroup.value);
+    delete currentOverlays['Revisão Manual'];
+    revisionLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
+    layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
+
+     mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.removeLayer(manualLayerGroup.value);
+    delete currentOverlays['Classificação Manual'];
+    manualLayerGroup.value.addTo(mapRef.value);
+    currentOverlays['Classificação Manual'] = manualLayerGroup.value;
+    mapRef.value.removeLayer(manualLayerGroup.value);
+    layerControlRef.value.addOverlay(manualLayerGroup.value, 'Classificação Manual');
+  }
+
+}
 
   map.on('click', (event) => {
     if (editingLayer.value && !editingLayer.value.getBounds().contains(event.latlng)) {
@@ -171,97 +210,61 @@ const onMapReady = async (map) => {
     }
   });
 
-  map.on('overlayadd', async (event) => {
-    const layerIndex = props.data.images.findIndex(img => img.name === event.name);
-    if (layerIndex !== -1 && !tifLayersLoaded.value[layerIndex]) {
-      await loadTif(props.data.images[layerIndex].link, layerIndex, coordinates);
-      tifLayersLoaded.value[layerIndex] = true;
-    }
-  });
+  useGeoTiffLoader(map, tifLayerGroups, props.data, fieldCoordinates, tifLayersLoaded);
+
 };
 
-async function loadTif(url, layerIndex, coordinates) {
-  console.log('Carregando GeoTIFF:', url);
-  try {
-    const clipArea = createClipAreaFromCoordinates(coordinates);
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Erro ao carregar GeoTIFF: " + url);
-
-    const arrayBuffer = await response.arrayBuffer();
-    const raster = await georaster(arrayBuffer);
-
-    const layer = new GeoRasterLayer({
-      georaster: raster,
-      opacity: 1,
-      resolution: 512,
-      mask: clipArea,
-      mask_strategy: "outside"
-    });
-
-    tifLayerGroups.value[layerIndex].addLayer(layer);
-  } catch (error) {
-    console.error("Erro ao carregar o GeoTIFF:", error);
-  }
-}
-
-function createClipAreaFromCoordinates(coordinates) {
-  return {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "properties": {},
-        "geometry": {
-          "type": "MultiPolygon",
-          "coordinates": coordinates
-        }
-      }
-    ]
-  };
-}
-
-function normalizeCoordinates(coordinates) {
-  const coords = coordinates && coordinates.target ? coordinates.target : coordinates;
-  return coords.map(polygon =>
-    polygon.map(ring => ring)
-  );
-}
 
 let drawControl = null;
 
-watchEffect(() => {
+watchEffect(async () => {
   if (!mapRef.value) return;
 
-  if (props.isClickedClassified && !drawControl) {
+  // Ativar modo de edição manual
+  if (isClickedToManualRef.value && !drawControl) {
     drawControl = new L.Control.Draw({
       position: 'topright',
+      edit: false,
       draw: {
         polygon: true,
         polyline: false,
-        rectangle: false,
         circle: false,
-        circlemarker: false,
+        rectangle: false,
         marker: false,
-        circleMarker: false,
-      },
-      edit: {
-        edit: false,
-        remove: false,
-        featureGroup: drawnItemsLayer.value
-      },
+        circlemarker: false
+      }
     });
 
     mapRef.value.addControl(drawControl);
-    drawnItemsLayer.value.addTo(mapRef.value);
 
-    mapRef.value.on(L.Draw.Event.CREATED, (e) => {
-      const layer = e.layer;
+    try{
+      await getManualToEdit(fieldId, manualLayerGroup.value, props.data.automatic.features, polygonsDraw);
+    }
+    catch (error) {
+      console.error("Erro ao adicionar controle de desenho:", error);
+    }
+
+    for (const layer of manualLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();
-      const coords = geojson.geometry.coordinates;
+      layer.feature = geojson;
+      layer.setStyle({
+        weight: 4,
+        color: 'purple',
+        weight: 2,
+        opacity: 1,
+        fillColor: '#orange',
+        fillOpacity: 0.4
+      });
+
+      attachManualLayerEvents(layer);
+    }
+
+    // Evento de criação de novo polígono
+    mapRef.value.on(L.Draw.Event.CREATED, (event) => {
+      const layer = event.layer;
+      const geojson = layer.toGeoJSON();
 
       const newId = Date.now();
-
       const areaInSquareMeters = turf.area(geojson);
       const area = (areaInSquareMeters / 10000).toFixed(4);
 
@@ -270,183 +273,232 @@ watchEffect(() => {
         area: area,
         classEntity: "DANINHAS"
       };
+
       layer.feature = geojson;
-
-      layer.on('click', (event) => {
-        event.originalEvent.stopPropagation();
-        startEditPolygon(layer);
-      });
-
-      let pressTimer = null;
-
-      layer.on('mousedown', (event) => {
-        event.originalEvent.stopPropagation();
-        pressTimer = setTimeout(() => {
-          deletePolygon(layer);
-        }, 400);
-      });
-
-      layer.on('mouseup', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.on('mouseout', () => {
-        clearTimeout(pressTimer);
-      });
+      layer.options.customId = newId;
 
       layer.setStyle({
         color: 'orange',
-        fillColor: 'orange',
-        weight: 2
+        weight: 2,
+        opacity: 1,
+        fillColor: '#orange',
+        fillOpacity: 0.4
       });
 
-      const exists = polygonsDraw.value.features.find(f => f.properties.id === newId);
-      if (!exists) {
-        polygonsDraw.value.features.push(layer.toGeoJSON());
-      }
+      manualLayerGroup.value.addLayer(layer);
+      attachManualLayerEvents(layer);
+      polygonsDraw.value.features.push(layer.toGeoJSON());
 
-      drawnItemsLayer.value.addLayer(layer);
+      const layerGeometry = JSON.stringify(layer.toGeoJSON().geometry);
+
+      const exists = polygonsDraw.value.features.some(feature =>
+        JSON.stringify(feature.geometry) === layerGeometry
+      );
+
+      if (exists) {
+        console.log("✅ Layer já está em polygonsDraw");
+      } else {
+        console.log("🆕 Layer ainda não está em polygonsDraw");
+      }
     });
-
-    function startEditPolygon(layer) {
-      drawnItemsLayer.value.eachLayer(l => {
-        if (l.editing && l.editing.enabled() && l !== layer) {
-          l.editing.disable();
-        }
-      });
-
-      if (layer.editing) {
-        layer.editing.enable();
-        editingLayer.value = layer;
-
-        layer.on('edit', () => {
-          const geojson = layer.toGeoJSON();
-          const id = layer.feature?.properties?.id;
-
-          const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
-          if (index !== -1) {
-            polygonsDraw.value.features[index].geometry = {
-              type: "MultiPolygon",
-              coordinates: [[[geojson.geometry.coordinates[0]]]]
-            };
-            console.log("Polígono editado individualmente:", polygonsDraw.value.features[index]);
-          }
-        });
-      }
-    }
-
-    function deletePolygon(layer) {
-      const id = layer.feature?.properties?.id;
-      if (id != null) {
-        const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
-        if (index !== -1) {
-          polygonsDraw.value.features.splice(index, 1);
-          drawnItemsLayer.value.removeLayer(layer);
-          console.log("Polígono deletado:", id);
-        }
-      }
-    }
   }
 
-  if (!props.isClickedClassified && drawControl) {
+  // Remover controle de desenho quando o modo manual for desativado
+  if (!isClickedToManualRef.value && drawControl) {
     mapRef.value.removeControl(drawControl);
-    drawnItemsLayer.value.clearLayers();
     drawControl = null;
     polygonsDraw.value = getEmptyPolygonsDraw();
     editingLayer.value = null;
   }
+
+  // Função para editar o polígono ao clicar
+function startEditPolygonManual(layer) {
+  manualLayerGroup.value.eachLayer(l => {
+    if (l.editing && l.editing.enabled() && l !== layer) {
+      l.editing.disable();
+      console.log("Desabilitando edição de outro polígono.");
+    }
+  });
+
+  // Habilita edição no polígono clicado
+  if (layer.editing) {
+    layer.editing.enable();
+    editingLayer.value = layer;
+    // Atualiza GeoJSON no array de polígonos quando a edição ocorrer
+    layer.on('edit', () => {
+      const geojson = layer.toGeoJSON();
+      const id = layer.options?.customId;
+      console.log("id", id);
+      const index = polygonsDraw.value.features.findIndex(f => f.properties.id === id);
+      if (index !== -1) {
+        polygonsDraw.value.features[index].geometry = {
+          type: "MultiPolygon",
+          coordinates: [geojson.geometry.coordinates]
+        };
+        console.log("Polígono editado manualmente:", polygonsDraw.value.features[index]);
+      }
+    });
+  }
+}
+
+
+  function deletePolygonManual(layer) {
+      if (manualLayerGroup.value.hasLayer(layer)) {
+        manualLayerGroup.value.removeLayer(layer);
+        console.log("Polígono deletado.");
+      }
+      const deletedId = layer.options.customId ??
+        layer.feature?.properties?.id ??
+        null;
+      if (deletedId) {
+        polygonsDraw.value.features = polygonsDraw.value.features.filter(
+          f => f.properties.id !== deletedId
+        );
+      }
+  }
+
+
+  // Função reutilizável para associar eventos aos polígonos manuais
+  function attachManualLayerEvents(layer) {
+    layer.on('click', (event) => {
+      event.originalEvent.stopPropagation();
+      startEditPolygonManual(layer);
+    });
+
+    let pressTimer = null;
+
+    layer.on('mouseup', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mouseout', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mousedown', (event) => {
+      event.originalEvent.stopPropagation();
+      pressTimer = setTimeout(() => {
+        deletePolygonManual(layer);
+      }, 400);
+    });
+  }
 });
+
+
+
+
 
 let manualDrawControl = null;
 
-watchEffect(() => {
+watchEffect( async () => {
   if (!mapRef.value) return;
 
-  if (props.isClickedClassifiedManual && !manualDrawControl) {
+  if (isClickedToRevisionRef.value && !manualDrawControl) {
     manualDrawControl = new L.Control.Draw({
       position: 'topright',
+      edit: false, // mesma ordem da primeira
       draw: {
         polygon: true,
         polyline: false,
-        rectangle: false, 
+        rectangle: false,
         circle: false,
         marker: false,
         circlemarker: false,
-      },
-      edit: {
-        featureGroup: drawnItemsLayerAvailable.value,
-        edit: false,
-        remove: false,
-      },
+      }
     });
 
     mapRef.value.addControl(manualDrawControl);
-    drawnItemsLayerAvailable.value.addTo(mapRef.value);
 
+    try {
+      await getRevisionToEdit(fieldId, revisionLayerGroup.value, polygonsDrawAnalisct);
+    } catch (error) {
+      console.error("Erro ao adicionar controle de desenho:", error);
+    }
+
+
+    for (const layer of revisionLayerGroup.value.getLayers()) {
+      const geojson = layer.toGeoJSON();
+      layer.feature = geojson;
+      layer.setStyle({
+        weight: 4,
+        color: 'yellow',
+        fillOpacity: 0.2
+      });
+
+      attachLayerEvents(layer);
+    }
+
+    // Evento de criação de novo polígono
     mapRef.value.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geojson = layer.toGeoJSON();
       const newId = Date.now();
 
-      geojson.properties = {
-        id: newId,
-      };
-      layer.feature = geojson;
-
-      layer.setStyle({
-        color: 'blue',
-        fillColor: 'blue',
-        weight: 2
-      });
-
-      layer.on('click', (event) => {
-        event.originalEvent.stopPropagation();
-        startEditPolygon(layer);
-      });
-
-      let pressTimer = null;
-
-      layer.on('mousedown', (event) => {
-        event.originalEvent.stopPropagation();
-        pressTimer = setTimeout(() => {
-          deletePolygon(layer);
-        }, 400);
-      });
-
-      layer.on('mouseup', () => {
-        clearTimeout(pressTimer);
-      });
-
-      layer.on('mouseout', () => {
-        clearTimeout(pressTimer);
-      });
-
       const exists = polygonsDrawAnalisct.value.features.find(f => f.properties.id === newId);
       if (!exists) {
         const description = prompt("Polígono adicionado com sucesso! Digite uma descrição:");
-        layer.feature.properties = {
-          ...layer.feature.properties,
+
+        geojson.properties = {
+          id: newId,
           description: description || ''
         };
-        polygonsDrawAnalisct.value.features.push(layer.toGeoJSON());
-      }
 
-      drawnItemsLayerAvailable.value.addLayer(layer);
+        layer.feature = geojson;
+        layer.options.customId = newId;
+        layer.setStyle({
+          weight: 4,
+          color: 'yellow',
+          fillOpacity: 0.2
+        });
+
+        layer.bindTooltip(description || '', {
+          permanent: true,
+          direction: 'center',
+          className: 'polygon-label'
+        });
+
+        polygonsDrawAnalisct.value.features.push(layer.toGeoJSON());
+        attachLayerEvents(layer);
+        revisionLayerGroup.value.addLayer(layer);
+      }
     });
   }
 
-  if (!props.isClickedClassifiedManual && manualDrawControl) {
+  if (!isClickedToRevisionRef.value && manualDrawControl) {
     mapRef.value.off(L.Draw.Event.CREATED);
     mapRef.value.removeControl(manualDrawControl);
-    drawnItemsLayerAvailable.value.clearLayers();
     manualDrawControl = null;
-    polygonsDrawAnalisct.value = getEmptyPolygonsDraw();
     editingLayer.value = null;
   }
-});
 
-function startEditPolygon(layer) {
-  drawnItemsLayerAvailable.value.eachLayer(l => {
+    // Função reutilizável para associar eventos aos polígonos manuais
+  function attachLayerEvents(layer) {
+    layer.on('click', (event) => {
+      event.originalEvent.stopPropagation();
+      startEditPolygon(layer);
+    });
+
+    let pressTimer = null;
+
+    layer.on('mouseup', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mouseout', () => {
+      clearTimeout(pressTimer);
+    });
+
+    layer.on('mousedown', (event) => {
+      event.originalEvent.stopPropagation();
+      pressTimer = setTimeout(() => {
+        deleteRevisionPolygon(layer);
+      }, 400);
+    });
+  }
+
+  function startEditPolygon(layer) {
+  console.log("layer:", layer);
+  revisionLayerGroup.value.eachLayer(l => {
     if (l.editing && l.editing.enabled() && l !== layer) {
       l.editing.disable();
     }
@@ -458,13 +510,13 @@ function startEditPolygon(layer) {
 
     layer.on('edit', () => {
       const geojson = layer.toGeoJSON();
-      const id = layer.feature?.properties?.id;
-
+      const id = layer.options?.customId;
+      console.log("id", id);
       const index = polygonsDrawAnalisct.value.features.findIndex(f => f.properties.id === id);
       if (index !== -1) {
         polygonsDrawAnalisct.value.features[index].geometry = {
           type: "MultiPolygon",
-          coordinates: [[[geojson.geometry.coordinates[0]]]]
+          coordinates: [geojson.geometry.coordinates]
         };
         console.log("Polígono editado individualmente:", polygonsDrawAnalisct.value.features[index]);
       }
@@ -472,34 +524,26 @@ function startEditPolygon(layer) {
   }
 }
 
-function deletePolygon(layer) {
-  const id = layer.feature?.properties?.id;
-  if (id != null) {
-    const index = polygonsDrawAnalisct.value.features.findIndex(f => f.properties.id === id);
-    if (index !== -1) {
-      polygonsDrawAnalisct.value.features.splice(index, 1);
-      drawnItemsLayerAvailable.value.removeLayer(layer);
-      console.log("Polígono deletado:", id);
+  function deleteRevisionPolygon(layer) {
+  console.log("Deletando polígono:", layer);
+   if (revisionLayerGroup.value.hasLayer(layer)) {
+      revisionLayerGroup.value.removeLayer(layer);
+    }
+    console.log(" polygonsDrawAnalisct.value.features:",  polygonsDrawAnalisct.value.features);
+    const deletedId =
+      layer.options.customId ??
+      layer.feature?.properties?.id ??
+      false;
+      console.log(deletedId)
+    if (deletedId) {
+      polygonsDrawAnalisct.value.features = polygonsDrawAnalisct.value.features.filter(
+        f => f.properties.id !== deletedId
+      );
     }
   }
-}
+});
 
-watch(
-  () => polygonsDrawAnalisct.value,
-  (newVal) => {
-    console.log("Dados dos polígonos da avaliação:", JSON.stringify(newVal, null, 2));
-  },
-  { deep: true }
-);
-
-watch(
-  polygonsDraw,
-  (newVal) => {
-    console.log("polygonsDraw atualizado:", JSON.stringify(newVal, null, 2));
-  },
-  { deep: true }
-);
-
+//Store
 watch(
   polygonsDraw,
   (newVal) => {
@@ -517,6 +561,12 @@ watch(
 );
 
 
+
+watch(polygonsDrawAnalisct, (newVal) => {
+  console.log('🔍 polygonsDrawAnalisct mudou:', polygonsDrawAnalisct.value);
+  console.log(newVal);
+}, { deep: true });
+
 </script>
 
 <template>
@@ -524,7 +574,7 @@ watch(
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="isClickedClassified === true ? 24 : 18"
+      :max-zoom="isClickedToManual || isClickedToRevision ? 24 : 18"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />

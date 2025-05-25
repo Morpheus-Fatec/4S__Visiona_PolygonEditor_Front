@@ -123,16 +123,22 @@ const updateTable = async (filters) => {
 </script>
 
 <template>
-  <div class="w-100 h-80 d-flex gap-3 rounded bg-red mt-3">
-    <FilterComponent @filteredData="updateTable" />
-    <div>
-      <div class="table-container flex-grow-1 overflow-auto rounded shadow">
-        <table class="table table-striped table-bordered">
+  <div class="w-100 d-flex gap-3 rounded bg-red mt-3" style="height: 80vh">
+    <!-- Filtro com mesma altura -->
+    <div class="h-100">
+      <FilterComponent @filteredData="updateTable" />
+    </div>
+
+    <!-- Container da tabela + paginação -->
+    <div class="h-100 d-flex flex-column flex-grow-1 gap-3">
+      <!-- Tabela ocupa o espaço restante -->
+      <div class="overflow-auto rounded shadow flex-grow-1">
+        <table class="table table-striped table-bordered mb-0">
           <thead class="sticky-top">
             <tr>
               <th class="col text-center bg-dark text-white p-4">Nome</th>
               <th class="col text-center bg-dark text-white p-4">Cultura</th>
-              <th class="col text-center bg-dark text-white p-4">Area</th>
+              <th class="col text-center bg-dark text-white p-4">Área</th>
               <th class="col text-center bg-dark text-white p-4">Solo</th>
               <th class="col text-center bg-dark text-white p-4">Safra</th>
               <th class="col text-center bg-dark text-white p-4">Fazenda</th>
@@ -148,11 +154,12 @@ const updateTable = async (filters) => {
               <td class="text-wrap py-3">{{ data.properties.area }}</td>
               <td class="text-wrap py-3">{{ data.properties.soil.nome }}</td>
               <td class="text-wrap py-3">{{ data.properties.harvest }}</td>
-              <td class="text-center py-3">{{ data.properties.farm ? data.properties.farm.farmName : 'N/A' }}</td>
+              <td class="text-center py-3">
+                {{ data.properties.farm ? data.properties.farm.farmName : 'N/A' }}
+              </td>
               <td class="text-center py-3">
                 {{ (data.properties.farm.farmCity || 'Sem registro') + '/' + (data.properties.farm.farmState || 'Sem registro') }}
               </td>
-
               <td class="text-center py-3">{{ data.properties.status }}</td>
               <td class="text-center px-3">
                 <button @click="handlePrintId(data.properties.id)" class="btn btn-primary">+</button>
@@ -164,14 +171,19 @@ const updateTable = async (filters) => {
           </tbody>
         </table>
       </div>
+
       <PaginationComponent
-      :total-items="totalItems"
-      :total-pages="totalPages"
-      :items-per-page="20"
-      @pageChanged="handlePageChange"/>
+        :total-items="totalItems"
+        :total-pages="totalPages"
+        :items-per-page="20"
+        @pageChanged="handlePageChange"
+      />
     </div>
   </div>
 </template>
+
+
+
 
 <style scoped>
 .table-container {
