@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import Layout from '../components/Layout/Layout.vue'
-import axios from 'axios'
 import { ref, onMounted } from 'vue'
 import LineChart2 from '../components/Dashboards/LineChartMonths.vue'
 import type { ChartData } from 'chart.js'
 import api from '@/components/util/api.js'
+
 
 const chartData = ref<ChartData<'line'>>({
   labels: [],
@@ -26,7 +26,7 @@ onMounted(async () => {
   try {
     const response = await api.get('/analise/qualidadeanalises')
     const meses = response.data.meses
-
+    console.log('meses', meses)
     chartData.value = {
       labels: meses.map((item: any) => item.month),
       datasets: [
@@ -36,7 +36,8 @@ onMounted(async () => {
           fill: false,
           borderColor: 'rgba(255, 205, 86, 1)',
           backgroundColor: 'rgba(255, 205, 86, 0.5)',
-          tension: 0
+          tension: 0,
+          yAxisID: 'y1'
         },
         {
           label: 'Valor Final',
@@ -44,7 +45,8 @@ onMounted(async () => {
           fill: false,
           borderColor: 'rgba(54, 57, 107, 1)',
           backgroundColor: 'rgba(54, 57, 107, 0.5)',
-          tension: 0
+          tension: 0,
+          yAxisID: 'y'
         }
       ]
     }
@@ -64,12 +66,7 @@ noEditing()
         <div class="col-12 col-lg-8">
           <div class="card shadow-sm h-100">
             <div class="card-body d-flex flex-column justify-content-center" style="min-height: 420px;">
-              <LineChart2
-                v-if="chartData.labels?.length"
-                :chartData="chartData"
-                  :chartTitle="chartTitle"
-
-              />
+              <LineChart2 v-if="chartData.labels?.length" :chartData="chartData" :chartTitle="chartTitle" />
             </div>
           </div>
         </div>
@@ -87,4 +84,3 @@ noEditing()
     </div>
   </Layout>
 </template>
-

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import {
-  Line
-} from 'vue-chartjs'
+import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
   LineElement,
@@ -11,9 +9,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler 
+  Filler
 } from 'chart.js'
-
 import type { ChartData, ChartOptions } from 'chart.js'
 
 ChartJS.register(
@@ -49,12 +46,37 @@ const chartOptions: ChartOptions<'line'> = {
   },
   scales: {
     y: {
-      beginAtZero: true
+      beginAtZero: true,
+      position: 'left',
+      title: {
+        display: true,
+        text: 'Área Final'
+      }
+    },
+    y1: {
+      beginAtZero: true,
+      position: 'right',
+      grid: {
+        drawOnChartArea: false 
+      },
+      title: {
+        display: true,
+        text: 'Área Inicial'
+      }
     }
   }
 }
 </script>
 
 <template>
-  <Line :data="chartData" :options="{ ...chartOptions, plugins: { ...chartOptions.plugins, title: { ...chartOptions.plugins!.title, text: chartTitle } } }" />
+  <Line
+    :data="chartData"
+    :options="{
+      ...chartOptions,
+      plugins: {
+        ...chartOptions.plugins,
+        title: { ...chartOptions.plugins!.title, text: chartTitle }
+      }
+    }"
+  />
 </template>
