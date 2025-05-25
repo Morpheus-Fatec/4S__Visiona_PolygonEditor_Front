@@ -2,7 +2,6 @@
 import Layout from '../components/Layout/Layout.vue'
 import LineChartMeses from '@/components/Dashboards/LineChartMonths.vue'
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
 import type { ChartData } from 'chart.js'
 import api from '@/components/util/api.js'
 
@@ -15,6 +14,7 @@ const consultantList = ref([])
 const errorMessage = ref('')
 const selectedConsultant = ref(null)
 const dadosGrafico = ref<any>(null)
+const consultantId = ref<number | null>(null)
 
 const meses = [
   'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
@@ -23,7 +23,11 @@ const meses = [
 
 onMounted(async () => {
   try {
-    const response = await axios.get('/jsonConsultores.json')
+    const url = consultantId.value
+      ? `/analise/consultor-mensal/${consultantId.value}`
+      : '/analise/consultor-mensal'
+
+    const response = await api.get(url)
     dadosGrafico.value = response.data
 
     chartData1.value = {
@@ -31,7 +35,7 @@ onMounted(async () => {
       datasets: [
         {
           label: 'Consultores (média geral)',
-          data: meses.map(m => dadosGrafico.value.consultores[m] || 0),
+          data: meses.map(m => dadosGrafico.value.consultants?.[m] || 0),
           borderColor: 'rgba(128, 128, 128, 1)',
           backgroundColor: 'rgba(128, 128, 128, 0.2)',
           fill: false,
@@ -39,8 +43,7 @@ onMounted(async () => {
         }
       ]
     }
-  } catch (error) {
-    console.error('Erro ao buscar dados do gráfico:', error)
+  } catch {
     errorMessage.value = 'Erro ao carregar os dados do gráfico.'
   }
 
@@ -58,7 +61,6 @@ const fetchUsers = async () => {
       errorMessage.value = 'Não há consultores disponíveis.'
     }
   } catch (error) {
-    console.error('Erro ao buscar usuários:', error)
     errorMessage.value = error.response?.data?.error || 'Erro ao buscar usuários.'
   }
 }
@@ -73,7 +75,7 @@ const selectConsultant = (analystId: number) => {
     datasets: [
       {
         label: 'Consultores (média geral)',
-        data: meses.map(m => dadosGrafico.value.consultores[m] || 0),
+        data: meses.map(m => dadosGrafico.value.consultants[m] || 0),
         borderColor: 'rgba(128, 128, 128, 1)',
         backgroundColor: 'rgba(128, 128, 128, 0.2)',
         fill: false,
@@ -81,7 +83,7 @@ const selectConsultant = (analystId: number) => {
       },
       {
         label: selected.name,
-        data: meses.map(m => dadosGrafico.value.consultor[m] || 0),
+        data: meses.map(m => dadosGrafico.value.consultant[m] || 0),
         borderColor: 'rgba(255, 99, 132, 1)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         fill: false,

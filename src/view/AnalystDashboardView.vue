@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
 import api from '@/components/util/api'
 import BarChart from '@/components/Dashboards/BarChart.vue'
 import Layout from '@/components/Layout/Layout.vue'
@@ -19,88 +18,97 @@ const chartOptions = ref({})
 
 const analysisQualityGraph = async (analystId?: number) => {
   try {
-    const response = await axios.get(`/jsonProgress.json`);
-    const dados = response.data;
+    const url = analystId
+      ? `/analise/qualidadeanalistas/${analystId}`
+      : `/analise/qualidadeanalistas`
 
-    analystQuality.value = response.data.analista;
-    allAnalystQuality.value = response.data.analistas;
+    const response = await api.get(url)
+    const dados = response.data
 
-    const totalAnalyst = analystQuality.value.ideal + analystQuality.value.aceitavel + analystQuality.value.plena
-    const totalAnalysts = allAnalystQuality.value.ideal + allAnalystQuality.value.aceitavel + allAnalystQuality.value.plena
+    analystQuality.value = dados.analyst
+    allAnalystQuality.value = dados.team
+
+    const totalAnalyst = analystQuality.value.ideal + analystQuality.value.acceptable + analystQuality.value.critical
+    const totalAnalysts = allAnalystQuality.value.ideal + allAnalystQuality.value.acceptable + allAnalystQuality.value.critical
 
     progressDataAnalyst.value = [
-      { label: 'Ideal', value: (analystQuality.value.ideal / totalAnalyst) * 100, color: 'bg-primary' },
-      { label: 'Aceitável', value: (analystQuality.value.aceitavel / totalAnalyst) * 100, color: 'bg-warning' },
-      { label: 'Plena', value: (analystQuality.value.plena / totalAnalyst) * 100, color: 'bg-danger' }
+      { label: 'Ideal', value: totalAnalyst ? (analystQuality.value.ideal / totalAnalyst) * 100 : 0, color: 'bg-primary' },
+      { label: 'Aceitável', value: totalAnalyst ? (analystQuality.value.acceptable / totalAnalyst) * 100 : 0, color: 'bg-warning' },
+      { label: 'Crítica', value: totalAnalyst ? (analystQuality.value.critical / totalAnalyst) * 100 : 0, color: 'bg-danger' }
     ]
 
     progressDataAllAnalysts.value = [
-      { label: 'Ideal', value: (allAnalystQuality.value.ideal / totalAnalysts) * 100, color: 'bg-primary' },
-      { label: 'Aceitável', value: (allAnalystQuality.value.aceitavel / totalAnalysts) * 100, color: 'bg-warning' },
-      { label: 'Plena', value: (allAnalystQuality.value.plena / totalAnalysts) * 100, color: 'bg-danger' }
+      { label: 'Ideal', value: totalAnalysts ? (allAnalystQuality.value.ideal / totalAnalysts) * 100 : 0, color: 'bg-primary' },
+      { label: 'Aceitável', value: totalAnalysts ? (allAnalystQuality.value.acceptable / totalAnalysts) * 100 : 0, color: 'bg-warning' },
+      { label: 'Crítica', value: totalAnalysts ? (allAnalystQuality.value.critical / totalAnalysts) * 100 : 0, color: 'bg-danger' }
     ]
   } catch (error) {
     console.error('Erro ao buscar dados do endpoint:', error)
   }
-};
+}
 
 const fetchUsers = async () => {
   try {
-    const response = await api.get('/user/listarUsuarios');
+    const response = await api.get('/user/listarUsuarios')
     analistList.value = response.data.filter(user => user.isAnalyst).map(user => ({
       id: user.id,
       name: user.name,
       isAdmin: user.isAdmin,
       isConsultant: user.isConsultant,
       isAnalyst: user.isAnalyst
-    }));
+    }))
     if (analistList.value.length === 0) {
-      errorMessage.value = 'Não há analistas.';
+      errorMessage.value = 'Não há analistas.'
     }
   } catch (error) {
-    console.error(error);
-    errorMessage.value = error.response?.data?.error || 'Erro ao buscar usuários.';
+    console.error(error)
+    errorMessage.value = error.response?.data?.error || 'Erro ao buscar usuários.'
   }
-};
+}
 
 const selectAnalyst = (analystId: number) => {
-  selectedAnalyst.value = analistList.value.find(analyst => analyst.id === analystId);
-  productivityMetric(analystId);
-};
+  selectedAnalyst.value = analistList.value.find(analyst => analyst.id === analystId)
+  productivityMetric(analystId)
+}
 
 const productivityMetric = async (analystId?: number) => {
   try {
-    const response = await axios.get(`jsonMetAnalista.json`);
-    const dados = response.data;
-    analystProdutivity.value = dados.analista
-    allAnalystProdutivity.value = dados.analistas
+    const url = analystId
+      ? `/analise/metricadeprodutividade/${analystId}`
+      : `/analise/metricadeprodutividade`
+
+    const response = await api.get(url)
+    const dados = response.data
+
+    analystProdutivity.value = dados.analyst
+    allAnalystProdutivity.value = dados.analysts
   } catch (error) {
     console.error('Erro ao buscar dados do endpoint:', error)
   }
-};
+}
 
 const barChart = async () => {
   try {
-    const response = await axios.get('/jsonDesenpAnalist.json');
-    const dados = response.data;
+    const response = await api.get('/analise/desempenhoanalistas')
+    const dados = response.data
 
     chartData.value = {
-      labels: dados.map(item => item.nome || 'Sem Nome'),
+      labels: dados.map(item => item.name || 'Sem Nome'),
       datasets: [
         {
           label: 'Aprovada',
           backgroundColor: '#4caf50',
-          data: dados.map(item => item.area_aprovada)
+          data: dados.map(item => item.approvedArea)
         },
         {
           label: 'Pendente',
           backgroundColor: '#ced4da',
-          data: dados.map(item => item.area_pendente)
+          data: dados.map(item => item.pendingArea)
         },
         {
           label: 'Reprovada',
           backgroundColor: '#f44336',
-          data: dados.map(item => item.area_reprovada)
+          data: dados.map(item => item.rejectedArea)
         }
       ]
     }
@@ -109,22 +117,12 @@ const barChart = async () => {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'top'
-        },
-        title: {
-          display: true,
-          text: '',
-        }
+        legend: { position: 'top' },
+        title: { display: true, text: '' }
       },
       scales: {
-        x: {
-          stacked: true
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true
-        }
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true }
       }
     }
   } catch (error) {
@@ -232,7 +230,6 @@ onMounted(() => {
     </div>
   </Layout>
 </template>
-
 
 <style scoped>
 .progress-stacked {
