@@ -122,9 +122,10 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
 
   if (fieldStatus.value === "Aprovado") {
     const [hasFalsePositive, hasFalseNegative] = await loadFalsePositiveClassification(
-      fieldId,
       falsePositiveLayerGroup.value,
-      falseNegativeLayerGroup.value
+      falseNegativeLayerGroup.value,
+      manualLayerGroup.value,
+      classificationLayerGroup.value
     );
 
     if (hasFalsePositive) {
@@ -188,7 +189,6 @@ async function updateOverlays(isClickedToManual, isClickedToRevision, currentOve
     delete currentOverlays['Revisão Manual'];
     revisionLayerGroup.value.addTo(mapRef.value);
     currentOverlays['Revisão Manual'] = revisionLayerGroup.value;
-    mapRef.value.removeLayer(revisionLayerGroup.value);
     layerControlRef.value.addOverlay(revisionLayerGroup.value, 'Revisão Manual');
 
      mapRef.value.removeLayer(manualLayerGroup.value);
@@ -313,7 +313,6 @@ watchEffect(async () => {
 
   // Função para editar o polígono ao clicar
 function startEditPolygonManual(layer) {
-  console.log("polygonsDraw antes:", polygonsDraw.value.features);
   manualLayerGroup.value.eachLayer(l => {
     if (l.editing && l.editing.enabled() && l !== layer) {
       l.editing.disable();
@@ -416,7 +415,6 @@ watchEffect( async () => {
       console.error("Erro ao adicionar controle de desenho:", error);
     }
 
-    console.log("polygonsDrawAnalisct.value.features", polygonsDrawAnalisct.value.features);
 
     for (const layer of revisionLayerGroup.value.getLayers()) {
       const geojson = layer.toGeoJSON();

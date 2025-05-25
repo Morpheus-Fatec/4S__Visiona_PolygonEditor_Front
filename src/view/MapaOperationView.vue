@@ -17,6 +17,11 @@ const originalInfoList = ref([]);;
 const isClickedToManual = ref(false);
 const isClickedToRevision = ref(false);
 const isEditing = ref(false);
+const usuario = JSON.parse(localStorage.getItem('usuario'));
+
+const showRejectionInput = ref(false);
+const showApprovalInput = ref(false);
+const rejectionReason = ref('');
 
 const cultures = ref([]);
 const soils = ref([]);
@@ -298,7 +303,7 @@ watchEffect(() => {
               <button class="btn btn-success w-100 fw-bold" @click="saveEdit">Salvar Edição</button>
             </div>
           </template>
-          <template v-else>
+          <template v-else-if="usuario.role === 'Administrador' || usuario.role === 'Consultor'">
             <div class="w-100 mt-auto d-flex flex-column gap-2">
               <button class="btn btn-success w-100 fw-bold" @click="handleEdit">Editar</button>
               <template v-if="infoList.find(item => item.title === 'Status')?.value === 'Aprovado'">
@@ -335,10 +340,10 @@ watchEffect(() => {
       <!-- Botões flutuantes -->
       <template v-if="!isEditing && !isClickedToManual && !isClickedToRevision">
         <div class="divButton">
-          <template v-if="data?.properties?.status === 'Pendente' || data?.properties?.status === 'Reprovado'">
+          <template v-if="(data?.properties?.status === 'Pendente' || data?.properties?.status === 'Reprovado') && (usuario.role === 'Administrador' || usuario.role === 'Analista')">
             <button class="btn btn-primary button" @click="isClickedToManual = true">Classificar</button>
           </template>
-          <template v-if="data?.properties?.status === 'Em Análise'">
+          <template v-if="(data?.properties?.status === 'Em Análise') && (usuario.role === 'Administrador' || usuario.role === 'Consultor')">
             <button class="btn btn-primary button" @click="isClickedToRevision = true">Avaliar</button>
           </template>
         </div>

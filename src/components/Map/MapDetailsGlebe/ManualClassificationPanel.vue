@@ -39,12 +39,7 @@
 
         <div>
           <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-          <select class="form-select text-muted" v-model="localSelectedUser">
-            <option disabled :value="null">Escolha o analista</option>
-            <option v-for="user in analysts" :key="user.id" :value="user.id">
-              {{ user.name }}
-            </option>
-          </select>
+          <input class="form-control" disabled :value="usuario.nome" />
         </div>
 
         <div>
@@ -149,8 +144,7 @@ const beginTime = ref("");
 beginTime.value = formatDate(new Date());
 const endTime = ref("");
 const isClickedClassified = ref(false);
-
-
+const usuario = JSON.parse(localStorage.getItem('usuario'));
 
 watch(localSelectedUser, (newVal) => {
   emit('update:selectedUser', newVal);
@@ -215,7 +209,7 @@ function buildSaveClassificationPayload() {
 
   const payload = {
     idField: props.data.properties.id,
-    userResponsable: localSelectedUser.value,
+    userResponsable: usuario.id,
     status: "PENDING",
     begin: beginTime.value,
     end: endTime.value,
@@ -226,7 +220,7 @@ function buildSaveClassificationPayload() {
 }
 
 function canSave() {
-  return localSelectedUser.value !== "";
+  return usuario.id !== "";
 }
 
 async function handleSaveClassification() {
@@ -236,7 +230,6 @@ async function handleSaveClassification() {
     modalSaveInstance.hide();
   }
 
-  console.log("user id: ", localSelectedUser.value)
 
   if (!canSave()) {
     showModalMessage(

@@ -42,15 +42,12 @@
 
         <div>
           <p class="mb-2 text-muted fw-semibold">Analista responsável</p>
-          <input class="form-control" disabled :value="selectedUser || ''" />
+          <input class="form-control" disabled :value="analistName || ''" />
         </div>
 
         <div>
           <p class="mb-2 text-muted fw-semibold">Consultor responsável</p>
-          <select class="form-select text-muted" v-model="selectedUserConsultant">
-            <option disabled value="">Escolha o consultor</option>
-            <option v-for="user in consultants" :key="user.id" :value="user.id">{{ user.name }}</option>
-          </select>
+          <input class="form-control" disabled :value="usuario.nome" />
         </div>
 
         <div>
@@ -88,7 +85,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetModal"></button>
         </div>
         <div class="modal-body lh-base">
-          A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ getConsultantName(selectedUserConsultant) }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
+          A classificação manual foi realizada pelo consultor <span class="fw-bold"> {{ analistName }}</span>. Após a sua análise e verificação das informações fornecidas na classificação,
           você deseja aceitar ou recusar esta classificação manual de ervas daninhas?
         </div>
         <div class="modal-footer">
@@ -189,27 +186,37 @@ const props = defineProps({
   data: Object,
   consultants: Array,
 });
-
 const data = ref(props.data)
-const selectedUser = 1;
-console.log('selectedUser', selectedUser);
 const emit = defineEmits(['cancel']);
 const polygonStore = usePolygonStore();
 const polygonsAnalisct = computed(() => polygonStore.polygonsDrawAnalisct);
 const isClickedToRevision = ref(false)
-const selectedUserConsultant = ref('')
 const beginTime = ref("");
 const endTime = ref("");
-const selectedConsultantId = ref('')
 const modalMessageTitle = ref('');
 const modalMessageBody = ref('');
 const modalMessageType = ref('success');
+const usuario = JSON.parse(localStorage.getItem('usuario'));
+const analistName = ref(null);
 
-const getConsultantName = (selectedUserConsultantId) => {
-  selectedConsultantId.value = selectedUserConsultantId;
-  const consultant = props.consultants.find(user => user.id === selectedUserConsultantId);
-  return consultant ? consultant.name : 'Consultor desconhecido';
-};
+async function getAnalistName(fieldId) {
+  try {
+    const response = await api.get(`/user/analistName/${fieldId}`, {
+      withCredentials: true
+    });
+    if (response && response.data) {
+      analistName.value = response.data;
+    } else {
+      console.error("Resposta da API inválida");
+      return 'Erro ao buscar consultor';
+    }
+  } catch (error) {
+    console.error("Erro ao buscar consultor:", error);
+    return 'Erro ao buscar consultor';
+  }
+}
+
+
 
 function formatDate(date) {
   const d = new Date(date);
@@ -258,6 +265,7 @@ async function handleClickToAssess() {
     return;
   }
 
+  getAnalistName(data.value.properties.id);
   beginTime.value = formatDate(new Date());
   const status = data.value.properties.status;
 
@@ -323,13 +331,6 @@ async function handleClickToAssess() {
 function buildSaveAvailablePayload(status) {
   endTime.value = formatDate(new Date());
 
-  const userResponsable = selectedConsultantId.value;
-
-  if (!userResponsable) {
-    console.error("Usuário não encontrado");
-    return;
-  }
-
   const featuresGeometry = polygonsAnalisct.value.features.map(feature => {
     const updatedFeature = {
       ...feature,
@@ -344,10 +345,10 @@ function buildSaveAvailablePayload(status) {
     };
     return updatedFeature;
   });
-
+  console.log(" usuario.id", usuario.id);
   const payload = {
     idField: data.value.properties.id,
-    userResponsable: userResponsable.id,
+    userResponsable: usuario.id,
     status: status,
     begin: beginTime.value,
     end: endTime.value,
@@ -358,10 +359,6 @@ function buildSaveAvailablePayload(status) {
 }
 
 
-function canSaveAnalisct() {
-  return selectedUserConsultant.value !== "";
-}
-
 async function handleSaveAnalisct(status) {
   const modalSaveEl = document.getElementById('modalSaveClassified');
   const modalSaveInstance = bootstrap.Modal.getInstance(modalSaveEl);
@@ -369,14 +366,6 @@ async function handleSaveAnalisct(status) {
     modalSaveInstance.hide();
   }
 
-  if (!canSaveAnalisct()) {
-    showModalMessage(
-      'Dados Incompletos',
-      'Por favor, selecione um usuário e adicione um polígono.',
-      'error'
-    );
-    return;
-  }
 
   const payload = buildSaveAvailablePayload(status);  // Passando o status para a função
 
@@ -395,7 +384,6 @@ async function handleSaveAnalisct(status) {
         'success'
       );
       isClickedToRevision.value = false;
-      selectedUserConsultant.value = "";
       loadData();
     } else {
       console.error("Resposta da API inválida ou sem a propriedade 'data'");
