@@ -1,0 +1,59 @@
+{
+    "meses": [
+        {
+            "month": "2025-02",
+            "initialArea": 226,
+            "finalArea": 226
+        },
+        {
+            "month": "2025-03",
+            "initialArea": 351,
+            "finalArea": 351
+        },
+        {
+            "month": "2025-04",
+            "initialArea": 256,
+            "finalArea": 256
+        },
+        {
+            "month": "2025-05",
+            "initialArea": 296,
+            "finalArea": 296
+        },
+        {
+            "month": "2025-06",
+            "initialArea": 320,
+            "finalArea": 320
+        },
+        {
+            "month": "2025-07",
+            "initialArea": 243,
+            "finalArea": 243
+        },
+        {
+            "month": "2025-08",
+            "initialArea": 344,
+            "finalArea": 344
+        },
+        {
+            "month": "2025-09",
+            "initialArea": 115,
+            "finalArea": 115
+        },
+        {
+            "month": "2025-10",
+            "initialArea": 166,
+            "finalArea": 166
+        },
+        {
+            "month": "2025-11",
+            "initialArea": 155,
+            "finalArea": 155
+        },
+        {
+            "month": "2025-12",
+            "initialArea": 125,
+            "finalArea": 125
+        }
+    ]
+}

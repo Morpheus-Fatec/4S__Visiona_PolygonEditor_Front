@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Ana Silva",
+    "rejectedArea": 25.5,
+    "pendingArea": 14.5,
+    "approvedArea": 50
+  },
+  {
+    "name": "Carlos Souza",
+    "rejectedArea": 25,
+    "pendingArea": 15,
+    "approvedArea": 60
+  },
+  {
+    "name": "Fernanda Lima",
+    "rejectedArea": 20,
+    "pendingArea": 30,
+    "approvedArea": 50
+  },
+  {
+    "name": "João Pedro",
+    "rejectedArea": 25,
+    "pendingArea": 35,
+    "approvedArea": 40
+  },
+  {
+    "name": "Beatriz Souza",
+    "rejectedArea": 0,
+    "pendingArea": 0,
+    "approvedArea": 95
+  }
+]
