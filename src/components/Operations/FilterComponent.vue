@@ -19,7 +19,7 @@ const applyFilter = () => {
 </script>
 
 <template>
-  <div class="filter-component bg-white shadow">
+  <div class="filter-component bg-white shadow h-100">
     <div class="filters-container h-100 pt-4 pe-4 ps-4 pb-0">
       <div class="filter-item">
         <label for="talhaoFilter" class="h6">Nome do talhão</label>
@@ -85,3 +85,4 @@ const applyFilter = () => {
   flex-direction: column;
 }
 </style>
+>
