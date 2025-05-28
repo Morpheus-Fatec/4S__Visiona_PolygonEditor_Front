@@ -574,7 +574,7 @@ watch(polygonsDrawAnalisct, (newVal) => {
     <l-map
       :zoom="zoom"
       :min-zoom="12"
-      :max-zoom="isClickedToManual || isClickedToRevision ? 24 : 18"
+      :max-zoom="isClickedToManual || isClickedToRevision ? 24 : 24"
       @ready="onMapReady"
     >
       <l-control-scale position="bottomleft" :imperial="true" :metric="true" />
